@@ -5,299 +5,763 @@ import Footer from '../components/Footer.astro';
 import SimLaes from '../components/sims/SimLaes.astro';
 ---
 
-<BaseLayout title="Nana Gyasi — Founder, Kanay">
+<BaseLayout
+  title="Nana Gyasi — Founder, Kanay · Energy, AI, Africa"
+  description="Founder and CEO of Kanay. Twenty years inside the energy industry, now building the trading house that runs on its own intelligence."
+>
   <NavBar currentPath="/" />
 
-  <main>
-    <section class="hero">
-      <div class="hero-inner wrap">
-        <div class="hero-content">
-          <div class="eyebrow">
-            <span class="dot"></span>
-            Founder & CEO, Kanay
-          </div>
-          <h1>
-            Building the<br />
-            <em>trading house</em><br />
-            <span class="pale">that runs on</span><br />
-            its own intelligence.
-          </h1>
-          <p class="lede">
-            Twenty years inside the energy industry, now building Kanay —
-            the AI-native commodity trading house for sustainable feedstocks.
-          </p>
-          <div class="hero-actions">
-            <a href="/work" class="btn-primary">View my work</a>
-            <a href="/contact" class="btn-ghost">Get in touch</a>
-          </div>
-        </div>
-        <div class="hero-meta">
-          <div class="meta-block">
-            <div class="meta-label">Based in</div>
-            <div class="meta-value">London, UK</div>
-          </div>
-          <div class="meta-block">
-            <div class="meta-label">Focus</div>
-            <div class="meta-value">Energy & Commodities</div>
-          </div>
-          <div class="meta-block">
-            <div class="meta-label">Stack</div>
-            <div class="meta-value">AI, Trading, Sustainability</div>
-          </div>
+  <main id="content">
+
+    <!-- ======== HERO ======== -->
+    <section class="wrap hero" data-od-id="hero">
+      <div class="reveal">
+        <span class="eyebrow"><span class="dot"></span>London / Accra · Available for advisory & speaking</span>
+        <h1>I spent twenty years <em>inside the energy trade.</em><br><span class="pale">Now I run the firm that tries to do it better.</span></h1>
+      </div>
+      <div class="reveal">
+        <p class="lede">Nana Gyasi. Founder &amp; CEO of <strong style="color: var(--ink); font-weight: 600;">Kanay</strong>, a London-based sustainable energy company building the proprietary intelligence layer beneath modern energy supply.</p>
+        <p class="meta">— Positioning</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="#contact">Reach out</a>
+          <a class="btn-link" href="#now">See what I'm focused on</a>
         </div>
       </div>
     </section>
 
-    <section class="sims-section" id="simulations">
-      <div class="wrap">
-        <div class="section-header">
-          <span class="eyebrow-mono">Interactive</span>
-          <h2>Simulations</h2>
-          <p class="section-sub">
-            Energy system models and trading simulations built with Three.js.
-            Real physics, real market logic.
-          </p>
+    <!-- ======== NOW ======== -->
+    <section class="wrap section" id="now" data-od-id="now">
+      <div class="section-head reveal">
+        <div>
+          <span class="num">01 / Now</span>
         </div>
-        <div class="sims-grid">
-          <SimLaes />
-          <!-- Additional sims drop in here -->
+        <div>
+          <h2>What I'm focused on this season.</h2>
+          <p class="intro">Kanay is in its build phase. The next eighteen months are about three things: getting the proprietary classification engine into a customer factory, opening a second African corridor, and turning our physical-trading desk into a default-tied telemetry product.</p>
+        </div>
+      </div>
+
+      <div class="focus-grid reveal">
+        <div class="focus">
+          <span class="tag">a · Energy</span>
+          <h3>Africa's energy transition, run on African capital.</h3>
+          <p>Closing the gap between the kilowatt-hours Africa needs and the patient money willing to underwrite them. Equity participation, free power, jobs, food security — at zero upfront cost to government.</p>
+        </div>
+        <div class="focus">
+          <span class="tag">b · Intelligence</span>
+          <h3>A trading house that runs on its own classification.</h3>
+          <p>Outcome-based AI pricing — per unit confirmed, per decision supported, never per GPU-hour. The reference price holds even as our cost base falls. That's the only moat that compounds.</p>
+        </div>
+        <div class="focus">
+          <span class="tag">c · Infrastructure</span>
+          <h3>Compute before trading.</h3>
+          <p>Owning the data centre floor beneath the model means our trading desk is never dependent on a third-party cloud provider. The MFU is our problem to solve, not a vendor's problem that penalises us.</p>
+        </div>
+        <div class="focus">
+          <span class="tag">d · People</span>
+          <h3>An apprenticeship culture, not a hiring funnel.</h3>
+          <p>Students from Monash, Warwick and Monash Malaysia built our wetland-valuation work this summer. Their reflections are more honest than any consultant's deck. Build the bench before you build the brand.</p>
         </div>
       </div>
     </section>
 
-    <section class="about-teaser" id="about">
-      <div class="wrap-narrow">
-        <h2>About</h2>
-        <p>
-          Nana Gyasi is the founder and CEO of Kanay, a sustainable feedstock
-          trading house operating at the intersection of energy markets, commodity
-          trading, and AI.
-        </p>
-        <p>
-          Before Kanay, twenty years across bp, Shell, and commodity trading desks —
-          building and running physical and financial energy positions across European
-          power, gas, and environmental markets.
-        </p>
-        <a href="/about" class="read-more">Read more &rarr;</a>
+    <!-- ======== SIMULATION SECTION ======== -->
+    <section class="wrap section" id="simulations" data-od-id="simulations">
+      <div class="section-head reveal">
+        <div>
+          <span class="num">02 / Simulations</span>
+        </div>
+        <div>
+          <h2>Energy systems, rendered in Three.js.</h2>
+          <p class="intro">Interactive simulations built from first principles — real physics, real market logic. These run inside the browser, no plugins required.</p>
+        </div>
+      </div>
+      <div class="reveal">
+        <SimLaes height="600px" />
       </div>
     </section>
+
+    <!-- ======== WORK ======== -->
+    <section class="wrap section" id="work" data-od-id="work">
+      <div class="section-head reveal">
+        <div>
+          <span class="num">03 / Work</span>
+        </div>
+        <div>
+          <h2>From downstream fuels to AI-native energy.</h2>
+          <p class="intro">Nineteen years at ExxonMobil across aviation, chemicals and wholesale. Then I left to build the thing I couldn't buy as a customer.</p>
+        </div>
+      </div>
+
+      <div class="timeline reveal">
+        <article class="row" data-od-id="work-kanay">
+          <span class="when">Nov 2021 — present</span>
+          <div class="where">Kanay<small>London · Founder &amp; CEO</small></div>
+          <div class="what">
+            <p>Founded a sustainable energy company that creates new markets for fragmented products by integrating AI systems in the physical world for multiple industries. Three building blocks: commodity trading (EMM), data-centre infrastructure (Invisible Intelligence), and incubated ventures (Innovation Hub).</p>
+            <p>Headquartered in London, with operating presence in Accra and a pan-African corridor under build.</p>
+          </div>
+        </article>
+
+        <article class="row" data-od-id="work-exxon">
+          <span class="when">2002 — 2021 · 19 years</span>
+          <div class="where">ExxonMobil<small>International Commercial Manager</small></div>
+          <div class="what">
+            <p>Downstream fuels and chemicals — aviation, chemicals, wholesale. The work was unglamorous: long contracts, regional spreads, customer credit, the kind of detail that compounds quietly across a career.</p>
+            <p>It's also where I learned that the energy industry doesn't lack capital or technology. It lacks structure — the connective tissue between producers, customers and the systems that price between them.</p>
+          </div>
+        </article>
+
+        <article class="row" data-od-id="work-early">
+          <span class="when">Pre-2002</span>
+          <div class="where">Engineering &amp; commercial foundations<small>University of Warwick · early operator roles</small></div>
+          <div class="what">
+            <p>Training as an engineer, then a fast track into commercial roles. I've always been more interested in the buying and selling of physical things than in the abstract models used to price them.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ======== VENTURES ======== -->
+    <section class="wrap section" id="ventures" data-od-id="ventures">
+      <div class="section-head reveal">
+        <div>
+          <span class="num">04 / Ventures</span>
+        </div>
+        <div>
+          <h2>Three buildings. One operating system.</h2>
+          <p class="intro">Kanay is organised as three building blocks. Each one is a venture in its own right; together they form the flywheel — own infrastructure, power your AI, trade on the edge.</p>
+        </div>
+      </div>
+
+      <div class="ventures reveal">
+        <article class="venture venture--lead" data-od-id="venture-emm">
+          <span class="label">EMM · Energy, Molecules &amp; Materials</span>
+          <h3>Commodity trading, but the firm runs the model.</h3>
+          <p>The physical-commodity trading house — Vitol, Trafigura, Glencore lineage, AI-native by construction. Contango, geographic arbitrage, structured trade. The intelligence layer gives us the exact grade and defect rate competitors only estimate.</p>
+          <div class="tag-row">
+            <span class="chip chip--green">Active</span>
+            <span class="chip chip--blue">Physical trade</span>
+            <span class="chip chip--yellow">Multi-commodity</span>
+          </div>
+        </article>
+
+        <article class="venture venture--mid" data-od-id="venture-invisible-intelligence">
+          <span class="label">Invisible Intelligence</span>
+          <h3>The floor under the model.</h3>
+          <p>Data-centre infrastructure, owned and operated. Colocation, neocloud GPU instances, CDN at the edge. Anchored by our own trading-desk compute — the customers add utilisation.</p>
+          <div class="tag-row">
+            <span class="chip chip--blue">Build phase</span>
+            <span class="chip chip--green">Per kW</span>
+          </div>
+        </article>
+
+        <article class="venture venture--half" data-od-id="venture-innovation-hub">
+          <span class="label">Innovation Hub</span>
+          <h3>Software, AI tooling, and incubated ventures.</h3>
+          <p>Where new Kanay ventures get shaped before they graduate. The Hub incubates; the businesses ship.</p>
+          <div class="tag-row">
+            <span class="chip chip--yellow">Incubating</span>
+          </div>
+        </article>
+
+        <article class="venture venture--half" data-od-id="venture-global-series">
+          <span class="label">Global Series</span>
+          <h3>An audience-acquisition engine in kit form.</h3>
+          <p>A biannual men's and women's football tournament at one optimised hub, showcasing owned energy (containerised BESS arbitrage) and edge-compute (spatial AI) — a direct-to-consumer wedge.</p>
+          <div class="tag-row">
+            <span class="chip chip--red">EM2</span>
+            <span class="chip chip--yellow">Concept</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ======== PULL QUOTE ======== -->
+    <section class="wrap pull reveal" data-od-id="pull">
+      <blockquote>"Sustainable energy should be a fundamental right — accessible to all, financed by the markets it serves."</blockquote>
+      <cite>— Africa Business Forum, Tallinn · 2023</cite>
+    </section>
+
+    <!-- ======== PRESS ======== -->
+    <section class="wrap section" id="press" data-od-id="press">
+      <div class="section-head reveal">
+        <div>
+          <span class="num">05 / Press</span>
+        </div>
+        <div>
+          <h2>Speaking, panels, and the public record.</h2>
+          <p class="intro">A selection of recent stages, briefings and interviews. Inquiries through the contact channels below.</p>
+        </div>
+      </div>
+
+      <div class="press reveal">
+        <a class="press-item" href="https://www.linkedin.com/posts/paul-clegg-9351774_great-panel-discussion-today-at-apea-live-activity-7394774599105937408-CjNc" target="_blank" rel="noopener">
+          <span class="when">2025</span>
+          <span class="title">APEA Live 2025 — Fuel Finder panel<small>Speaker · UK petrol retail trade association</small></span>
+          <span class="arrow">↗</span>
+        </a>
+        <a class="press-item" href="https://vm.ee/africa-business-forum-innovating-emerging-europe" target="_blank" rel="noopener">
+          <span class="when">2023</span>
+          <span class="title">Africa Business Forum — Innovating with Emerging Europe<small>Speaker · Tallinn, Estonia · Hosted by the Estonian Ministry of Foreign Affairs</small></span>
+          <span class="arrow">↗</span>
+        </a>
+        <a class="press-item" href="https://www.linkedin.com/posts/daniel-schaer-451a5a1_africa-africabftallinn23-estonia-activity-7063527457827528704-nTYC" target="_blank" rel="noopener">
+          <span class="when">2023</span>
+          <span class="title">Doing it differently in Africa<small>Panelist · Africa B2B Forum at Tallinn Digital Summit</small></span>
+          <span class="arrow">↗</span>
+        </a>
+        <a class="press-item" href="https://vc4a.com/" target="_blank" rel="noopener">
+          <span class="when">2019 —</span>
+          <span class="title">Founder commentary on VC4Africa<small>Long-form contributor on Africa's founder-research platform</small></span>
+          <span class="arrow">↗</span>
+        </a>
+        <a class="press-item" href="https://uk.linkedin.com/in/nanagyasi" target="_blank" rel="noopener">
+          <span class="when">Ongoing</span>
+          <span class="title">LinkedIn — long-form notes on energy, AI and the trade<small>Primary public channel</small></span>
+          <span class="arrow">↗</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ======== WRITING ======== -->
+    <section class="wrap section" id="writing" data-od-id="writing">
+      <div class="section-head reveal">
+        <div>
+          <span class="num">06 / Writing</span>
+        </div>
+        <div>
+          <h2>Long-form notes from the build.</h2>
+          <p class="intro">Selected pieces — most are working memos for the Kanay team that turned out to be useful to a wider audience. New work goes on LinkedIn; older pieces below.</p>
+        </div>
+      </div>
+
+      <div class="writing-list reveal">
+        <a class="essay" href="#now">
+          <span class="when">Memo · 2026</span>
+          <h3 class="title">Why we price AI by outcome, not by GPU-hour</h3>
+          <p class="dek">Cost-based pricing is a tax on uncertainty. A reference-floor pricing model decouples revenue from MFU and captures the widening spread between customer value and our cost base. See the model in <span class="ref">Now →</span></p>
+        </a>
+        <a class="essay" href="#ventures">
+          <span class="when">Note · 2026</span>
+          <h3 class="title">Infrastructure, intelligence, trading — one operating model</h3>
+          <p class="dek">Why we own the data-centre floor beneath the model. The trading desk is the anchor tenant that justifies the capex; the external customers improve utilisation and reduce volatility. See the build in <span class="ref">Ventures →</span></p>
+        </a>
+        <a class="essay" href="#pull">
+          <span class="when">Talk · 2023</span>
+          <h3 class="title">Energy equity and the markets that finance it</h3>
+          <p class="dek">The framework I keep returning to: equity participation + free power to citizens + jobs + food security, at zero upfront cost to government. Why patient capital is the only kind that scales this. See the line in <span class="ref">Pull →</span></p>
+        </a>
+        <a class="essay" href="#work">
+          <span class="when">Essay · 2022</span>
+          <h3 class="title">From the trading floor to the founder's chair</h3>
+          <p class="dek">Nineteen years at ExxonMobil taught me the buying and selling of physical things. Building Kanay taught me that the structure underneath the trade is the trade. Read the arc in <span class="ref">Work →</span></p>
+        </a>
+      </div>
+    </section>
+
+    <!-- ======== CONTACT ======== -->
+    <section class="wrap section" id="contact" data-od-id="contact">
+      <div class="contact reveal">
+        <div>
+          <span class="num" style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 18px;">07 / Contact</span>
+          <h2>Open to advisory, speaking and serious capital.</h2>
+          <p class="lede">If you're building in energy, infrastructure or AI for emerging markets and want a second opinion from someone who's run both sides of the trade — write to me directly. I read everything that comes through.</p>
+          <a class="btn btn-ghost" href="mailto:nana@kanay.co">Send a brief →</a>
+          <p class="contact-note">Email set to <code>nana@kanay.co</code> — confirm or change to your preferred address.</p>
+        </div>
+
+        <div class="channels">
+          <a class="channel" href="mailto:nana@kanay.co">
+            <span class="label">Email</span>
+            <span class="value">nana@kanay.co</span>
+            <span class="arrow">→</span>
+          </a>
+          <a class="channel" href="https://uk.linkedin.com/in/nanagyasi" target="_blank" rel="noopener">
+            <span class="label">LinkedIn</span>
+            <span class="value">/in/nanagyasi</span>
+            <span class="arrow">↗</span>
+          </a>
+          <a class="channel" href="https://github.com/nanagyasi" target="_blank" rel="noopener">
+            <span class="label">GitHub</span>
+            <span class="value">@nanagyasi</span>
+            <span class="arrow">↗</span>
+          </a>
+          <a class="channel" href="https://firminsight.co.uk/company/12718103" target="_blank" rel="noopener">
+            <span class="label">Company</span>
+            <span class="value">Kanay Group Ltd · Companies House #12718103</span>
+            <span class="arrow">↗</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <Footer />
+
 </BaseLayout>
 
-<style>
-  /* ---- Hero ---- */
+<script>
+  // Intersection Observer for reveal animations
+  const io = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) {
+        e.target.classList.add('is-in');
+        io.unobserve(e.target);
+      }
+    }
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+</script>
+
+<style is:global>
+  /* ======== HERO ======== */
   .hero {
     padding: 120px 0 96px;
-  }
-
-  .hero-inner {
     display: grid;
     grid-template-columns: 1.4fr 1fr;
     gap: 64px;
     align-items: end;
   }
-
-  .eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--muted);
-    padding: 5px 11px;
-    border: 1px solid var(--hairline);
-    border-radius: var(--radius-full);
-    background: var(--surface);
+  .hero .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--muted);
+    padding: 5px 11px; border: 1px solid var(--hairline);
+    border-radius: 999px; background: var(--surface);
     margin-bottom: 26px;
   }
-
-  .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--pale-green-fg);
-  }
-
-  .hero-content h1 {
+  .hero .eyebrow .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--pale-green-fg); }
+  .hero h1 {
     font-family: var(--display);
     font-size: clamp(56px, 8.5vw, 124px);
     line-height: 0.96;
     letter-spacing: -0.03em;
+    margin: 26px 0 0;
     font-weight: 400;
-    color: var(--ink);
-    margin-bottom: 28px;
   }
-
-  .hero-content h1 em {
-    font-style: italic;
-    color: var(--ink);
-  }
-
-  .hero-content h1 .pale {
-    color: var(--muted);
-  }
-
-  .lede {
-    font-size: 20px;
-    color: var(--muted);
+  .hero h1 em { font-style: italic; color: var(--ink); }
+  .hero h1 .pale { color: var(--muted); }
+  .hero .lede {
+    font-size: 20px; color: var(--muted);
     max-width: 36ch;
     line-height: 1.5;
-    margin-bottom: 36px;
+    margin: 0 0 32px;
   }
+  .hero .meta {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .hero .actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
-  .hero-actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
+  /* ======== BUTTONS ======== */
+  .btn {
+    font: 500 14px/1 var(--sans);
+    padding: 13px 22px; border-radius: 8px;
+    cursor: pointer; transition: transform 200ms cubic-bezier(0.16,1,0.3,1), background 200ms ease;
+    display: inline-flex; align-items: center; gap: 8px;
+    text-decoration: none;
+    border: 1px solid transparent;
   }
+  .btn-primary { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+  .btn-primary:hover { background: #2A2A28; }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--hairline); }
+  .btn-ghost:hover { border-color: var(--ink); }
+  .btn-link { background: transparent; border: none; color: var(--ink); padding: 13px 0; font: 500 14px/1 var(--sans); cursor: pointer; text-decoration: none; }
+  .btn-link::after { content: ' →'; color: var(--muted); }
+  .btn-link:hover { color: var(--muted); }
 
-  .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    padding: 12px 24px;
-    background: var(--ink);
-    color: var(--canvas);
-    border-radius: var(--radius-full);
-    font-size: 14px;
-    font-weight: 500;
-    border-bottom: none;
-    transition: transform var(--duration-fast) var(--ease-out);
+  /* ======== SECTION SHELL ======== */
+  .section {
+    padding: 96px 0;
+    border-top: 1px solid var(--hairline);
   }
-  .btn-primary:hover {
-    color: var(--canvas);
-    transform: translateY(-2px);
+  .section-head {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 64px;
+    margin-bottom: 56px;
+    align-items: start;
   }
+  .section-head .num {
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted);
+    display: block; margin-bottom: 14px;
+  }
+  .section-head h2 {
+    font-family: var(--display);
+    font-size: clamp(36px, 4.6vw, 60px);
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+    margin: 0;
+    font-weight: 400;
+    max-width: 16ch;
+  }
+  .section-head .intro {
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink);
+    max-width: 52ch;
+    margin: 0;
+  }
+  .section-head .intro + .intro { margin-top: 16px; color: var(--muted); }
 
-  .btn-ghost {
-    display: inline-flex;
-    align-items: center;
-    padding: 12px 24px;
+  /* ======== NOW / FOCUS ======== */
+  .focus-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
     border: 1px solid var(--hairline);
-    border-radius: var(--radius-full);
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--ink);
-    background: var(--surface);
-    border-bottom: none;
-    transition: border-color var(--duration-fast) var(--ease-out);
+    background: var(--hairline);
   }
-  .btn-ghost:hover {
-    border-color: var(--muted);
-    color: var(--ink);
+  .focus {
+    background: var(--surface);
+    padding: 32px 36px;
+  }
+  .focus .tag {
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+    display: block; margin-bottom: 18px;
+  }
+  .focus h3 {
+    font-family: var(--display);
+    font-size: 30px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin: 0 0 12px;
+  }
+  .focus p {
+    font-size: 15px;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.65;
+    max-width: 40ch;
   }
 
-  .hero-meta {
-    padding-bottom: 8px;
+  /* ======== WORK / TIMELINE ======== */
+  .timeline {
+    display: grid;
+    grid-template-columns: 1fr;
+    border-top: 1px solid var(--hairline);
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 200px 1fr 1.4fr;
+    gap: 40px;
+    padding: 32px 0;
+    border-bottom: 1px solid var(--hairline);
+    align-items: start;
+  }
+  .row .when {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 6px;
+  }
+  .row .where {
+    font-family: var(--display);
+    font-size: 28px;
+    letter-spacing: -0.015em;
+    font-weight: 400;
+    line-height: 1.15;
+  }
+  .row .where small {
+    display: block;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+  .row .what p {
+    margin: 0;
+    font-size: 15.5px;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+  .row .what p + p { margin-top: 12px; color: var(--muted); }
+
+  /* ======== VENTURES ======== */
+  .ventures {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    border: 1px solid var(--hairline);
+    background: var(--hairline);
+  }
+  .venture {
+    background: var(--surface);
+    padding: 36px 32px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
+    min-height: 280px;
   }
-
-  .meta-block {
-    border-top: 1px solid var(--hairline);
-    padding-top: 16px;
-  }
-
-  .meta-label {
+  .venture--lead { grid-column: span 4; grid-row: span 2; padding: 44px 40px; }
+  .venture--mid  { grid-column: span 2; grid-row: span 2; }
+  .venture--half { grid-column: span 3; }
+  .venture .label {
     font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.12em;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .venture h3 {
+    font-family: var(--display);
+    font-size: 34px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.05;
+    margin: 0;
+  }
+  .venture--lead h3 { font-size: 48px; max-width: 14ch; }
+  .venture p {
+    font-size: 14.5px;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.65;
+    max-width: 42ch;
+  }
+  .venture .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+  .chip {
+    display: inline-block; font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px;
+  }
+  .chip--green { background: var(--pale-green-bg); color: var(--pale-green-fg); }
+  .chip--blue { background: var(--pale-blue-bg); color: var(--pale-blue-fg); }
+  .chip--yellow { background: var(--pale-yellow-bg); color: var(--pale-yellow-fg); }
+  .chip--red { background: var(--pale-red-bg); color: var(--pale-red-fg); }
+
+  /* ======== PULL QUOTE ======== */
+  .pull {
+    padding: 112px 0;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+  }
+  .pull blockquote {
+    font-family: var(--display);
+    font-size: clamp(32px, 4vw, 54px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--ink);
+    margin: 0 0 24px;
+    max-width: 22ch;
+  }
+  .pull cite {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 4px;
+    font-style: normal;
   }
 
-  .meta-value {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--ink);
-  }
-
-  /* ---- Sim section ---- */
-  .sims-section {
-    padding: var(--space-24) 0;
+  /* ======== PRESS ======== */
+  .press {
+    display: grid;
+    grid-template-columns: 1fr;
     border-top: 1px solid var(--hairline);
   }
-
-  .section-header {
-    margin-bottom: var(--space-12);
+  .press-item {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: 32px;
+    align-items: baseline;
+    padding: 26px 0;
+    border-bottom: 1px solid var(--hairline);
+    text-decoration: none;
+    color: inherit;
+    transition: padding-left 200ms cubic-bezier(0.16,1,0.3,1);
   }
-
-  .eyebrow-mono {
-    display: inline-block;
+  .press-item:hover { padding-left: 8px; }
+  .press-item:hover .arrow { transform: translateX(4px); }
+  .press-item .when {
     font-family: var(--mono);
     font-size: 11px;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: var(--space-3);
   }
-
-  .section-header h2 {
+  .press-item .title {
     font-family: var(--display);
-    font-size: clamp(36px, 5vw, 64px);
+    font-size: 26px;
+    letter-spacing: -0.015em;
     font-weight: 400;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-    margin-bottom: var(--space-4);
+    line-height: 1.2;
   }
-
-  .section-sub {
-    font-size: 17px;
+  .press-item .title small {
+    display: block;
+    font-family: var(--sans);
+    font-size: 13px;
     color: var(--muted);
-    max-width: 48ch;
-  }
-
-  .sims-grid {
-    display: grid;
-    gap: var(--space-8);
-  }
-
-  /* ---- About teaser ---- */
-  .about-teaser {
-    padding: var(--space-24) 0;
-    border-top: 1px solid var(--hairline);
-  }
-
-  .about-teaser h2 {
-    font-family: var(--display);
-    font-size: clamp(32px, 4vw, 56px);
+    margin-top: 4px;
     font-weight: 400;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-    margin-bottom: var(--space-6);
+    letter-spacing: 0;
   }
-
-  .about-teaser p {
+  .press-item .arrow {
+    font-family: var(--mono);
     font-size: 18px;
     color: var(--muted);
-    line-height: 1.7;
-    margin-bottom: var(--space-4);
+    transition: transform 200ms cubic-bezier(0.16,1,0.3,1);
   }
 
-  .read-more {
-    display: inline-block;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--ink);
-    margin-top: var(--space-4);
+  /* ======== WRITING ======== */
+  .writing-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    border-top: 1px solid var(--hairline);
+  }
+  .essay {
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr;
+    gap: 40px;
+    padding: 32px 0;
     border-bottom: 1px solid var(--hairline);
-    transition: border-color var(--duration-fast) var(--ease-out);
+    align-items: start;
+    text-decoration: none;
+    color: inherit;
+    transition: padding-left 200ms cubic-bezier(0.16,1,0.3,1);
   }
-  .read-more:hover {
-    border-color: var(--ink);
+  .essay:hover { padding-left: 8px; }
+  .essay:hover .read::after { transform: translateX(4px); }
+  .essay .when {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .essay .title {
+    font-family: var(--display);
+    font-size: 30px;
+    letter-spacing: -0.02em;
+    font-weight: 400;
+    line-height: 1.1;
+    margin: 0;
+  }
+  .essay .dek {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin: 0;
+    max-width: 48ch;
+  }
+  .essay .ref {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    transition: color 200ms ease;
+  }
+  .essay:hover .ref { color: var(--ink); }
+
+  /* ======== CONTACT ======== */
+  .contact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: start;
+  }
+  .contact h2 {
+    font-family: var(--display);
+    font-size: clamp(40px, 5.5vw, 72px);
+    line-height: 1.0;
+    letter-spacing: -0.025em;
+    margin: 0 0 24px;
+    font-weight: 400;
+    max-width: 14ch;
+  }
+  .contact .lede {
+    font-size: 19px;
+    color: var(--muted);
+    max-width: 44ch;
+    line-height: 1.55;
+    margin: 0 0 36px;
+  }
+  .contact-note {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    margin: 14px 0 0;
+  }
+  .contact-note code {
+    font-family: inherit;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--ink);
+  }
+  .channels {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    border-top: 1px solid var(--hairline);
+  }
+  .channel {
+    display: grid;
+    grid-template-columns: 120px 1fr auto;
+    gap: 24px;
+    padding: 22px 0;
+    border-bottom: 1px solid var(--hairline);
+    text-decoration: none;
+    color: inherit;
+    align-items: baseline;
+    transition: padding-left 200ms cubic-bezier(0.16,1,0.3,1);
+  }
+  .channel:hover { padding-left: 8px; }
+  .channel .label {
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  .channel .value {
+    font-family: var(--display);
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+  .channel .arrow {
+    font-family: var(--mono);
+    color: var(--muted);
   }
 
-  /* ---- Responsive ---- */
-  @media (max-width: 768px) {
-    .hero-inner {
-      grid-template-columns: 1fr;
-      gap: 48px;
-    }
-    .hero { padding: 80px 0 64px; }
+  /* ======== REVEAL ANIMATION ======== */
+  .reveal {
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 600ms cubic-bezier(0.16,1,0.3,1), transform 600ms cubic-bezier(0.16,1,0.3,1);
+  }
+  .reveal.is-in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+  }
+
+  /* ======== RESPONSIVE ======== */
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; gap: 36px; padding: 80px 0 64px; }
+    .section-head { grid-template-columns: 1fr; gap: 16px; margin-bottom: 36px; }
+    .focus-grid { grid-template-columns: 1fr; }
+    .ventures { grid-template-columns: 1fr; }
+    .venture--lead, .venture--mid, .venture--half { grid-column: span 1; grid-row: auto; padding: 32px 28px; }
+    .venture--lead h3 { font-size: 36px; }
+    .row { grid-template-columns: 1fr; gap: 8px; padding: 24px 0; }
+    .essay { grid-template-columns: 1fr; gap: 8px; padding: 24px 0; }
+    .press-item { grid-template-columns: 80px 1fr auto; gap: 16px; }
+    .contact { grid-template-columns: 1fr; gap: 36px; }
+    .channel { grid-template-columns: 90px 1fr auto; gap: 16px; }
   }
 </style>
