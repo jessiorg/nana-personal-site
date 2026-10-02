@@ -770,4 +770,39 @@ const base = import.meta.env.BASE_URL;
     .contact { grid-template-columns: 1fr; gap: 36px; }
     .channel { grid-template-columns: 90px 1fr auto; gap: 16px; }
   }
+
+  @media (max-width: 640px) {
+    .hero h1 { font-size: clamp(44px, 11vw, 80px); }
+    .hero .lede { font-size: 17px; }
+    .section-head h2 { font-size: clamp(30px, 7vw, 48px); }
+    .section-head .intro { font-size: 16px; }
+    .section { padding: 64px 0; }
+    .focus h3 { font-size: 24px; }
+    .row .where { font-size: 22px; }
+    .row .what p { font-size: 14px; }
+    .pull blockquote { font-size: clamp(26px, 6vw, 44px); }
+    .press-item { grid-template-columns: 1fr; gap: 8px; }
+    .press-item .arrow { display: none; }
+    .essay .title { font-size: 22px; }
+    .essay .dek { font-size: 14px; }
+    .channel .value { font-size: 17px; }
+  }
+
+  @media (max-width: 480px) {
+    .hero { padding: 60px 0 48px; }
+    .hero .eyebrow { font-size: 10px; padding: 4px 10px; }
+    .section-head h2 { font-size: 28px; }
+    .focus { padding: 24px 20px; }
+    .focus h3 { font-size: 21px; }
+    .venture { padding: 24px 20px; }
+    .venture h3 { font-size: 26px; }
+    .venture--lead h3 { font-size: 28px; }
+    .essay { padding: 20px 0; }
+    .essay .title { font-size: 20px; }
+    .row .where { font-size: 20px; }
+    .press-item .title { font-size: 20px; }
+    .pull { padding: 72px 0; }
+    .pull blockquote { font-size: 26px; }
+    .contact h2 { font-size: clamp(36px, 9vw, 60px); }
+  }
 </style>

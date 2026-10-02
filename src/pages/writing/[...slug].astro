@@ -280,16 +280,53 @@ const { Content } = await essay.render();
     border-color: var(--ink);
   }
 
+  /* ======== RESPONSIVE ======== */
   @media (max-width: 640px) {
     .article {
-      padding: 48px var(--space-6) 64px;
+      padding: 40px var(--space-6) 56px;
+    }
+    .article-title {
+      font-size: 34px;
+    }
+    .article-dek {
+      font-size: 16px;
+    }
+    .prose {
+      font-size: 16px;
+      line-height: 1.7;
+    }
+    .prose > p:first-of-type::first-letter {
+      font-size: 52px;
+    }
+    .prose blockquote {
+      font-size: 18px;
     }
     .ref-card {
       flex-direction: column;
       align-items: flex-start;
     }
-    .prose > p:first-of-type::first-letter {
-      font-size: 56px;
+  }
+
+  @media (max-width: 480px) {
+    .article {
+      padding: 32px var(--space-4) 48px;
+    }
+    .article-title {
+      font-size: 28px;
+    }
+    .eyebrow {
+      font-size: 10px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .article-header .eyebrow,
+    .article-title,
+    .article-dek,
+    .article-rule {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
     }
   }
 </style>

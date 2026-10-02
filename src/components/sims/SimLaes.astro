@@ -115,4 +115,37 @@ const base = import.meta.env.BASE_URL;
     background: var(--canvas);
     margin: 0;
   }
+
+  @media (max-width: 640px) {
+    .sim-wrapper {
+      height: auto !important;
+      min-height: 280px;
+    }
+    .sim-iframe {
+      height: 320px;
+      flex: none;
+    }
+    .sim-title {
+      font-size: 17px;
+    }
+    .sim-header {
+      padding: 10px 14px;
+    }
+    .sim-desc {
+      font-size: 12px;
+      padding: 12px 14px;
+    }
+    .sim-fullscreen-link {
+      font-size: 12px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .sim-iframe {
+      height: 240px;
+    }
+    .sim-wrapper {
+      min-height: 220px;
+    }
+  }
 </style>
