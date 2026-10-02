@@ -1103,7 +1103,7 @@ renderer.domElement.addEventListener('pointerleave', () => { $('tip').style.disp
 
 // click sounds
 addEventListener('click', e => { if (e.target.closest && e.target.closest('.item,.btn,.scn,.rowbtn,.winbtn')) sfxClick(); }, true);
-$('mSound').querySelector('.tick').textContent = soundOn ? '✓' : '';
+// mSound element not present in HTML
 
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
