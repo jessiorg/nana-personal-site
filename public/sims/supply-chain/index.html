@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanay Supply Chain — Tech-Twin (Generic Intermodal)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --te-bg:        #F2F2F0;
+      --te-bg-panel:  #FFFFFF;
+      --te-fg:        #0A0A0A;
+      --te-fg-dim:    #6B6B6B;
+      --te-fg-mute:   #A0A0A0;
+      --te-border:    #1A1A1A;
+      --te-border-d:  rgba(10,10,10,0.15);
+      --te-divider:   rgba(10,10,10,0.08);
+      --te-orange:    #FF4500;
+      --te-teal:      #00D4AA;
+      --te-purple:    #7C5CFF;
+      --te-amber:     #FBBF24;
+      --te-rose:      #FB7185;
+      --te-cyan:      #06B6D4;
+      --te-violet:    #A78BFA;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--te-bg);
+      color: var(--te-fg);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    canvas#te-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+
+    /* TITLE BAR */
+    .te-titlebar {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px;
+      background: var(--te-bg);
+      border-bottom: 1.5px solid var(--te-border);
+      z-index: 50;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .te-titlebar .brand { display: flex; gap: 8px; align-items: center; }
+    .te-titlebar .brand .dot { width: 8px; height: 8px; background: var(--te-orange); border-radius: 50%; }
+    .te-titlebar .nav { display: flex; gap: 12px; }
+    .te-titlebar .nav span { color: var(--te-fg-dim); cursor: default; }
+    .te-titlebar .nav span.active { color: var(--te-fg); border-bottom: 1px solid var(--te-fg); }
+    .te-titlebar .topology { display: flex; gap: 6px; align-items: center; }
+    .te-titlebar select {
+      background: var(--te-bg-panel); border: 1px solid var(--te-border);
+      padding: 3px 8px; font-family: inherit; font-size: 11px;
+      color: var(--te-fg); cursor: pointer;
+    }
+
+    /* BOTTOM CHROME */
+    .te-fixtures {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      display: flex; align-items: stretch; justify-content: space-between;
+      background: var(--te-bg);
+      border-top: 1.5px solid var(--te-border);
+      z-index: 50;
+      font-size: 11px;
+    }
+    .te-fixture-group { display: flex; }
+    .te-fixture {
+      padding: 10px 16px;
+      border-right: 1px solid var(--te-divider);
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      color: var(--te-fg-dim);
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .te-fixture:hover { color: var(--te-fg); }
+    .te-fixture.active { color: var(--te-fg); background: var(--te-bg-panel); }
+    .te-fixture .icon { font-size: 12px; }
+
+    .te-speed {
+      padding: 10px 16px;
+      border-left: 1px solid var(--te-divider);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .te-speed button, .te-speed select {
+      background: var(--te-bg-panel); border: 1px solid var(--te-border);
+      padding: 3px 8px; cursor: pointer; font-family: inherit;
+      font-size: 11px; color: var(--te-fg);
+    }
+    .te-speed button.active { background: var(--te-fg); color: var(--te-bg); }
+
+    .te-fps { padding: 10px 16px; border-left: 1px solid var(--te-divider); font-size: 11px; color: var(--te-fg-dim); }
+
+    /* KPI HUD */
+    .te-hud {
+      position: fixed; top: 40px; left: 14px;
+      width: 280px;
+      background: var(--te-bg-panel);
+      border: 1.5px solid var(--te-border);
+      z-index: 40;
+      font-size: 11px;
+    }
+    .te-hud-title {
+      padding: 8px 12px;
+      border-bottom: 1.5px solid var(--te-border);
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .te-hud-title .scenario { font-weight: 500; color: var(--te-fg-dim); text-transform: none; letter-spacing: 0; }
+    .te-hud-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 5px 12px;
+      border-bottom: 1px dashed var(--te-divider);
+    }
+    .te-hud-row:last-child { border-bottom: none; }
+    .te-hud-row .label { color: var(--te-fg-dim); }
+    .te-hud-row .val { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .te-hud-row .val.lg { font-size: 16px; }
+    .te-hud-row .val.teal { color: var(--te-teal); }
+    .te-hud-row .val.orange { color: var(--te-orange); }
+    .te-hud-row .val.purple { color: var(--te-purple); }
+    .te-hud-row .val.cyan { color: var(--te-cyan); }
+
+    /* LEGEND */
+    .te-legend {
+      position: fixed; bottom: 50px; left: 14px;
+      background: var(--te-bg-panel);
+      border: 1.5px solid var(--te-border);
+      padding: 10px 12px;
+      font-size: 10px;
+      z-index: 40;
+      max-width: 280px;
+    }
+    .te-legend h4 {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--te-fg-dim); margin-bottom: 6px;
+    }
+    .te-legend-row { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+
+    /* FLEET PANEL */
+    .te-side-panel {
+      position: fixed; top: 40px; right: 14px;
+      width: 340px; max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      background: var(--te-bg-panel);
+      border: 1.5px solid var(--te-border);
+      z-index: 40;
+      font-size: 10px;
+    }
+    .te-side-panel.hidden { display: none; }
+    .te-side-panel-header {
+      padding: 8px 12px;
+      border-bottom: 1.5px solid var(--te-border);
+      font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      position: sticky; top: 0; background: var(--te-bg-panel);
+    }
+    .te-truck-row {
+      display: grid;
+      grid-template-columns: 60px 1fr auto;
+      gap: 6px;
+      padding: 6px 12px;
+      border-bottom: 1px dashed var(--te-divider);
+      align-items: center;
+    }
+    .te-truck-row:hover { background: var(--te-bg); }
+    .te-truck-row .id { font-weight: 700; font-size: 10px; }
+    .te-truck-row .info { font-size: 9px; color: var(--te-fg-dim); line-height: 1.4; }
+    .te-truck-row .info .make { color: var(--te-fg); font-weight: 500; }
+    .te-truck-row .status { font-size: 9px; padding: 1px 6px; border: 1px solid currentColor; border-radius: 0; text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; }
+    .te-progress-bar { height: 3px; background: var(--te-divider); margin-top: 4px; position: relative; }
+    .te-progress-bar .fill { height: 100%; }
+
+    /* KPI grid */
+    .te-kpi-grid { padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .te-kpi-cell { padding: 8px; background: var(--te-bg); border: 1px solid var(--te-divider); }
+    .te-kpi-cell .label { font-size: 9px; color: var(--te-fg-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+    .te-kpi-cell .val { font-size: 18px; font-weight: 700; margin-top: 2px; }
+    .te-kpi-cell .sub { font-size: 9px; color: var(--te-fg-dim); margin-top: 2px; }
+
+    /* Modal */
+    .te-modal-bg {
+      position: fixed; inset: 0;
+      background: rgba(10,10,10,0.25);
+      z-index: 100; display: none; align-items: center; justify-content: center;
+    }
+    .te-modal-bg.show { display: flex; }
+    .te-modal {
+      background: var(--te-bg-panel);
+      border: 1.5px solid var(--te-border);
+      width: 460px; max-width: 90vw; max-height: 85vh; overflow-y: auto;
+      padding: 18px;
+      font-size: 11px;
+    }
+    .te-modal h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .te-modal .close { float: right; cursor: pointer; font-size: 18px; line-height: 1; }
+    .te-modal .field { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed var(--te-divider); gap: 12px; }
+    .te-modal .field:last-child { border-bottom: none; }
+    .te-modal .field .label { color: var(--te-fg-dim); flex-shrink: 0; }
+
+    /* Loading overlay */
+    #te-loading {
+      position: fixed; inset: 0; background: var(--te-bg);
+      z-index: 200; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: var(--te-fg-dim);
+    }
+    #te-loading.gone { display: none; }
+  </style>
+</head>
+<body>
+  <div id="te-loading">LOADING TOPOLOGY...</div>
+  <canvas id="te-canvas"></canvas>
+
+  <!-- TITLE BAR -->
+  <div class="te-titlebar">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>KANAY — SUPPLY CHAIN TWIN</span>
+    </div>
+    <div class="nav">
+      <span class="active">DIGITAL TWIN</span>
+      <span>PROJECTS</span>
+      <span>DATA</span>
+      <span>LOGS</span>
+    </div>
+    <div class="topology">
+      <span style="color:var(--te-fg-dim)">TOPOLOGY:</span>
+      <select id="te-topology" onchange="window.supplyChain.loadTopology(this.value)"></select>
+    </div>
+    <div>v0.2.0 — generic intermodal</div>
+  </div>
+
+  <!-- KPI HUD -->
+  <div class="te-hud" id="te-hud">
+    <div class="te-hud-title">
+      <span id="hud-title">SUPPLY CHAIN KPIs</span>
+      <span class="scenario" id="hud-scenario">balanced</span>
+    </div>
+    <div class="te-hud-row"><span class="label">Topology</span><span class="val" id="kpi-topology" style="font-size:10px">—</span></div>
+    <div class="te-hud-row"><span class="label">Shipments</span><span class="val lg" id="kpi-fleet">—</span></div>
+    <div class="te-hud-row"><span class="label">In flight</span><span class="val cyan" id="kpi-inflight">—</span></div>
+    <div class="te-hud-row"><span class="label">Delivered</span><span class="val teal" id="kpi-delivered">—</span></div>
+    <div class="te-hud-row"><span class="label">Avg progress</span><span class="val" id="kpi-avgprog">—</span></div>
+    <div class="te-hud-row"><span class="label">Total cost</span><span class="val orange" id="kpi-cost">—</span></div>
+    <div class="te-hud-row"><span class="label">Cost / delivered</span><span class="val" id="kpi-costper">—</span></div>
+    <div class="te-hud-row"><span class="label">USD/GHS FX</span><span class="val purple" id="kpi-fx">—</span></div>
+    <div class="te-hud-row"><span class="label">Sim day</span><span class="val" id="kpi-day">0</span></div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="te-legend" id="te-legend">
+    <h4 id="legend-title">MODES</h4>
+    <!-- Populated by JS based on topology.modes -->
+  </div>
+
+  <!-- SIDE PANELS -->
+  <div class="te-side-panel hidden" id="panel-fleet">
+    <div class="te-side-panel-header">SHIPMENT TRACKER — <span id="fleet-count">0</span> UNITS</div>
+    <div id="fleet-rows"></div>
+  </div>
+
+  <div class="te-side-panel hidden" id="panel-kpi">
+    <div class="te-side-panel-header">KPI DETAIL</div>
+    <div class="te-kpi-grid">
+      <div class="te-kpi-cell"><div class="label">SHIPMENTS</div><div class="val" id="k-fleet">—</div><div class="sub">units in motion</div></div>
+      <div class="te-kpi-cell"><div class="label">DELIVERED</div><div class="val" id="k-delivered">—</div><div class="sub">to destination</div></div>
+      <div class="te-kpi-cell"><div class="label">IN-TRANSIT</div><div class="val" id="k-transit">—</div><div class="sub">on a leg</div></div>
+      <div class="te-kpi-cell"><div class="label">SOURCED</div><div class="val" id="k-sourced">—</div><div class="sub">awaiting transit</div></div>
+      <div class="te-kpi-cell"><div class="label">ARRIVED</div><div class="val" id="k-arrived">—</div><div class="sub">at destination</div></div>
+      <div class="te-kpi-cell"><div class="label">NODES</div><div class="val" id="k-nodes">—</div><div class="sub">graph vertices</div></div>
+    </div>
+    <div style="padding: 10px 12px; font-size: 10px; color: var(--te-fg-dim);">
+      <strong style="color:var(--te-fg)">Pipeline</strong>: <span id="pipeline-text">—</span>
+    </div>
+    <div style="padding: 0 12px 12px 12px; font-size: 10px; color: var(--te-fg-dim);">
+      <strong style="color:var(--te-fg)">Top congested edges</strong>
+      <ul id="top-edges" style="list-style:none; margin-top:4px;"></ul>
+    </div>
+  </div>
+
+  <!-- BOTTOM FIXTURES -->
+  <div class="te-fixtures">
+    <div class="te-fixture-group">
+      <div class="te-fixture active" data-fixture="world-map" onclick="window.supplyChain.setFixture('world-map')">
+        <span class="icon">●</span><span>WORLD MAP</span>
+      </div>
+      <div class="te-fixture" data-fixture="fleet-tracker" onclick="window.supplyChain.setFixture('fleet-tracker')">
+        <span class="icon">▣</span><span>FLEET</span>
+      </div>
+      <div class="te-fixture" data-fixture="kpi-dashboard" onclick="window.supplyChain.setFixture('kpi-dashboard')">
+        <span class="icon">↗</span><span>KPI</span>
+      </div>
+    </div>
+    <div class="te-speed">
+      <span style="color:var(--te-fg-dim)">SPEED</span>
+      <button onclick="window.supplyChain.setSpeed(1)" class="active" id="sp-1">1×</button>
+      <button onclick="window.supplyChain.setSpeed(8)" id="sp-8">8×</button>
+      <button onclick="window.supplyChain.setSpeed(64)" id="sp-64">64×</button>
+      <button onclick="window.supplyChain.setSpeed(360)" id="sp-360">360×</button>
+      <select id="te-scenario" onchange="window.supplyChain.setScenario(this.value)" style="margin-left:8px"></select>
+    </div>
+    <div class="te-fps"><span style="color:var(--te-fg-dim)">FPS</span> <span id="te-fps">—</span></div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="te-modal-bg" id="te-modal-bg" onclick="if(event.target===this)window.supplyChain.closeModal()">
+    <div class="te-modal" id="te-modal"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="OrbitControls.js"></script>
+  <script src="sim-core.js"></script>
+  <script src="game-loop.js"></script>
+  <script src="mermaid-panel.js"></script>
+
+  <script>
+  (() => {
+    // ===========================================================
+    // Topology discovery — fetch all JSONs in topologies/
+    // ===========================================================
+    const TOPOLOGY_INDEX = [];
+    // Hard-coded list of available topologies (kept in sync manually;
+    // could be replaced with a directory listing served by the host)
+    TOPOLOGY_INDEX.push({ id: 'h2-truck-donor-program', file: 'topologies/h2-truck-donor-program.json' });
+
+    async function fetchTopology(file) {
+      // Try fetch first (works over http)
+      try {
+        const r = await fetch(file);
+        if (r.ok) return await r.json();
+      } catch (_) { /* fall through to inline */ }
+
+      // Fallback: inline topologies (works over file:// or when CORS blocks)
+      if (window.__INLINE_TOPOLOGIES__ && window.__INLINE_TOPOLOGIES__[file]) {
+        return window.__INLINE_TOPOLOGIES__[file];
+      }
+      throw new Error(`Could not load ${file} — neither fetch nor inline fallback available`);
+    }
+
+    let S = null;
+    let scene, camera, renderer, controls;
+    let earthMesh, nodeMeshes = {}, edgeMeshes = [], shipmentMeshes = {}, labelSprites = {};
+    let raycaster, mouse;
+    let currentFixture = 'world-map';
+    let lastKpi = null;
+
+    function nodeColor(kind) {
+      return {
+        source:      0xFBBF24,
+        hub:         0xA78BFA,
+        roro:        0xFB923C,
+        destination: 0xFB7185,
+        workshop:    0x7C5CFF,
+        hrs:         0xFF4500,
+        junction:    0x1A1A1A,
+        port:        0xFB923C,
+        station:     0xA78BFA,
+        terminal:    0xFB7185,
+      }[kind] || 0xFFFFFF;
+    }
+
+    function statusColor(status) {
+      return {
+        sourced:     0xFBBF24,
+        in_transit:  0x06B6D4,
+        arrived:     0xFB7185,
+        delivered:   0xFF4500,
+        aggregating: 0xA78BFA,
+        rail:        0x06B6D4,
+        port:        0xFB923C,
+        sailing:     0x00D4AA,
+        converting:  0x7C5CFF,
+      }[status] || 0xFFFFFF;
+    }
+
+    // ===========================================================
+    // THREE.js SCENE
+    // ===========================================================
+    function initScene() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xF2F2F0);
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 1.2, 3.2);
+
+      renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('te-canvas'), antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.rotateSpeed = 0.6;
+      controls.minDistance = 1.4;
+      controls.maxDistance = 6.0;
+
+      const light = new THREE.DirectionalLight(0xffffff, 1.2);
+      light.position.set(5, 5, 5);
+      scene.add(light);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+
+      buildEarth();
+
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+      renderer.domElement.addEventListener('click', onCanvasClick);
+      window.addEventListener('resize', onResize);
+    }
+
+    function buildEarth() {
+      const geo = new THREE.SphereGeometry(1, 64, 48);
+      const mat = new THREE.MeshPhongMaterial({ color: 0xFFFFFF, specular: 0x222222, shininess: 12 });
+      earthMesh = new THREE.Mesh(geo, mat);
+      scene.add(earthMesh);
+
+      const dotCount = 1200;
+      const dotGeo = new THREE.BufferGeometry();
+      const positions = new Float32Array(dotCount * 3);
+      for (let i = 0; i < dotCount; i++) {
+        const u = Math.random();
+        const v = Math.random();
+        const phi = Math.acos(2 * v - 1);
+        const theta = 2 * Math.PI * u;
+        const r = 1.005;
+        positions[3*i+0] = r * Math.sin(phi) * Math.cos(theta);
+        positions[3*i+1] = r * Math.cos(phi);
+        positions[3*i+2] = r * Math.sin(phi) * Math.sin(theta);
+      }
+      dotGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const dotMat = new THREE.PointsMaterial({ color: 0x6B6B6B, size: 0.006, transparent: true, opacity: 0.5 });
+      scene.add(new THREE.Points(dotGeo, dotMat));
+    }
+
+    function buildNodes() {
+      // Clear existing
+      for (const id in nodeMeshes) scene.remove(nodeMeshes[id]);
+      for (const id in labelSprites) scene.remove(labelSprites[id]);
+      nodeMeshes = {};
+      labelSprites = {};
+
+      for (const n of S.nodes) {
+        const pos = window.SupplyChainCore.geoToWorld(n.lat, n.lon);
+        const size = ['destination', 'hrs', 'workshop'].includes(n.kind) ? 0.025
+                    : ['roro', 'port', 'terminal'].includes(n.kind) ? 0.020
+                    : ['hub', 'station'].includes(n.kind) ? 0.018
+                    : 0.014;
+        const geo = new THREE.SphereGeometry(size, 12, 12);
+        const mat = new THREE.MeshBasicMaterial({ color: nodeColor(n.kind) });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(pos.x, pos.y, pos.z);
+        mesh.userData = { nodeId: n.id, node: n };
+        scene.add(mesh);
+        nodeMeshes[n.id] = mesh;
+
+        if (n.kind !== 'source') {
+          const ringGeo = new THREE.RingGeometry(size * 1.4, size * 1.7, 24);
+          const ringMat = new THREE.MeshBasicMaterial({ color: nodeColor(n.kind), side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.position.set(pos.x, pos.y, pos.z);
+          ring.lookAt(0, 0, 0);
+          scene.add(ring);
+        }
+
+        const label = makeLabel(n.id);
+        const dist = pos.x*pos.x + pos.y*pos.y + pos.z*pos.z;
+        const norm = Math.sqrt(dist);
+        label.position.set(pos.x * 1.04 / norm, pos.y * 1.04 / norm, pos.z * 1.04 / norm);
+        scene.add(label);
+        labelSprites[n.id] = label;
+      }
+    }
+
+    function makeLabel(text) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256; canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'rgba(0,0,0,0)';
+      ctx.fillRect(0, 0, 256, 64);
+      ctx.font = '600 28px JetBrains Mono, monospace';
+      ctx.fillStyle = '#0A0A0A';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 128, 32);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.minFilter = THREE.LinearFilter;
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(0.18, 0.045, 1);
+      return sprite;
+    }
+
+    function buildEdges() {
+      for (const m of edgeMeshes) scene.remove(m);
+      edgeMeshes = [];
+
+      for (const e of S.edges) {
+        const a = S.nodes.find(n => n.id === e.from);
+        const b = S.nodes.find(n => n.id === e.to);
+        if (!a || !b) continue;
+        const pa = window.SupplyChainCore.geoToWorld(a.lat, a.lon);
+        const pb = window.SupplyChainCore.geoToWorld(b.lat, b.lon);
+
+        const arc = (S.modes[e.mode]?.arc_height ?? 0.1);
+        const points = [];
+        const N = 48;
+        for (let i = 0; i <= N; i++) {
+          const t = i / N;
+          const arcH = Math.sin(t * Math.PI) * arc;
+          const x = pa.x + (pb.x - pa.x) * t;
+          const y = pa.y + (pb.y - pa.y) * t;
+          const z = pa.z + (pb.z - pa.z) * t;
+          const norm = Math.sqrt(x*x + y*y + z*z);
+          const r = 1.0 + arcH;
+          points.push(new THREE.Vector3(x / norm * r, y / norm * r, z / norm * r));
+        }
+
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
+        const color = S.modes[e.mode]?.color ?? 0xFFFFFF;
+        const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.55 });
+        const line = new THREE.Line(geo, mat);
+        line.userData = { edge: e };
+        scene.add(line);
+        edgeMeshes.push(line);
+      }
+    }
+
+    function buildShipments() {
+      for (const id in shipmentMeshes) scene.remove(shipmentMeshes[id]);
+      shipmentMeshes = {};
+      for (const v of S.shipments) {
+        const geo = new THREE.SphereGeometry(0.012, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ color: statusColor(v.status) });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.userData = { shipmentId: v.id, shipment: v };
+        scene.add(mesh);
+        shipmentMeshes[v.id] = mesh;
+      }
+    }
+
+    function shipmentPosition(v) {
+      // Resolve current leg: if status === 'in_transit', use v.current_leg ("from|to|mode")
+      if (v.status === 'in_transit' && v.current_leg) {
+        const parts = v.current_leg.split('|');
+        const from = parts[0], to = parts[1], mode = parts[2];
+        const a = S.nodes.find(n => n.id === from);
+        const b = S.nodes.find(n => n.id === to);
+        if (!a || !b) return new THREE.Vector3(0, 0, 0);
+        const pa = window.SupplyChainCore.geoToWorld(a.lat, a.lon);
+        const pb = window.SupplyChainCore.geoToWorld(b.lat, b.lon);
+        const t = v.progress;
+        const arc = Math.sin(t * Math.PI) * (S.modes[mode]?.arc_height ?? 0.1);
+        const x = pa.x + (pb.x - pa.x) * t;
+        const y = pa.y + (pb.y - pa.y) * t;
+        const z = pa.z + (pb.z - pa.z) * t;
+        const norm = Math.sqrt(x*x + y*y + z*z);
+        const r = 1.0 + arc;
+        return new THREE.Vector3(x / norm * r, y / norm * r, z / norm * r);
+      }
+
+      // 'arrived' / 'delivered' → snap to destination node (HRS-NETWORK if delivered)
+      const targetId = v.status === 'delivered'
+        ? (S.nodes.find(n => n.kind === 'hrs' || n.kind === 'destination')?.id) || v.port || 'TEMA'
+        : v.current_leg ? v.current_leg.split('|')[1] : (v.port || v.hub || v.source);
+      const target = S.nodes.find(n => n.id === targetId);
+      if (!target) return new THREE.Vector3(0, 0, 0);
+      const pos = window.SupplyChainCore.geoToWorld(target.lat, target.lon);
+      const norm = Math.sqrt(pos.x*pos.x + pos.y*pos.y + pos.z*pos.z);
+      return new THREE.Vector3(pos.x / norm * 1.02, pos.y / norm * 1.02, pos.z / norm * 1.02);
+    }
+
+    function updateShipmentPositions() {
+      for (const v of S.shipments) {
+        const mesh = shipmentMeshes[v.id];
+        if (!mesh) continue;
+        mesh.position.copy(shipmentPosition(v));
+        mesh.material.color.setHex(statusColor(v.status));
+      }
+    }
+
+    // ===========================================================
+    // HUD + KPI
+    // ===========================================================
+    function updateHud(k) {
+      document.getElementById('kpi-topology').textContent = k.topology_id;
+      document.getElementById('kpi-fleet').textContent = k.shipment_count;
+      document.getElementById('kpi-inflight').textContent = k.in_flight;
+      document.getElementById('kpi-delivered').textContent = k.delivered;
+      document.getElementById('kpi-avgprog').textContent = (k.avg_progress * 100).toFixed(0) + '%';
+      document.getElementById('kpi-cost').textContent = '$' + k.total_cost_usd.toLocaleString();
+      document.getElementById('kpi-costper').textContent = k.cost_per_delivered_usd !== null ? '$' + k.cost_per_delivered_usd.toLocaleString() : '—';
+      document.getElementById('kpi-day').textContent = k.sim_days;
+      document.getElementById('hud-title').textContent = (S.topology_name || 'Supply Chain').toUpperCase().slice(0, 40) + ' · KPIs';
+      document.getElementById('hud-scenario').textContent = S.scenario;
+
+      const fxEl = document.getElementById('kpi-fx');
+      if (k.fx_usd_ghs !== undefined) {
+        fxEl.textContent = k.fx_usd_ghs.toFixed(2);
+        fxEl.parentElement.style.display = '';
+      } else {
+        fxEl.parentElement.style.display = 'none';
+      }
+
+      const by = k.by_status || {};
+      document.getElementById('k-fleet').textContent = k.shipment_count;
+      document.getElementById('k-delivered').textContent = k.delivered;
+      document.getElementById('k-transit').textContent = by['in_transit'] || 0;
+      document.getElementById('k-sourced').textContent = by['sourced'] || 0;
+      document.getElementById('k-arrived').textContent = by['arrived'] || 0;
+      document.getElementById('k-nodes').textContent = S.nodes.length;
+
+      document.getElementById('pipeline-text').textContent = S.pipeline.join(' → ');
+
+      // Top edges
+      const ul = document.getElementById('top-edges');
+      ul.innerHTML = '';
+      for (const e of (k.top_edges || []).slice(0, 5)) {
+        const li = document.createElement('li');
+        li.style.padding = '2px 0';
+        li.innerHTML = `<span style="color:var(--te-fg)">${e.from}</span> → <span style="color:var(--te-fg)">${e.to}</span> <span style="color:var(--te-fg-dim)">· ${e.mode} · ${e.flow} flow</span>`;
+        ul.appendChild(li);
+      }
+    }
+
+    function updateFleetPanel() {
+      const rows = document.getElementById('fleet-rows');
+      document.getElementById('fleet-count').textContent = S.shipments.length;
+      rows.innerHTML = '';
+      for (const v of S.shipments) {
+        const row = document.createElement('div');
+        row.className = 'te-truck-row';
+        const desc = v.make ? `${v.make} ${v.model || ''}` : (v.id);
+        const legText = v.current_leg ? v.current_leg.replace(/\|/g, ' → ') : (v.source || v.origin || '—');
+        row.innerHTML = `
+          <div class="id">${v.id}</div>
+          <div>
+            <div class="info"><span class="make">${desc}</span></div>
+            <div class="info">${legText}</div>
+            <div class="te-progress-bar"><div class="fill" style="width:${(v.progress*100).toFixed(0)}%; background:${hexCss(statusColor(v.status))}"></div></div>
+          </div>
+          <div class="status s-${v.status}">${v.status}</div>
+        `;
+        row.onclick = () => showShipmentModal(v);
+        rows.appendChild(row);
+      }
+    }
+
+    function hexCss(h) { return '#' + h.toString(16).padStart(6, '0'); }
+
+    function showShipmentModal(v) {
+      const m = document.getElementById('te-modal');
+      let html = `
+        <span class="close" onclick="window.supplyChain.closeModal()">×</span>
+        <h3>${v.id} — ${v.make || ''} ${v.model || ''} ${v.year || ''}</h3>
+      `;
+      for (const key of Object.keys(v)) {
+        if (['make','model','year'].includes(key)) continue;
+        const val = v[key];
+        const display = typeof val === 'number' ? val.toFixed(2) : String(val);
+        html += `<div class="field"><span class="label">${key}</span><span>${display}</span></div>`;
+      }
+      if (S.fx_usd_ghs !== undefined) {
+        html += `<div class="field"><span class="label">FX USD/GHS</span><span>${S.fx_usd_ghs.toFixed(2)}</span></div>`;
+      }
+      m.innerHTML = html;
+      document.getElementById('te-modal-bg').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('te-modal-bg').classList.remove('show');
+    }
+
+    function onCanvasClick(e) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      const meshes = Object.values(shipmentMeshes);
+      const hits = raycaster.intersectObjects(meshes);
+      if (hits.length > 0) {
+        const id = hits[0].object.userData.shipmentId;
+        const v = S.shipments.find(x => x.id === id);
+        if (v) showShipmentModal(v);
+      }
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function setFixture(f) {
+      currentFixture = f;
+      document.querySelectorAll('.te-fixture').forEach(el => {
+        el.classList.toggle('active', el.dataset.fixture === f);
+      });
+      document.getElementById('panel-fleet').classList.toggle('hidden', f !== 'fleet-tracker');
+      document.getElementById('panel-kpi').classList.toggle('hidden', f !== 'kpi-dashboard');
+
+      if (f === 'world-map') {
+        camera.position.set(0, 1.2, 3.2);
+        controls.target.set(0, 0, 0);
+      } else if (f === 'fleet-tracker') {
+        // Zoom to destination node
+        const dest = S.nodes.find(n => n.kind === 'destination' || n.kind === 'hrs' || n.kind === 'workshop') || S.nodes[0];
+        const p = window.SupplyChainCore.geoToWorld(dest.lat, dest.lon);
+        camera.position.set(p.x * 3.5, p.y * 3.5 + 0.4, p.z * 3.5);
+        controls.target.set(p.x, p.y, p.z);
+      } else if (f === 'kpi-dashboard') {
+        camera.position.set(0, 2.6, 1.6);
+        controls.target.set(0, 0, 0);
+      }
+    }
+
+    function setSpeed(s) {
+      SupplyChainLoop.setSpeed(s);
+      document.querySelectorAll('.te-speed button').forEach(b => b.classList.remove('active'));
+      const el = document.getElementById('sp-' + s);
+      if (el) el.classList.add('active');
+    }
+
+    function buildScenarioSelect() {
+      const sel = document.getElementById('te-scenario');
+      sel.innerHTML = '';
+      const scenarios = S.topology_meta && S.topology_meta.default_scenario
+        ? Object.keys(S.scenarios || {})
+        : Object.keys(S.scenarios || {});
+      for (const name of scenarios) {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      }
+      sel.value = S.scenario;
+    }
+
+    function buildTopologySelect() {
+      const sel = document.getElementById('te-topology');
+      sel.innerHTML = '';
+      for (const t of TOPOLOGY_INDEX) {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.id;
+        sel.appendChild(opt);
+      }
+    }
+
+    function buildLegend() {
+      const legend = document.getElementById('te-legend');
+      legend.innerHTML = '<h4>MODES</h4>';
+      for (const [mode, def] of Object.entries(S.modes)) {
+        const row = document.createElement('div');
+        row.className = 'te-legend-row';
+        row.innerHTML = `
+          <svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="${hexCss(def.color)}" stroke-width="2.5" ${def.dash === 'dashed' ? 'stroke-dasharray="4,3"' : def.dash === 'animated' ? 'stroke-dasharray="6,4"' : ''}/></svg>
+          <span>${mode}</span>
+        `;
+        legend.appendChild(row);
+      }
+      // Node kinds used
+      const used = new Set(S.nodes.map(n => n.kind));
+      const h = document.createElement('h4'); h.style.marginTop = '8px'; h.textContent = 'NODES';
+      legend.appendChild(h);
+      for (const kind of used) {
+        const row = document.createElement('div');
+        row.className = 'te-legend-row';
+        row.innerHTML = `<span style="display:inline-block;width:10px;height:10px;background:${hexCss(nodeColor(kind))};border:1px solid var(--te-border)"></span><span>${kind}</span>`;
+        legend.appendChild(row);
+      }
+    }
+
+    function setScenario(name) {
+      S = window.SupplyChainCore.reset(S, name);
+      buildNodes();
+      buildEdges();
+      buildShipments();
+      buildScenarioSelect();
+      buildLegend();
+      lastKpi = window.SupplyChainCore.kpi(S);
+      updateHud(lastKpi);
+      if (window.MermaidPanel) window.MermaidPanel.setTopology(S);
+    }
+
+    async function loadTopology(id) {
+      const entry = TOPOLOGY_INDEX.find(t => t.id === id);
+      if (!entry) return;
+      try {
+        const topology = await fetchTopology(entry.file);
+        S = window.SupplyChainCore.initStateFromTopology(topology, 'balanced');
+        buildNodes();
+        buildEdges();
+        buildShipments();
+        buildScenarioSelect();
+        buildLegend();
+        lastKpi = window.SupplyChainCore.kpi(S);
+        updateHud(lastKpi);
+        if (window.MermaidPanel) await window.MermaidPanel.setTopology(S);
+        document.getElementById('te-loading').classList.add('gone');
+      } catch (e) {
+        alert('Failed to load topology: ' + e.message);
+      }
+    }
+
+    // ===========================================================
+    // BOOT
+    // ===========================================================
+    initScene();
+    buildTopologySelect();
+
+    window.supplyChain = {
+      setFixture, setSpeed, setScenario, loadTopology,
+      closeModal, showShipmentModal,
+    };
+
+    SupplyChainLoop.start({
+      onTick: () => {
+        if (S) {
+          window.SupplyChainCore.tick(S);
+          lastKpi = window.SupplyChainCore.kpi(S);
+        }
+      },
+      onFrame: () => {
+        if (S) {
+          updateShipmentPositions();
+          if (S.t % 5 === 0) updateHud(lastKpi || window.SupplyChainCore.kpi(S));
+          if (currentFixture === 'fleet-tracker') updateFleetPanel();
+        }
+        controls.update();
+        renderer.render(scene, camera);
+      },
+    });
+
+    // Auto-load first topology
+    loadTopology(TOPOLOGY_INDEX[0].id);
+  })();
+  </script>
+</body>
+</html>

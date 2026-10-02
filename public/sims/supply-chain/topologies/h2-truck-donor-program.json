@@ -1,0 +1,95 @@
+{
+  "id": "h2-truck-donor-program",
+  "name": "H2 Truck Donor Program - North America & Japan to Ghana",
+  "meta": {
+    "vertical": "FRT",
+    "verticals_secondary": ["ENR", "TRD"],
+    "description": "Donor-truck supply chain feeding the Ghana H2 conversion workshop. US/Japan dealers to aggregation hubs to RORO ports to Atlantic crossing to Tema (Ghana) to Accra H2 workshop to HRS / customer fleet.",
+    "horizon_days": 120,
+    "default_scenario": "balanced"
+  },
+  "modes": {
+    "road": { "color": 14876636, "dash": "dashed",  "default_speed_kmh": 60,  "arc_height": 0.04 },
+    "rail": { "color": 10973050, "dash": "solid",   "default_speed_kmh": 80,  "arc_height": 0.10 },
+    "sea":  { "color": 442710,   "dash": "animated","default_speed_kmh": 35,  "arc_height": 0.35 }
+  },
+  "nodes": [
+    { "id": "MANITOBA",       "kind": "source",      "country": "CA", "lat": 49.89, "lon": -97.14, "label": "Manitoba dealer yards" },
+    { "id": "ONTARIO",        "kind": "source",      "country": "CA", "lat": 43.65, "lon": -79.38, "label": "Ontario / Toronto dealers" },
+    { "id": "US-MIDWEST",     "kind": "source",      "country": "US", "lat": 41.88, "lon": -87.63, "label": "Illinois / Ohio dealers" },
+    { "id": "US-TEXAS",       "kind": "source",      "country": "US", "lat": 29.76, "lon": -95.37, "label": "Texas EPA-surplus dealers" },
+    { "id": "JAPAN-KOBE",     "kind": "source",      "country": "JP", "lat": 34.69, "lon": 135.20, "label": "Kobe / Hyogo auctions" },
+
+    { "id": "WINNIPEG",       "kind": "hub",         "country": "CA", "lat": 49.90, "lon": -97.14, "label": "Winnipeg CN/CP rail" },
+    { "id": "TORONTO",        "kind": "hub",         "country": "CA", "lat": 43.65, "lon": -79.38, "label": "Brampton CN hub" },
+    { "id": "CHICAGO",        "kind": "hub",         "country": "US", "lat": 41.88, "lon": -87.63, "label": "Chicago UP/BNSF yard" },
+    { "id": "HOUSTON-HUB",    "kind": "hub",         "country": "US", "lat": 29.76, "lon": -95.37, "label": "Houston transload yard" },
+    { "id": "KOBE-YOKKAICHI", "kind": "hub",         "country": "JP", "lat": 34.95, "lon": 136.62, "label": "Yokkaichi compound" },
+
+    { "id": "MONTREAL",       "kind": "roro",        "country": "CA", "lat": 45.50, "lon": -73.57, "label": "Port de Montreal RORO" },
+    { "id": "HOUSTON-RORO",   "kind": "roro",        "country": "US", "lat": 29.74, "lon": -95.27, "label": "Port Houston Barbours Cut" },
+    { "id": "YOKOHAMA",       "kind": "roro",        "country": "JP", "lat": 35.44, "lon": 139.64, "label": "Yokohama RORO terminal" },
+
+    { "id": "TEMA",           "kind": "destination", "country": "GH", "lat": 5.62,  "lon": -0.02,  "label": "Tema Port, Ghana" },
+    { "id": "ACCRA-WS",       "kind": "workshop",    "country": "GH", "lat": 5.60,  "lon": -0.19,  "label": "Accra H2 Conversion Workshop" },
+    { "id": "HRS-NETWORK",    "kind": "hrs",         "country": "GH", "lat": 5.65,  "lon": -0.10,  "label": "Ghana HRS Network (pumps + fleet operators)" }
+  ],
+  "edges": [
+    { "from": "MANITOBA",       "to": "WINNIPEG",       "mode": "road", "km": 0,    "days_mu": 1.5,  "days_sd": 0.4,  "cost_usd_per_unit": 250  },
+    { "from": "ONTARIO",        "to": "TORONTO",        "mode": "road", "km": 60,   "days_mu": 1.5,  "days_sd": 0.5,  "cost_usd_per_unit": 300  },
+    { "from": "US-MIDWEST",     "to": "CHICAGO",        "mode": "road", "km": 0,    "days_mu": 2.0,  "days_sd": 0.7,  "cost_usd_per_unit": 400  },
+    { "from": "US-TEXAS",       "to": "HOUSTON-HUB",    "mode": "road", "km": 0,    "days_mu": 1.5,  "days_sd": 0.4,  "cost_usd_per_unit": 280  },
+    { "from": "JAPAN-KOBE",     "to": "KOBE-YOKKAICHI", "mode": "road", "km": 80,   "days_mu": 1.5,  "days_sd": 0.4,  "cost_usd_per_unit": 350  },
+
+    { "from": "WINNIPEG",       "to": "MONTREAL",       "mode": "rail", "km": 2300, "days_mu": 7.0,  "days_sd": 1.5,  "cost_usd_per_unit": 1800 },
+    { "from": "TORONTO",        "to": "MONTREAL",       "mode": "rail", "km": 540,  "days_mu": 3.5,  "days_sd": 1.0,  "cost_usd_per_unit": 900  },
+    { "from": "CHICAGO",        "to": "MONTREAL",       "mode": "rail", "km": 1500, "days_mu": 5.5,  "days_sd": 1.2,  "cost_usd_per_unit": 1400 },
+    { "from": "HOUSTON-HUB",    "to": "MONTREAL",       "mode": "rail", "km": 2700, "days_mu": 8.0,  "days_sd": 1.5,  "cost_usd_per_unit": 1900 },
+    { "from": "HOUSTON-HUB",    "to": "HOUSTON-RORO",   "mode": "road", "km": 25,   "days_mu": 0.5,  "days_sd": 0.2,  "cost_usd_per_unit": 80   },
+    { "from": "KOBE-YOKKAICHI", "to": "YOKOHAMA",       "mode": "road", "km": 350,  "days_mu": 1.5,  "days_sd": 0.4,  "cost_usd_per_unit": 400  },
+
+    { "from": "MONTREAL",       "to": "TEMA",           "mode": "sea",  "km": 9200,  "days_mu": 28.0, "days_sd": 4.0, "cost_usd_per_unit": 4200 },
+    { "from": "HOUSTON-RORO",   "to": "TEMA",           "mode": "sea",  "km": 10100, "days_mu": 30.0, "days_sd": 5.0, "cost_usd_per_unit": 4600 },
+    { "from": "YOKOHAMA",       "to": "TEMA",           "mode": "sea",  "km": 16800, "days_mu": 42.0, "days_sd": 5.0, "cost_usd_per_unit": 5500 },
+
+    { "from": "TEMA",           "to": "ACCRA-WS",       "mode": "road", "km": 30,   "days_mu": 2.0,  "days_sd": 1.0,  "cost_usd_per_unit": 200  },
+    { "from": "ACCRA-WS",       "to": "HRS-NETWORK",    "mode": "road", "km": 25,   "days_mu": 1.0,  "days_sd": 0.5,  "cost_usd_per_unit": 150  }
+  ],
+  "pipeline": ["sourced", "in_transit", "arrived", "delivered"],
+  "stage_to_edge": {
+    "in_transit": "AUTO"
+  },
+  "initial_shipments": [
+    { "id": "H2D-001", "make": "Freightliner", "model": "Cascadia 125", "year": 2016, "source": "MANITOBA",     "hub": "WINNIPEG",       "port": "MONTREAL",     "status": "in_transit", "progress": 0.78, "current_leg": "MONTREAL|TEMA|sea",     "vessel": "Grimaldi Galaxy" },
+    { "id": "H2D-002", "make": "Freightliner", "model": "Cascadia 125", "year": 2016, "source": "ONTARIO",      "hub": "TORONTO",        "port": "MONTREAL",     "status": "in_transit", "progress": 0.65, "current_leg": "MONTREAL|TEMA|sea",     "vessel": "Grimaldi Galaxy" },
+    { "id": "H2D-003", "make": "Kenworth",     "model": "T680",         "year": 2017, "source": "US-MIDWEST",  "hub": "CHICAGO",        "port": "MONTREAL",     "status": "in_transit", "progress": 0.55, "current_leg": "CHICAGO|MONTREAL|rail",  "vessel": "next-sail" },
+    { "id": "H2D-004", "make": "Kenworth",     "model": "T680",         "year": 2017, "source": "US-MIDWEST",  "hub": "CHICAGO",        "port": "HOUSTON-RORO", "status": "in_transit", "progress": 0.58, "current_leg": "CHICAGO|HOUSTON-RORO|rail", "vessel": "Wallenius Werra" },
+    { "id": "H2D-005", "make": "Peterbilt",    "model": "579",          "year": 2018, "source": "US-TEXAS",    "hub": "HOUSTON-HUB",    "port": "HOUSTON-RORO", "status": "in_transit", "progress": 0.42, "current_leg": "HOUSTON-HUB|HOUSTON-RORO|road", "vessel": "next-sail" },
+    { "id": "H2D-006", "make": "Peterbilt",    "model": "579",          "year": 2018, "source": "US-TEXAS",    "hub": "HOUSTON-HUB",    "port": "HOUSTON-RORO", "status": "in_transit", "progress": 0.45, "current_leg": "HOUSTON-HUB|HOUSTON-RORO|road", "vessel": "next-sail" },
+    { "id": "H2D-007", "make": "Freightliner", "model": "Cascadia 125", "year": 2016, "source": "MANITOBA",     "hub": "WINNIPEG",       "port": "MONTREAL",     "status": "in_transit", "progress": 0.22, "current_leg": "MANITOBA|WINNIPEG|road", "vessel": "pending" },
+    { "id": "H2D-008", "make": "Freightliner", "model": "Cascadia 125", "year": 2016, "source": "ONTARIO",      "hub": "TORONTO",        "port": "MONTREAL",     "status": "sourced",     "progress": 0.10, "current_leg": "ONTARIO|TORONTO|road",   "vessel": "pending" },
+    { "id": "H2D-009", "make": "Isuzu",        "model": "Forward",      "year": 2015, "source": "JAPAN-KOBE",   "hub": "KOBE-YOKKAICHI", "port": "YOKOHAMA",     "status": "in_transit", "progress": 0.35, "current_leg": "KOBE-YOKKAICHI|YOKOHAMA|road", "vessel": "next-sail" },
+    { "id": "H2D-010", "make": "Isuzu",        "model": "Forward",      "year": 2015, "source": "JAPAN-KOBE",   "hub": "KOBE-YOKKAICHI", "port": "YOKOHAMA",     "status": "sourced",     "progress": 0.18, "current_leg": "JAPAN-KOBE|KOBE-YOKKAICHI|road", "vessel": "pending" },
+    { "id": "H2D-011", "make": "Mitsubishi Fuso","model":"Super Great", "year": 2016, "source": "JAPAN-KOBE",   "hub": "KOBE-YOKKAICHI", "port": "YOKOHAMA",     "status": "in_transit", "progress": 0.70, "current_leg": "YOKOHAMA|TEMA|sea",       "vessel": "MOL Endurance" },
+    { "id": "H2D-012", "make": "Mitsubishi Fuso","model":"Super Great", "year": 2016, "source": "JAPAN-KOBE",   "hub": "KOBE-YOKKAICHI", "port": "YOKOHAMA",     "status": "arrived",     "progress": 1.00, "current_leg": "YOKOHAMA|TEMA|sea",       "vessel": "MOL Endurance" },
+    { "id": "H2D-013", "make": "International",  "model":"LT",          "year": 2017, "source": "US-MIDWEST",  "hub": "CHICAGO",        "port": "MONTREAL",     "status": "in_transit", "progress": 1.00, "current_leg": "TEMA|ACCRA-WS|road",      "vessel": "delivered" },
+    { "id": "H2D-014", "make": "International",  "model":"LT",          "year": 2017, "source": "US-MIDWEST",  "hub": "CHICAGO",        "port": "MONTREAL",     "status": "delivered",   "progress": 1.00, "current_leg": "ACCRA-WS|HRS-NETWORK|road","vessel": "delivered" },
+    { "id": "H2D-015", "make": "Volvo",          "model":"VNL",         "year": 2019, "source": "ONTARIO",     "hub": "TORONTO",        "port": "MONTREAL",     "status": "arrived",     "progress": 1.00, "current_leg": "MONTREAL|TEMA|sea",       "vessel": "Grimaldi Galaxy" },
+    { "id": "H2D-016", "make": "Volvo",          "model":"VNL",         "year": 2019, "source": "ONTARIO",     "hub": "TORONTO",        "port": "MONTREAL",     "status": "in_transit", "progress": 0.88, "current_leg": "MONTREAL|TEMA|sea",       "vessel": "Grimaldi Galaxy" },
+    { "id": "H2D-017", "make": "Mack",           "model":"Anthem",      "year": 2018, "source": "US-TEXAS",    "hub": "HOUSTON-HUB",    "port": "HOUSTON-RORO", "status": "in_transit", "progress": 0.62, "current_leg": "HOUSTON-RORO|TEMA|sea",   "vessel": "Wallenius Werra" },
+    { "id": "H2D-018", "make": "Mack",           "model":"Anthem",      "year": 2018, "source": "US-TEXAS",    "hub": "HOUSTON-HUB",    "port": "HOUSTON-RORO", "status": "arrived",     "progress": 1.00, "current_leg": "HOUSTON-RORO|TEMA|sea",   "vessel": "Wallenius Werra" },
+    { "id": "H2D-019", "make": "Hino",           "model":"700 Series",  "year": 2016, "source": "JAPAN-KOBE",  "hub": "KOBE-YOKKAICHI", "port": "YOKOHAMA",     "status": "sourced",     "progress": 0.08, "current_leg": "JAPAN-KOBE|KOBE-YOKKAICHI|road", "vessel": "pending" },
+    { "id": "H2D-020", "make": "Hino",           "model":"700 Series",  "year": 2016, "source": "JAPAN-KOBE",  "hub": "KOBE-YOKKAICHI", "port": "YOKOHAMA",     "status": "sourced",     "progress": 0.25, "current_leg": "JAPAN-KOBE|KOBE-YOKKAICHI|road", "vessel": "pending" },
+    { "id": "H2D-021", "make": "Freightliner", "model": "Cascadia 125", "year": 2015, "source": "MANITOBA",    "hub": "WINNIPEG",       "port": "MONTREAL",     "status": "in_transit", "progress": 1.00, "current_leg": "TEMA|ACCRA-WS|road",      "vessel": "delivered" },
+    { "id": "H2D-022", "make": "Freightliner", "model": "Cascadia 125", "year": 2015, "source": "MANITOBA",    "hub": "WINNIPEG",       "port": "MONTREAL",     "status": "delivered",   "progress": 1.00, "current_leg": "ACCRA-WS|HRS-NETWORK|road", "vessel": "delivered" },
+    { "id": "H2D-023", "make": "Peterbilt",    "model": "579",          "year": 2017, "source": "US-TEXAS",    "hub": "HOUSTON-HUB",    "port": "HOUSTON-RORO", "status": "in_transit", "progress": 1.00, "current_leg": "TEMA|ACCRA-WS|road",      "vessel": "delivered" },
+    { "id": "H2D-024", "make": "Peterbilt",    "model": "579",          "year": 2017, "source": "US-TEXAS",    "hub": "HOUSTON-HUB",    "port": "HOUSTON-RORO", "status": "delivered", "progress": 1.00, "current_leg": "ACCRA-WS|HRS-NETWORK|road", "vessel": "delivered" }
+  ],
+  "scenarios": {
+    "balanced":              { "label": "Balanced run" },
+    "aggressive-sourcing":   { "label": "Aggressive sourcing (8 more vehicles)" },
+    "vessel-delay":          { "label": "Vessel delay (+40% ocean transit)" },
+    "fx-shock":              { "label": "USD/GHS FX shock (10% devaluation)" },
+    "demand-surge":          { "label": "Demand surge (workshop capacity +50%)" }
+  }
+}
