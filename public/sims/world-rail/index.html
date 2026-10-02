@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>World Rail Network — Tech-Twin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --te-bg:        #F2F2F0;
+      --te-bg-panel:  #FFFFFF;
+      --te-fg:        #0A0A0A;
+      --te-fg-dim:    #6B6B6B;
+      --te-fg-mute:   #A0A0A0;
+      --te-border:    #1A1A1A;
+      --te-border-d:  rgba(10,10,10,0.15);
+      --te-divider:   rgba(10,10,10,0.08);
+      --te-orange:    #FF4500;
+      --te-teal:      #00D4AA;
+      --te-purple:    #7C5CFF;
+      --te-amber:     #FBBF24;
+      --te-rose:      #FB7185;
+      --te-cyan:      #06B6D4;
+      --te-violet:    #A78BFA;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: var(--te-bg);
+      color: var(--te-fg);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    canvas#te-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+
+    /* TITLE BAR */
+    .te-titlebar {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 14px;
+      background: var(--te-bg);
+      border-bottom: 1.5px solid var(--te-border);
+      z-index: 50;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .te-titlebar .brand { display: flex; gap: 8px; align-items: center; }
+    .te-titlebar .brand .dot { width: 8px; height: 8px; background: var(--te-purple); border-radius: 50%; }
+    .te-titlebar .nav { display: flex; gap: 12px; }
+    .te-titlebar .nav span { color: var(--te-fg-dim); cursor: default; }
+    .te-titlebar .nav span.active { color: var(--te-fg); border-bottom: 1px solid var(--te-fg); }
+
+    /* BOTTOM CHROME */
+    .te-fixtures {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      display: flex; align-items: stretch; justify-content: space-between;
+      background: var(--te-bg);
+      border-top: 1.5px solid var(--te-border);
+      z-index: 50;
+      font-size: 11px;
+    }
+    .te-fixture-group { display: flex; }
+    .te-fixture {
+      padding: 10px 16px;
+      border-right: 1px solid var(--te-divider);
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+      color: var(--te-fg-dim);
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+    .te-fixture:hover { color: var(--te-fg); }
+    .te-fixture.active { color: var(--te-fg); background: var(--te-bg-panel); }
+    .te-fixture .icon { font-size: 12px; }
+
+    .te-speed {
+      padding: 10px 16px;
+      border-left: 1px solid var(--te-divider);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .te-speed button, .te-speed select {
+      background: var(--te-bg-panel); border: 1px solid var(--te-border);
+      padding: 3px 8px; cursor: pointer; font-family: inherit;
+      font-size: 11px; color: var(--te-fg);
+    }
+    .te-speed button.active { background: var(--te-fg); color: var(--te-bg); }
+    .te-fps { padding: 10px 16px; border-left: 1px solid var(--te-divider); font-size: 11px; color: var(--te-fg-dim); }
+
+    /* KPI HUD */
+    .te-hud {
+      position: fixed; top: 40px; left: 14px;
+      width: 280px;
+      background: var(--te-bg-panel);
+      border: 1.5px solid var(--te-border);
+      z-index: 40;
+      font-size: 11px;
+    }
+    .te-hud-title {
+      padding: 8px 12px;
+      border-bottom: 1.5px solid var(--te-border);
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+    .te-hud-row {
+      display: flex; justify-content: space-between; align-items: baseline;
+      padding: 5px 12px;
+      border-bottom: 1px dashed var(--te-divider);
+    }
+    .te-hud-row:last-child { border-bottom: none; }
+    .te-hud-row .label { color: var(--te-fg-dim); }
+    .te-hud-row .val { font-weight: 600; font-variant-numeric: tabular-nums; }
+    .te-hud-row .val.lg { font-size: 16px; }
+    .te-hud-row .val.purple { color: var(--te-purple); }
+    .te-hud-row .val.orange { color: var(--te-orange); }
+    .te-hud-row .val.teal { color: var(--te-teal); }
+    .te-hud-row .val.cyan { color: var(--te-cyan); }
+
+    /* LEGEND */
+    .te-legend {
+      position: fixed; bottom: 50px; left: 14px;
+      background: var(--te-bg-panel);
+      border: 1.5px solid var(--te-border);
+      padding: 10px 12px;
+      font-size: 10px;
+      z-index: 40;
+      max-width: 280px;
+    }
+    .te-legend h4 {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: var(--te-fg-dim); margin: 6px 0 4px 0;
+    }
+    .te-legend-row { display: flex; align-items: center; gap: 6px; padding: 1px 0; }
+
+    /* TRAIN PANEL */
+    .te-side-panel {
+      position: fixed; top: 40px; right: 14px;
+      width: 340px; max-height: calc(100vh - 100px);
+      overflow-y: auto;
+      background: var(--te-bg-panel);
+      border: 1.5px solid var(--te-border);
+      z-index: 40;
+      font-size: 10px;
+    }
+    .te-side-panel.hidden { display: none; }
+    .te-side-panel-header {
+      padding: 8px 12px;
+      border-bottom: 1.5px solid var(--te-border);
+      font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      position: sticky; top: 0; background: var(--te-bg-panel);
+    }
+    .te-train-row {
+      display: grid;
+      grid-template-columns: 60px 1fr auto;
+      gap: 6px;
+      padding: 6px 12px;
+      border-bottom: 1px dashed var(--te-divider);
+      align-items: center;
+    }
+    .te-train-row:hover { background: var(--te-bg); }
+    .te-train-row .id { font-weight: 700; font-size: 10px; }
+    .te-train-row .info { font-size: 9px; color: var(--te-fg-dim); line-height: 1.4; }
+    .te-train-row .info .op { color: var(--te-fg); font-weight: 500; }
+    .te-train-row .status { font-size: 9px; padding: 1px 6px; border: 1px solid currentColor; text-transform: uppercase; letter-spacing: 0.3px; font-weight: 600; }
+    .te-progress-bar { height: 3px; background: var(--te-divider); margin-top: 4px; position: relative; }
+    .te-progress-bar .fill { height: 100%; }
+
+    /* KPI grid */
+    .te-kpi-grid { padding: 10px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .te-kpi-cell { padding: 8px; background: var(--te-bg); border: 1px solid var(--te-divider); }
+    .te-kpi-cell .label { font-size: 9px; color: var(--te-fg-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+    .te-kpi-cell .val { font-size: 18px; font-weight: 700; margin-top: 2px; }
+    .te-kpi-cell .sub { font-size: 9px; color: var(--te-fg-dim); margin-top: 2px; }
+
+    /* Modal */
+    .te-modal-bg {
+      position: fixed; inset: 0;
+      background: rgba(10,10,10,0.25);
+      z-index: 100; display: none; align-items: center; justify-content: center;
+    }
+    .te-modal-bg.show { display: flex; }
+    .te-modal {
+      background: var(--te-bg-panel);
+      border: 1.5px solid var(--te-border);
+      width: 460px; max-width: 90vw; max-height: 85vh; overflow-y: auto;
+      padding: 18px;
+      font-size: 11px;
+    }
+    .te-modal h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+    .te-modal .close { float: right; cursor: pointer; font-size: 18px; line-height: 1; }
+    .te-modal .field { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed var(--te-divider); gap: 12px; }
+    .te-modal .field:last-child { border-bottom: none; }
+    .te-modal .field .label { color: var(--te-fg-dim); flex-shrink: 0; }
+
+    /* Loading */
+    #te-loading {
+      position: fixed; inset: 0; background: var(--te-bg);
+      z-index: 200; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: var(--te-fg-dim);
+    }
+    #te-loading.gone { display: none; }
+
+    /* Continent filter chips */
+    .te-region-bar {
+      position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 4px;
+      background: var(--te-bg-panel);
+      border: 1.5px solid var(--te-border);
+      z-index: 40;
+      padding: 4px;
+    }
+    .te-region-chip {
+      padding: 4px 10px;
+      font-size: 10px;
+      cursor: pointer;
+      color: var(--te-fg-dim);
+      border-right: 1px solid var(--te-divider);
+    }
+    .te-region-chip:last-child { border-right: none; }
+    .te-region-chip:hover { color: var(--te-fg); }
+    .te-region-chip.active { color: var(--te-fg); background: var(--te-bg); }
+  </style>
+</head>
+<body>
+  <div id="te-loading">LOADING WORLD RAIL NETWORK...</div>
+  <canvas id="te-canvas"></canvas>
+
+  <!-- TITLE BAR -->
+  <div class="te-titlebar">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>KANAY — WORLD RAIL NETWORK</span>
+    </div>
+    <div class="nav">
+      <span class="active">DIGITAL TWIN</span>
+      <span>NETWORK</span>
+      <span>SCENARIOS</span>
+      <span>DATA</span>
+    </div>
+    <div>v0.1.0 — world rail digital twin</div>
+  </div>
+
+  <!-- REGION FILTER -->
+  <div class="te-region-bar">
+    <div class="te-region-chip active" data-region="all">ALL</div>
+    <div class="te-region-chip" data-region="NA">N. AMERICA</div>
+    <div class="te-region-chip" data-region="EU">EUROPE</div>
+    <div class="te-region-chip" data-region="CN">CHINA</div>
+    <div class="te-region-chip" data-region="RU">RUSSIA</div>
+    <div class="te-region-chip" data-region="IN">INDIA</div>
+    <div class="te-region-chip" data-region="BR">BRAZIL</div>
+    <div class="te-region-chip" data-region="JP">JAPAN</div>
+    <div class="te-region-chip" data-region="ZA">S. AFRICA</div>
+    <div class="te-region-chip" data-region="AU">AUSTRALIA</div>
+    <div class="te-region-chip" data-region="BeltRoad">BELT & ROAD</div>
+  </div>
+
+  <!-- KPI HUD -->
+  <div class="te-hud" id="te-hud">
+    <div class="te-hud-title">WORLD RAIL KPIs</div>
+    <div class="te-hud-row"><span class="label">Active trains</span><span class="val lg" id="kpi-trains">—</span></div>
+    <div class="te-hud-row"><span class="label">Delivered</span><span class="val teal" id="kpi-delivered">—</span></div>
+    <div class="te-hud-row"><span class="label">In transit</span><span class="val cyan" id="kpi-inflight">—</span></div>
+    <div class="te-hud-row"><span class="label">At depot</span><span class="val" id="kpi-depot">—</span></div>
+    <div class="te-hud-row"><span class="label">Junctions</span><span class="val purple" id="kpi-junctions">—</span></div>
+    <div class="te-hud-row"><span class="label">Edges</span><span class="val purple" id="kpi-edges">—</span></div>
+    <div class="te-hud-row"><span class="label">Network length</span><span class="val orange" id="kpi-km">—</span></div>
+    <div class="te-hud-row"><span class="label">Sim day</span><span class="val" id="kpi-day">0</span></div>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="te-legend">
+    <h4>LINES</h4>
+    <div class="te-legend-row"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#A78BFA" stroke-width="2.5"/></svg><span>Rail</span></div>
+    <div class="te-legend-row"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#FF4500" stroke-width="2.5"/></svg><span>High-speed (HSR)</span></div>
+    <div class="te-legend-row"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#06B6D4" stroke-width="2.5" stroke-dasharray="4,3"/></svg><span>Freight intermodal</span></div>
+    <h4>NODES</h4>
+    <div class="te-legend-row"><span style="display:inline-block;width:10px;height:10px;background:#1A1A1A;border:1px solid var(--te-border)"></span><span>Junction</span></div>
+    <div class="te-legend-row"><span style="display:inline-block;width:10px;height:10px;background:#FB923C;border:1px solid var(--te-border)"></span><span>Port / intermodal</span></div>
+    <h4>TRAIN STATUS</h4>
+    <div class="te-legend-row"><span style="display:inline-block;width:10px;height:10px;background:#06B6D4;border-radius:50%"></span><span>In transit</span></div>
+    <div class="te-legend-row"><span style="display:inline-block;width:10px;height:10px;background:#FBBF24;border-radius:50%"></span><span>At depot</span></div>
+    <div class="te-legend-row"><span style="display:inline-block;width:10px;height:10px;background:#FB7185;border-radius:50%"></span><span>Arrived</span></div>
+    <div class="te-legend-row"><span style="display:inline-block;width:10px;height:10px;background:#FF4500;border-radius:50%"></span><span>Delivered</span></div>
+  </div>
+
+  <!-- SIDE PANELS -->
+  <div class="te-side-panel hidden" id="panel-fleet">
+    <div class="te-side-panel-header">ACTIVE TRAINS — <span id="train-count">0</span></div>
+    <div id="train-rows"></div>
+  </div>
+
+  <div class="te-side-panel hidden" id="panel-kpi">
+    <div class="te-side-panel-header">NETWORK STATS</div>
+    <div class="te-kpi-grid">
+      <div class="te-kpi-cell"><div class="label">TRAINS</div><div class="val" id="k-trains">—</div><div class="sub">in service</div></div>
+      <div class="te-kpi-cell"><div class="label">DELIVERED</div><div class="val" id="k-delivered">—</div><div class="sub">reached terminal</div></div>
+      <div class="te-kpi-cell"><div class="label">RAIL EDGES</div><div class="val" id="k-edges">—</div><div class="sub">in current view</div></div>
+      <div class="te-kpi-cell"><div class="label">JUNCTIONS</div><div class="val" id="k-junctions">—</div><div class="sub">in current view</div></div>
+      <div class="te-kpi-cell"><div class="label">HSR</div><div class="val" id="k-hsr">—</div><div class="sub">high-speed edges</div></div>
+      <div class="te-kpi-cell"><div class="label">FREIGHT</div><div class="val" id="k-freight">—</div><div class="sub">intermodal edges</div></div>
+    </div>
+    <div style="padding: 10px 12px; font-size: 10px; color: var(--te-fg-dim);">
+      <strong style="color:var(--te-fg)">Top congested corridors</strong>
+      <ul id="top-edges" style="list-style:none; margin-top:4px;"></ul>
+    </div>
+  </div>
+
+  <!-- BOTTOM FIXTURES -->
+  <div class="te-fixtures">
+    <div class="te-fixture-group">
+      <div class="te-fixture active" data-fixture="world-map" onclick="window.railTwin.setFixture('world-map')">
+        <span class="icon">●</span><span>WORLD MAP</span>
+      </div>
+      <div class="te-fixture" data-fixture="fleet-tracker" onclick="window.railTwin.setFixture('fleet-tracker')">
+        <span class="icon">▣</span><span>TRAINS</span>
+      </div>
+      <div class="te-fixture" data-fixture="kpi-dashboard" onclick="window.railTwin.setFixture('kpi-dashboard')">
+        <span class="icon">↗</span><span>KPI</span>
+      </div>
+    </div>
+    <div class="te-speed">
+      <span style="color:var(--te-fg-dim)">SPEED</span>
+      <button onclick="window.railTwin.setSpeed(1)" class="active" id="sp-1">1×</button>
+      <button onclick="window.railTwin.setSpeed(8)" id="sp-8">8×</button>
+      <button onclick="window.railTwin.setSpeed(64)" id="sp-64">64×</button>
+      <button onclick="window.railTwin.setSpeed(360)" id="sp-360">360×</button>
+      <select id="te-scenario" onchange="window.railTwin.setScenario(this.value)" style="margin-left:8px"></select>
+    </div>
+    <div class="te-fps"><span style="color:var(--te-fg-dim)">FPS</span> <span id="te-fps">—</span></div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="te-modal-bg" id="te-modal-bg" onclick="if(event.target===this)window.railTwin.closeModal()">
+    <div class="te-modal" id="te-modal"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="sim-core.js"></script>
+  <script src="game-loop.js"></script>
+  <script src="mermaid-panel.js"></script>
+
+  <script>
+  (() => {
+    let S = null;
+    let scene, camera, renderer, controls;
+    let earthMesh, nodeMeshes = {}, labelSprites = {};
+    let edgeMeshes = [], trainMeshes = {};
+    let raycaster, mouse;
+    let currentFixture = 'world-map';
+    let lastKpi = null;
+    let activeRegion = 'all';
+
+    // Country → region map
+    const REGION_MAP = { US: 'NA', CA: 'NA', MX: 'NA',
+                          CN: 'CN', JP: 'JP',
+                          RU: 'RU',
+                          IN: 'IN',
+                          DE: 'EU', NL: 'EU', BE: 'EU', FR: 'EU', PL: 'EU', ES: 'EU',
+                          BR: 'BR',
+                          ZA: 'ZA',
+                          AU: 'AU',
+                          KZ: 'BeltRoad', IR: 'BeltRoad', TR: 'BeltRoad' };
+
+    function nodeColor(kind) {
+      return {
+        junction: 0x1A1A1A,
+        port:     0xFB923C,
+      }[kind] || 0x6B6B6B;
+    }
+
+    function statusColor(status) {
+      return {
+        at_depot:    0xFBBF24,
+        in_transit:  0x06B6D4,
+        arrived:     0xFB7185,
+        delivered:   0xFF4500,
+      }[status] || 0xFFFFFF;
+    }
+
+    function inRegion(node) {
+      if (activeRegion === 'all') return true;
+      if (activeRegion === 'BeltRoad') {
+        return ['KZ', 'IR', 'TR', 'CN'].includes(node.country);
+      }
+      const wantCountries = Object.keys(REGION_MAP).filter(k => REGION_MAP[k] === activeRegion);
+      return wantCountries.includes(node.country);
+    }
+
+    async function fetchTopology(file) {
+      try {
+        const r = await fetch(file);
+        if (r.ok) return await r.json();
+      } catch (_) {}
+      if (window.__INLINE_TOPOLOGIES__ && window.__INLINE_TOPOLOGIES__[file]) {
+        return window.__INLINE_TOPOLOGIES__[file];
+      }
+      throw new Error(`Could not load ${file}`);
+    }
+
+    // ===========================================================
+    // THREE.js SCENE
+    // ===========================================================
+    function initScene() {
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xF2F2F0);
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 1.2, 3.2);
+
+      renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('te-canvas'), antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.rotateSpeed = 0.6;
+      controls.minDistance = 1.4;
+      controls.maxDistance = 6.0;
+
+      scene.add(new THREE.DirectionalLight(0xffffff, 1.2).position.set(5, 5, 5) || new THREE.Object3D());
+      const dl = new THREE.DirectionalLight(0xffffff, 1.2);
+      dl.position.set(5, 5, 5);
+      scene.add(dl);
+      scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+
+      buildEarth();
+
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+      renderer.domElement.addEventListener('click', onCanvasClick);
+      window.addEventListener('resize', onResize);
+    }
+
+    function buildEarth() {
+      const geo = new THREE.SphereGeometry(1, 64, 48);
+      const mat = new THREE.MeshPhongMaterial({ color: 0xFFFFFF, specular: 0x222222, shininess: 12 });
+      earthMesh = new THREE.Mesh(geo, mat);
+      scene.add(earthMesh);
+
+      const dotCount = 1400;
+      const dotGeo = new THREE.BufferGeometry();
+      const positions = new Float32Array(dotCount * 3);
+      for (let i = 0; i < dotCount; i++) {
+        const u = Math.random(), v = Math.random();
+        const phi = Math.acos(2 * v - 1);
+        const theta = 2 * Math.PI * u;
+        const r = 1.005;
+        positions[3*i+0] = r * Math.sin(phi) * Math.cos(theta);
+        positions[3*i+1] = r * Math.cos(phi);
+        positions[3*i+2] = r * Math.sin(phi) * Math.sin(theta);
+      }
+      dotGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      scene.add(new THREE.Points(dotGeo, new THREE.PointsMaterial({ color: 0x6B6B6B, size: 0.006, transparent: true, opacity: 0.5 })));
+    }
+
+    function buildNodes() {
+      for (const id in nodeMeshes) scene.remove(nodeMeshes[id]);
+      for (const id in labelSprites) scene.remove(labelSprites[id]);
+      nodeMeshes = {};
+      labelSprites = {};
+
+      for (const n of S.nodes) {
+        if (!inRegion(n)) continue;
+        const pos = window.SupplyChainCore.geoToWorld(n.lat, n.lon);
+        const size = n.kind === 'port' ? 0.022 : 0.014;
+        const geo = new THREE.SphereGeometry(size, 12, 12);
+        const mat = new THREE.MeshBasicMaterial({ color: nodeColor(n.kind) });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(pos.x, pos.y, pos.z);
+        mesh.userData = { nodeId: n.id, node: n };
+        scene.add(mesh);
+        nodeMeshes[n.id] = mesh;
+
+        const ringGeo = new THREE.RingGeometry(size * 1.4, size * 1.7, 24);
+        const ringMat = new THREE.MeshBasicMaterial({ color: nodeColor(n.kind), side: THREE.DoubleSide, transparent: true, opacity: 0.4 });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.position.set(pos.x, pos.y, pos.z);
+        ring.lookAt(0, 0, 0);
+        scene.add(ring);
+
+        const label = makeLabel(n.id);
+        const dist = pos.x*pos.x + pos.y*pos.y + pos.z*pos.z;
+        const norm = Math.sqrt(dist);
+        label.position.set(pos.x * 1.04 / norm, pos.y * 1.04 / norm, pos.z * 1.04 / norm);
+        scene.add(label);
+        labelSprites[n.id] = label;
+      }
+    }
+
+    function makeLabel(text) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256; canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'rgba(0,0,0,0)';
+      ctx.fillRect(0, 0, 256, 64);
+      ctx.font = '600 28px JetBrains Mono, monospace';
+      ctx.fillStyle = '#0A0A0A';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 128, 32);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.minFilter = THREE.LinearFilter;
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+      sprite.scale.set(0.16, 0.04, 1);
+      return sprite;
+    }
+
+    function buildEdges() {
+      for (const m of edgeMeshes) scene.remove(m);
+      edgeMeshes = [];
+
+      for (const e of S.edges) {
+        const a = S.nodes.find(n => n.id === e.from);
+        const b = S.nodes.find(n => n.id === e.to);
+        if (!a || !b) continue;
+        if (!inRegion(a) || !inRegion(b)) continue;
+        const pa = window.SupplyChainCore.geoToWorld(a.lat, a.lon);
+        const pb = window.SupplyChainCore.geoToWorld(b.lat, b.lon);
+
+        const arc = S.modes[e.mode]?.arc_height ?? 0.04;
+        const points = [];
+        const N = 32;
+        for (let i = 0; i <= N; i++) {
+          const t = i / N;
+          const arcH = Math.sin(t * Math.PI) * arc;
+          const x = pa.x + (pb.x - pa.x) * t;
+          const y = pa.y + (pb.y - pa.y) * t;
+          const z = pa.z + (pb.z - pa.z) * t;
+          const norm = Math.sqrt(x*x + y*y + z*z);
+          const r = 1.0 + arcH;
+          points.push(new THREE.Vector3(x / norm * r, y / norm * r, z / norm * r));
+        }
+
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
+        const color = S.modes[e.mode]?.color ?? 0xFFFFFF;
+        const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.55 });
+        const line = new THREE.Line(geo, mat);
+        line.userData = { edge: e };
+        scene.add(line);
+        edgeMeshes.push(line);
+      }
+    }
+
+    function buildTrains() {
+      for (const id in trainMeshes) scene.remove(trainMeshes[id]);
+      trainMeshes = {};
+      for (const v of S.shipments) {
+        // Only show trains whose current leg endpoints are both in region (or filter by operator country)
+        if (v.current_leg) {
+          const parts = v.current_leg.split('|');
+          const a = S.nodes.find(n => n.id === parts[0]);
+          const b = S.nodes.find(n => n.id === parts[1]);
+          if (a && b && (!inRegion(a) || !inRegion(b))) continue;
+        }
+        const geo = new THREE.SphereGeometry(0.012, 8, 8);
+        const mat = new THREE.MeshBasicMaterial({ color: statusColor(v.status) });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.userData = { trainId: v.id, train: v };
+        scene.add(mesh);
+        trainMeshes[v.id] = mesh;
+      }
+    }
+
+    function trainPosition(v) {
+      if (v.status === 'in_transit' && v.current_leg) {
+        const parts = v.current_leg.split('|');
+        const a = S.nodes.find(n => n.id === parts[0]);
+        const b = S.nodes.find(n => n.id === parts[1]);
+        if (!a || !b) return new THREE.Vector3(0, 0, 0);
+        const pa = window.SupplyChainCore.geoToWorld(a.lat, a.lon);
+        const pb = window.SupplyChainCore.geoToWorld(b.lat, b.lon);
+        const t = v.progress;
+        const arc = Math.sin(t * Math.PI) * (S.modes[parts[2]]?.arc_height ?? 0.04);
+        const x = pa.x + (pb.x - pa.x) * t;
+        const y = pa.y + (pb.y - pa.y) * t;
+        const z = pa.z + (pb.z - pa.z) * t;
+        const norm = Math.sqrt(x*x + y*y + z*z);
+        const r = 1.0 + arc;
+        return new THREE.Vector3(x / norm * r, y / norm * r, z / norm * r);
+      }
+      const targetId = v.current_leg ? v.current_leg.split('|')[1] : null;
+      const target = targetId ? S.nodes.find(n => n.id === targetId) : null;
+      if (!target) return new THREE.Vector3(0, 0, 0);
+      const pos = window.SupplyChainCore.geoToWorld(target.lat, target.lon);
+      const norm = Math.sqrt(pos.x*pos.x + pos.y*pos.y + pos.z*pos.z);
+      return new THREE.Vector3(pos.x / norm * 1.02, pos.y / norm * 1.02, pos.z / norm * 1.02);
+    }
+
+    function updateTrainPositions() {
+      for (const v of S.shipments) {
+        const mesh = trainMeshes[v.id];
+        if (!mesh) continue;
+        mesh.position.copy(trainPosition(v));
+        mesh.material.color.setHex(statusColor(v.status));
+      }
+    }
+
+    // ===========================================================
+    // HUD
+    // ===========================================================
+    function updateHud(k) {
+      const totalKm = S.edges.reduce((a, e) => a + e.km, 0);
+      document.getElementById('kpi-trains').textContent = k.shipment_count;
+      document.getElementById('kpi-delivered').textContent = k.delivered;
+      document.getElementById('kpi-inflight').textContent = k.in_flight;
+      document.getElementById('kpi-depot').textContent = (k.by_status && k.by_status.at_depot) || 0;
+      document.getElementById('kpi-junctions').textContent = S.nodes.filter(inRegion).length;
+      document.getElementById('kpi-edges').textContent = S.edges.filter(e => {
+        const a = S.nodes.find(n => n.id === e.from);
+        const b = S.nodes.find(n => n.id === e.to);
+        return a && b && inRegion(a) && inRegion(b);
+      }).length;
+      document.getElementById('kpi-km').textContent = totalKm.toLocaleString() + ' km';
+      document.getElementById('kpi-day').textContent = k.sim_days;
+
+      // KPI panel
+      document.getElementById('k-trains').textContent = k.shipment_count;
+      document.getElementById('k-delivered').textContent = k.delivered;
+      document.getElementById('k-edges').textContent = document.getElementById('kpi-edges').textContent;
+      document.getElementById('k-junctions').textContent = document.getElementById('kpi-junctions').textContent;
+      document.getElementById('k-hsr').textContent = S.edges.filter(e => e.mode === 'hsr' && inRegion(S.nodes.find(n => n.id === e.from)) && inRegion(S.nodes.find(n => n.id === e.to))).length;
+      document.getElementById('k-freight').textContent = S.edges.filter(e => e.mode === 'freight' && inRegion(S.nodes.find(n => n.id === e.from)) && inRegion(S.nodes.find(n => n.id === e.to))).length;
+
+      const ul = document.getElementById('top-edges');
+      ul.innerHTML = '';
+      const filtered = (k.top_edges || []).filter(te => {
+        const a = S.nodes.find(n => n.id === te.from);
+        const b = S.nodes.find(n => n.id === te.to);
+        return a && b && inRegion(a) && inRegion(b);
+      }).slice(0, 6);
+      for (const e of filtered) {
+        const li = document.createElement('li');
+        li.style.padding = '2px 0';
+        li.innerHTML = `<span style="color:var(--te-fg)">${e.from}</span> → <span style="color:var(--te-fg)">${e.to}</span> <span style="color:var(--te-fg-dim)">· ${e.mode} · ${e.flow}</span>`;
+        ul.appendChild(li);
+      }
+    }
+
+    function updateTrainPanel() {
+      const rows = document.getElementById('train-rows');
+      const visible = S.shipments.filter(v => {
+        if (!v.current_leg) return true;
+        const parts = v.current_leg.split('|');
+        const a = S.nodes.find(n => n.id === parts[0]);
+        const b = S.nodes.find(n => n.id === parts[1]);
+        return (!a || !b) || (inRegion(a) && inRegion(b));
+      });
+      document.getElementById('train-count').textContent = visible.length;
+      rows.innerHTML = '';
+      for (const v of visible) {
+        const row = document.createElement('div');
+        row.className = 'te-train-row';
+        const legText = v.current_leg ? v.current_leg.replace(/\|/g, ' → ') : '—';
+        row.innerHTML = `
+          <div class="id">${v.id}</div>
+          <div>
+            <div class="info"><span class="op">${v.operator || '—'}</span> · ${v.type || ''} · ${v.cargo || ''}</div>
+            <div class="info">${legText}</div>
+            <div class="te-progress-bar"><div class="fill" style="width:${(v.progress*100).toFixed(0)}%; background:${hexCss(statusColor(v.status))}"></div></div>
+          </div>
+          <div class="status s-${v.status}">${v.status}</div>
+        `;
+        row.onclick = () => showTrainModal(v);
+        rows.appendChild(row);
+      }
+    }
+
+    function hexCss(h) { return '#' + h.toString(16).padStart(6, '0'); }
+
+    function showTrainModal(v) {
+      const m = document.getElementById('te-modal');
+      let html = `<span class="close" onclick="window.railTwin.closeModal()">×</span><h3>${v.id} — ${v.operator || ''} ${v.type || ''}</h3>`;
+      for (const key of Object.keys(v)) {
+        const val = v[key];
+        const display = typeof val === 'number' ? val.toFixed(2) : String(val);
+        html += `<div class="field"><span class="label">${key}</span><span>${display}</span></div>`;
+      }
+      m.innerHTML = html;
+      document.getElementById('te-modal-bg').classList.add('show');
+    }
+
+    function closeModal() {
+      document.getElementById('te-modal-bg').classList.remove('show');
+    }
+
+    function onCanvasClick(e) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      const meshes = Object.values(trainMeshes);
+      const hits = raycaster.intersectObjects(meshes);
+      if (hits.length > 0) {
+        const id = hits[0].object.userData.trainId;
+        const v = S.shipments.find(x => x.id === id);
+        if (v) showTrainModal(v);
+      }
+    }
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function setFixture(f) {
+      currentFixture = f;
+      document.querySelectorAll('.te-fixture').forEach(el => {
+        el.classList.toggle('active', el.dataset.fixture === f);
+      });
+      document.getElementById('panel-fleet').classList.toggle('hidden', f !== 'fleet-tracker');
+      document.getElementById('panel-kpi').classList.toggle('hidden', f !== 'kpi-dashboard');
+
+      if (f === 'world-map') {
+        camera.position.set(0, 1.2, 3.2);
+        controls.target.set(0, 0, 0);
+      } else if (f === 'fleet-tracker') {
+        camera.position.set(0, 2.6, 1.6);
+        controls.target.set(0, 0, 0);
+      } else if (f === 'kpi-dashboard') {
+        camera.position.set(0, 2.6, 1.6);
+        controls.target.set(0, 0, 0);
+      }
+    }
+
+    function setSpeed(s) {
+      SupplyChainLoop.setSpeed(s);
+      document.querySelectorAll('.te-speed button').forEach(b => b.classList.remove('active'));
+      const el = document.getElementById('sp-' + s);
+      if (el) el.classList.add('active');
+    }
+
+    function buildScenarioSelect() {
+      const sel = document.getElementById('te-scenario');
+      sel.innerHTML = '';
+      for (const name of Object.keys(S.scenarios || {})) {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      }
+      sel.value = S.scenario;
+    }
+
+    function setRegion(region) {
+      activeRegion = region;
+      document.querySelectorAll('.te-region-chip').forEach(el => {
+        el.classList.toggle('active', el.dataset.region === region);
+      });
+      buildNodes();
+      buildEdges();
+      buildTrains();
+      updateHud(window.SupplyChainCore.kpi(S));
+      if (window.MermaidPanel) {
+        window.MermaidPanel._nodeFilter = inRegion;
+        window.MermaidPanel.render();
+      }
+    }
+
+    function setScenario(name) {
+      S = window.SupplyChainCore.reset(S, name);
+      buildNodes();
+      buildEdges();
+      buildTrains();
+      buildScenarioSelect();
+      lastKpi = window.SupplyChainCore.kpi(S);
+      updateHud(lastKpi);
+      if (window.MermaidPanel) window.MermaidPanel.setTopology(S);
+    }
+
+    // ===========================================================
+    // BOOT
+    // ===========================================================
+    initScene();
+    document.querySelectorAll('.te-region-chip').forEach(el => {
+      el.onclick = () => setRegion(el.dataset.region);
+    });
+
+    window.railTwin = { setFixture, setSpeed, setScenario, setRegion, closeModal, showTrainModal };
+
+    SupplyChainLoop.start({
+      onTick: () => {
+        if (S) {
+          window.SupplyChainCore.tick(S);
+          lastKpi = window.SupplyChainCore.kpi(S);
+        }
+      },
+      onFrame: () => {
+        if (S) {
+          updateTrainPositions();
+          if (S.t % 5 === 0) updateHud(lastKpi || window.SupplyChainCore.kpi(S));
+          if (currentFixture === 'fleet-tracker') updateTrainPanel();
+        }
+        controls.update();
+        renderer.render(scene, camera);
+      },
+    });
+
+    // Load topology
+    (async () => {
+      try {
+        const topo = await fetchTopology('topologies/world-rail.json');
+        S = window.SupplyChainCore.initStateFromTopology(topo, 'balanced');
+        buildNodes();
+        buildEdges();
+        buildTrains();
+        buildScenarioSelect();
+        lastKpi = window.SupplyChainCore.kpi(S);
+        updateHud(lastKpi);
+        // Render Mermaid topology on the right side (left is region chips)
+        if (window.MermaidPanel) {
+          window.MermaidPanel.setSide('right');
+          window.MermaidPanel._nodeFilter = inRegion;
+          await window.MermaidPanel.setTopology(S);
+        }
+        document.getElementById('te-loading').classList.add('gone');
+      } catch (e) {
+        document.getElementById('te-loading').textContent = 'ERROR: ' + e.message;
+      }
+    })();
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,179 @@
+{
+  "id": "world-rail",
+  "name": "World Rail Network",
+  "meta": {
+    "vertical": "FRT",
+    "verticals_secondary": ["TRD", "ENR", "PWR"],
+    "description": "Global rail topology - major freight rail junctions, intermodal corridors, and active trains. Models the 10 largest rail networks with active train movements. Built on the generic supply-chain intermodal framework.",
+    "horizon_days": 30,
+    "default_scenario": "balanced"
+  },
+  "modes": {
+    "rail":     { "color": 10973050, "dash": "solid",  "default_speed_kmh": 80,  "arc_height": 0.04 },
+    "hsr":      { "color": 16731136, "dash": "solid",  "default_speed_kmh": 280, "arc_height": 0.10 },
+    "freight":  { "color": 442710,   "dash": "dashed", "default_speed_kmh": 60,  "arc_height": 0.03 }
+  },
+  "nodes": [
+    { "id": "CHICAGO",     "kind": "junction", "country": "US", "lat": 41.88, "lon": -87.63, "label": "Chicago (UP/BNSF/CSX)" },
+    { "id": "MEMPHIS",     "kind": "junction", "country": "US", "lat": 35.15, "lon": -90.05, "label": "Memphis (BNSF/NS)" },
+    { "id": "LONG-BEACH",  "kind": "port",     "country": "US", "lat": 33.77, "lon": -118.19, "label": "Long Beach (intermodal)" },
+    { "id": "SEATTLE",     "kind": "port",     "country": "US", "lat": 47.61, "lon": -122.33, "label": "Seattle (BNSF)" },
+    { "id": "HOUSTON",     "kind": "junction", "country": "US", "lat": 29.76, "lon": -95.37, "label": "Houston (UP/KCS)" },
+    { "id": "NEW-YORK",    "kind": "port",     "country": "US", "lat": 40.71, "lon": -74.01, "label": "New York (CSX/NS)" },
+    { "id": "ATLANTA",     "kind": "junction", "country": "US", "lat": 33.75, "lon": -84.39, "label": "Atlanta (NS/CSX)" },
+    { "id": "LOS-ANGELES", "kind": "junction", "country": "US", "lat": 34.05, "lon": -118.24, "label": "Los Angeles (UP/BNSF)" },
+    { "id": "DENVER",      "kind": "junction", "country": "US", "lat": 39.74, "lon": -104.99, "label": "Denver (UP/BNSF)" },
+    { "id": "DALLAS",      "kind": "junction", "country": "US", "lat": 32.78, "lon": -96.80, "label": "Dallas (UP/BNSF/KCS)" },
+
+    { "id": "BEIJING",     "kind": "junction", "country": "CN", "lat": 39.90, "lon": 116.41, "label": "Beijing" },
+    { "id": "SHANGHAI",    "kind": "port",     "country": "CN", "lat": 31.23, "lon": 121.47, "label": "Shanghai (intermodal)" },
+    { "id": "GUANGZHOU",   "kind": "junction", "country": "CN", "lat": 23.13, "lon": 113.26, "label": "Guangzhou" },
+    { "id": "CHENGDU",     "kind": "junction", "country": "CN", "lat": 30.57, "lon": 104.07, "label": "Chengdu" },
+    { "id": "XI-AN",       "kind": "junction", "country": "CN", "lat": 34.34, "lon": 108.94, "label": "Xian (belt & road hub)" },
+    { "id": "URUMQI",      "kind": "junction", "country": "CN", "lat": 43.83, "lon": 87.62,  "label": "Urumqi (China-Central Asia)" },
+    { "id": "LANZHOU",     "kind": "junction", "country": "CN", "lat": 36.06, "lon": 103.83, "label": "Lanzhou" },
+    { "id": "HARBIN",      "kind": "junction", "country": "CN", "lat": 45.80, "lon": 126.54, "label": "Harbin" },
+
+    { "id": "MOSCOW",      "kind": "junction", "country": "RU", "lat": 55.76, "lon": 37.62,  "label": "Moscow" },
+    { "id": "VLADIVOSTOK", "kind": "port",     "country": "RU", "lat": 43.13, "lon": 131.92, "label": "Vladivostok" },
+    { "id": "YEKATERINBURG","kind": "junction", "country": "RU", "lat": 56.84, "lon": 60.61, "label": "Yekaterinburg (Trans-Siberian)" },
+    { "id": "NOVOSIBIRSK", "kind": "junction", "country": "RU", "lat": 55.04, "lon": 82.92,  "label": "Novosibirsk" },
+    { "id": "IRKUTSK",     "kind": "junction", "country": "RU", "lat": 52.29, "lon": 104.30, "label": "Irkutsk" },
+
+    { "id": "MUMBAI",      "kind": "port",     "country": "IN", "lat": 19.08, "lon": 72.88,  "label": "Mumbai" },
+    { "id": "DELHI",       "kind": "junction", "country": "IN", "lat": 28.61, "lon": 77.21,  "label": "Delhi" },
+    { "id": "CHENNAI",     "kind": "port",     "country": "IN", "lat": 13.08, "lon": 80.27,  "label": "Chennai" },
+    { "id": "KOLKATA",     "kind": "junction", "country": "IN", "lat": 22.57, "lon": 88.36,  "label": "Kolkata" },
+    { "id": "AHMEDABAD",   "kind": "junction", "country": "IN", "lat": 23.02, "lon": 72.57,  "label": "Ahmedabad (Dedicated Freight)" },
+
+    { "id": "HAMBURG",     "kind": "port",     "country": "DE", "lat": 53.55, "lon": 9.99,   "label": "Hamburg" },
+    { "id": "ROTTERDAM",   "kind": "port",     "country": "NL", "lat": 51.92, "lon": 4.48,   "label": "Rotterdam" },
+    { "id": "ANTWERP",     "kind": "port",     "country": "BE", "lat": 51.22, "lon": 4.40,   "label": "Antwerp" },
+    { "id": "LYON",        "kind": "junction", "country": "FR", "lat": 45.76, "lon": 4.84,   "label": "Lyon" },
+    { "id": "MUNICH",      "kind": "junction", "country": "DE", "lat": 48.14, "lon": 11.58,  "label": "Munich" },
+    { "id": "WARSAW",      "kind": "junction", "country": "PL", "lat": 52.23, "lon": 21.01,  "label": "Warsaw" },
+    { "id": "MADRID",      "kind": "junction", "country": "ES", "lat": 40.42, "lon": -3.70,  "label": "Madrid" },
+
+    { "id": "SAO-PAULO",   "kind": "junction", "country": "BR", "lat": -23.55,"lon": -46.63, "label": "Sao Paulo" },
+    { "id": "RIO",         "kind": "port",     "country": "BR", "lat": -22.91,"lon": -43.17, "label": "Rio de Janeiro" },
+    { "id": "CUIABA",      "kind": "junction", "country": "BR", "lat": -15.60,"lon": -56.10, "label": "Cuiaba (Ferronorte)" },
+
+    { "id": "TOKYO",       "kind": "junction", "country": "JP", "lat": 35.68, "lon": 139.69, "label": "Tokyo" },
+    { "id": "OSAKA",       "kind": "junction", "country": "JP", "lat": 34.69, "lon": 135.50, "label": "Osaka" },
+
+    { "id": "JOHANNESBURG","kind": "junction", "country": "ZA", "lat": -26.20,"lon": 28.05,  "label": "Johannesburg" },
+    { "id": "CAPE-TOWN",   "kind": "port",     "country": "ZA", "lat": -33.92,"lon": 18.42,  "label": "Cape Town" },
+
+    { "id": "PERTH",       "kind": "port",     "country": "AU", "lat": -31.95,"lon": 115.86, "label": "Perth" },
+    { "id": "SYDNEY",      "kind": "junction", "country": "AU", "lat": -33.87,"lon": 151.21, "label": "Sydney" },
+    { "id": "MELBOURNE",   "kind": "junction", "country": "AU", "lat": -37.81,"lon": 144.96, "label": "Melbourne" },
+
+    { "id": "TORONTO",     "kind": "junction", "country": "CA", "lat": 43.65, "lon": -79.38, "label": "Toronto (CN/CP)" },
+    { "id": "VANCOUVER",   "kind": "port",     "country": "CA", "lat": 49.28, "lon": -123.12,"label": "Vancouver (CN/CP)" },
+    { "id": "MONTREAL",    "kind": "port",     "country": "CA", "lat": 45.50, "lon": -73.57, "label": "Montreal (CN/CP)" },
+
+    { "id": "ALMATY",      "kind": "junction", "country": "KZ", "lat": 43.25, "lon": 76.95,  "label": "Almaty (Belt & Road)" },
+    { "id": "TEHRAN",      "kind": "junction", "country": "IR", "lat": 35.69, "lon": 51.39,  "label": "Tehran" },
+    { "id": "ISTANBUL",    "kind": "junction", "country": "TR", "lat": 41.01, "lon": 28.98,  "label": "Istanbul (Marmaray)" }
+  ],
+  "edges": [
+    { "from": "LONG-BEACH", "to": "CHICAGO",     "mode": "freight", "km": 3200, "days_mu": 4.5, "days_sd": 0.6, "cost_usd_per_unit": 4500 },
+    { "from": "SEATTLE",    "to": "CHICAGO",     "mode": "freight", "km": 3700, "days_mu": 5.0, "days_sd": 0.7, "cost_usd_per_unit": 4800 },
+    { "from": "CHICAGO",    "to": "MEMPHIS",     "mode": "rail",    "km": 900,  "days_mu": 1.8, "days_sd": 0.3, "cost_usd_per_unit": 1800 },
+    { "from": "MEMPHIS",    "to": "ATLANTA",     "mode": "rail",    "km": 600,  "days_mu": 1.4, "days_sd": 0.3, "cost_usd_per_unit": 1400 },
+    { "from": "ATLANTA",    "to": "NEW-YORK",    "mode": "rail",    "km": 1300, "days_mu": 2.4, "days_sd": 0.4, "cost_usd_per_unit": 2400 },
+    { "from": "CHICAGO",    "to": "HOUSTON",     "mode": "rail",    "km": 1900, "days_mu": 3.0, "days_sd": 0.5, "cost_usd_per_unit": 3200 },
+    { "from": "HOUSTON",    "to": "DALLAS",      "mode": "rail",    "km": 380,  "days_mu": 1.0, "days_sd": 0.2, "cost_usd_per_unit": 900  },
+    { "from": "DALLAS",     "to": "LOS-ANGELES", "mode": "freight", "km": 2400, "days_mu": 3.6, "days_sd": 0.5, "cost_usd_per_unit": 3800 },
+    { "from": "DENVER",     "to": "CHICAGO",     "mode": "rail",    "km": 1500, "days_mu": 2.6, "days_sd": 0.4, "cost_usd_per_unit": 2700 },
+
+    { "from": "BEIJING",    "to": "SHANGHAI",    "mode": "hsr",     "km": 1300, "days_mu": 0.5, "days_sd": 0.05,"cost_usd_per_unit": 1800 },
+    { "from": "BEIJING",    "to": "GUANGZHOU",   "mode": "hsr",     "km": 2300, "days_mu": 0.9, "days_sd": 0.1, "cost_usd_per_unit": 2600 },
+    { "from": "XI-AN",      "to": "CHENGDU",     "mode": "rail",    "km": 700,  "days_mu": 1.6, "days_sd": 0.3, "cost_usd_per_unit": 1500 },
+    { "from": "XI-AN",      "to": "LANZHOU",     "mode": "rail",    "km": 700,  "days_mu": 1.5, "days_sd": 0.3, "cost_usd_per_unit": 1400 },
+    { "from": "LANZHOU",    "to": "URUMQI",      "mode": "rail",    "km": 1900, "days_mu": 3.4, "days_sd": 0.5, "cost_usd_per_unit": 3200 },
+    { "from": "BEIJING",    "to": "HARBIN",      "mode": "hsr",     "km": 1300, "days_mu": 0.5, "days_sd": 0.05,"cost_usd_per_unit": 1800 },
+    { "from": "SHANGHAI",   "to": "CHENGDU",     "mode": "rail",    "km": 1900, "days_mu": 3.0, "days_sd": 0.5, "cost_usd_per_unit": 2800 },
+
+    { "from": "MOSCOW",     "to": "YEKATERINBURG","mode": "rail",    "km": 1800, "days_mu": 2.5, "days_sd": 0.4, "cost_usd_per_unit": 2400 },
+    { "from": "YEKATERINBURG","to": "NOVOSIBIRSK","mode": "rail",    "km": 1800, "days_mu": 2.5, "days_sd": 0.4, "cost_usd_per_unit": 2400 },
+    { "from": "NOVOSIBIRSK","to": "IRKUTSK",     "mode": "rail",    "km": 1900, "days_mu": 3.0, "days_sd": 0.5, "cost_usd_per_unit": 2800 },
+    { "from": "IRKUTSK",    "to": "VLADIVOSTOK", "mode": "rail",    "km": 4100, "days_mu": 6.0, "days_sd": 0.8, "cost_usd_per_unit": 4800 },
+    { "from": "MOSCOW",     "to": "WARSAW",      "mode": "rail",    "km": 1300, "days_mu": 1.8, "days_sd": 0.3, "cost_usd_per_unit": 2000 },
+
+    { "from": "DELHI",      "to": "MUMBAI",      "mode": "rail",    "km": 1400, "days_mu": 2.0, "days_sd": 0.4, "cost_usd_per_unit": 2200 },
+    { "from": "DELHI",      "to": "KOLKATA",     "mode": "rail",    "km": 1500, "days_mu": 2.2, "days_sd": 0.4, "cost_usd_per_unit": 2300 },
+    { "from": "MUMBAI",     "to": "CHENNAI",     "mode": "rail",    "km": 1300, "days_mu": 2.0, "days_sd": 0.4, "cost_usd_per_unit": 2200 },
+    { "from": "AHMEDABAD",  "to": "MUMBAI",      "mode": "freight", "km": 500,  "days_mu": 1.0, "days_sd": 0.2, "cost_usd_per_unit": 1100 },
+
+    { "from": "ROTTERDAM",  "to": "HAMBURG",     "mode": "rail",    "km": 500,  "days_mu": 1.2, "days_sd": 0.2, "cost_usd_per_unit": 1200 },
+    { "from": "ROTTERDAM",  "to": "ANTWERP",     "mode": "rail",    "km": 150,  "days_mu": 0.4, "days_sd": 0.1, "cost_usd_per_unit": 500  },
+    { "from": "HAMBURG",    "to": "MUNICH",      "mode": "rail",    "km": 800,  "days_mu": 1.5, "days_sd": 0.3, "cost_usd_per_unit": 1500 },
+    { "from": "MUNICH",     "to": "LYON",        "mode": "rail",    "km": 700,  "days_mu": 1.4, "days_sd": 0.3, "cost_usd_per_unit": 1400 },
+    { "from": "LYON",       "to": "MADRID",      "mode": "rail",    "km": 1000, "days_mu": 1.8, "days_sd": 0.3, "cost_usd_per_unit": 1800 },
+
+    { "from": "SAO-PAULO",  "to": "RIO",         "mode": "rail",    "km": 430,  "days_mu": 1.0, "days_sd": 0.2, "cost_usd_per_unit": 900  },
+    { "from": "SAO-PAULO",  "to": "CUIABA",      "mode": "rail",    "km": 1700, "days_mu": 3.0, "days_sd": 0.5, "cost_usd_per_unit": 2800 },
+
+    { "from": "TOKYO",      "to": "OSAKA",       "mode": "hsr",     "km": 500,  "days_mu": 0.2, "days_sd": 0.03,"cost_usd_per_unit": 700  },
+
+    { "from": "JOHANNESBURG","to": "CAPE-TOWN",  "mode": "rail",    "km": 1400, "days_mu": 2.2, "days_sd": 0.4, "cost_usd_per_unit": 2400 },
+
+    { "from": "PERTH",      "to": "SYDNEY",      "mode": "rail",    "km": 3300, "days_mu": 4.5, "days_sd": 0.6, "cost_usd_per_unit": 4400 },
+    { "from": "SYDNEY",     "to": "MELBOURNE",   "mode": "rail",    "km": 880,  "days_mu": 1.6, "days_sd": 0.3, "cost_usd_per_unit": 1500 },
+
+    { "from": "VANCOUVER",  "to": "TORONTO",     "mode": "rail",    "km": 4400, "days_mu": 5.5, "days_sd": 0.7, "cost_usd_per_unit": 4900 },
+    { "from": "TORONTO",    "to": "MONTREAL",    "mode": "rail",    "km": 540,  "days_mu": 1.0, "days_sd": 0.2, "cost_usd_per_unit": 1100 },
+    { "from": "VANCOUVER",  "to": "SEATTLE",     "mode": "rail",    "km": 280,  "days_mu": 0.5, "days_sd": 0.1, "cost_usd_per_unit": 700  },
+
+    { "from": "URUMQI",     "to": "ALMATY",      "mode": "rail",    "km": 1100, "days_mu": 2.0, "days_sd": 0.4, "cost_usd_per_unit": 2200 },
+    { "from": "ALMATY",     "to": "TEHRAN",      "mode": "rail",    "km": 2900, "days_mu": 4.5, "days_sd": 0.6, "cost_usd_per_unit": 4400 },
+    { "from": "TEHRAN",     "to": "ISTANBUL",    "mode": "rail",    "km": 2400, "days_mu": 4.0, "days_sd": 0.6, "cost_usd_per_unit": 4200 },
+    { "from": "ISTANBUL",   "to": "MUNICH",      "mode": "rail",    "km": 1700, "days_mu": 3.0, "days_sd": 0.5, "cost_usd_per_unit": 2900 }
+  ],
+  "pipeline": ["at_depot", "in_transit", "arrived", "delivered"],
+  "stage_to_edge": { "in_transit": "AUTO" },
+  "initial_shipments": [
+    { "id": "TRN-001", "type": "Intermodal",  "operator": "BNSF",   "cargo": "Containers", "status": "in_transit", "progress": 0.30, "current_leg": "LONG-BEACH|CHICAGO|freight" },
+    { "id": "TRN-002", "type": "Intermodal",  "operator": "BNSF",   "cargo": "Containers", "status": "in_transit", "progress": 0.55, "current_leg": "LONG-BEACH|CHICAGO|freight" },
+    { "id": "TRN-003", "type": "Manifest",    "operator": "UP",     "cargo": "Mixed",      "status": "in_transit", "progress": 0.65, "current_leg": "HOUSTON|DALLAS|rail" },
+    { "id": "TRN-004", "type": "Manifest",    "operator": "UP",     "cargo": "Mixed",      "status": "in_transit", "progress": 0.40, "current_leg": "DALLAS|LOS-ANGELES|freight" },
+    { "id": "TRN-005", "type": "Unit",        "operator": "CSX",    "cargo": "Auto parts", "status": "in_transit", "progress": 0.70, "current_leg": "MEMPHIS|ATLANTA|rail" },
+    { "id": "TRN-006", "type": "Unit",        "operator": "NS",     "cargo": "Coal",       "status": "in_transit", "progress": 0.50, "current_leg": "ATLANTA|NEW-YORK|rail" },
+    { "id": "TRN-007", "type": "Manifest",    "operator": "CN",     "cargo": "Mixed",      "status": "in_transit", "progress": 0.45, "current_leg": "VANCOUVER|TORONTO|rail" },
+    { "id": "TRN-008", "type": "Unit",        "operator": "CP",     "cargo": "Grain",      "status": "in_transit", "progress": 0.65, "current_leg": "VANCOUVER|TORONTO|rail" },
+    { "id": "TRN-009", "type": "HSR",         "operator": "CRRC",   "cargo": "Passengers", "status": "in_transit", "progress": 0.20, "current_leg": "BEIJING|SHANGHAI|hsr" },
+    { "id": "TRN-010", "type": "HSR",         "operator": "CRRC",   "cargo": "Passengers", "status": "in_transit", "progress": 0.80, "current_leg": "BEIJING|SHANGHAI|hsr" },
+    { "id": "TRN-011", "type": "Freight",     "operator": "CR",     "cargo": "Containers", "status": "in_transit", "progress": 0.60, "current_leg": "XI-AN|CHENGDU|rail" },
+    { "id": "TRN-012", "type": "Freight",     "operator": "CR",     "cargo": "Mixed",      "status": "in_transit", "progress": 0.30, "current_leg": "XI-AN|LANZHOU|rail" },
+    { "id": "TRN-013", "type": "Freight",     "operator": "CR",     "cargo": "Mixed",      "status": "in_transit", "progress": 0.55, "current_leg": "LANZHOU|URUMQI|rail" },
+    { "id": "TRN-014", "type": "Freight",     "operator": "RZD",    "cargo": "Mixed",      "status": "in_transit", "progress": 0.45, "current_leg": "MOSCOW|YEKATERINBURG|rail" },
+    { "id": "TRN-015", "type": "Freight",     "operator": "RZD",    "cargo": "Mixed",      "status": "in_transit", "progress": 0.40, "current_leg": "YEKATERINBURG|NOVOSIBIRSK|rail" },
+    { "id": "TRN-016", "type": "Freight",     "operator": "RZD",    "cargo": "Containers", "status": "in_transit", "progress": 0.65, "current_leg": "NOVOSIBIRSK|IRKUTSK|rail" },
+    { "id": "TRN-017", "type": "Freight",     "operator": "RZD",    "cargo": "Mixed",      "status": "in_transit", "progress": 0.35, "current_leg": "IRKUTSK|VLADIVOSTOK|rail" },
+    { "id": "TRN-018", "type": "Manifest",    "operator": "IR",     "cargo": "Mixed",      "status": "in_transit", "progress": 0.55, "current_leg": "DELHI|MUMBAI|rail" },
+    { "id": "TRN-019", "type": "Manifest",    "operator": "IR",     "cargo": "Containers", "status": "in_transit", "progress": 0.45, "current_leg": "DELHI|KOLKATA|rail" },
+    { "id": "TRN-020", "type": "Freight",     "operator": "DFCC",   "cargo": "Mixed",      "status": "in_transit", "progress": 0.70, "current_leg": "AHMEDABAD|MUMBAI|freight" },
+    { "id": "TRN-021", "type": "Manifest",    "operator": "DB",     "cargo": "Mixed",      "status": "in_transit", "progress": 0.65, "current_leg": "HAMBURG|MUNICH|rail" },
+    { "id": "TRN-022", "type": "Manifest",    "operator": "DB",     "cargo": "Mixed",      "status": "in_transit", "progress": 0.40, "current_leg": "MUNICH|LYON|rail" },
+    { "id": "TRN-023", "type": "Freight",     "operator": "SNCF",   "cargo": "Mixed",      "status": "in_transit", "progress": 0.55, "current_leg": "LYON|MADRID|rail" },
+    { "id": "TRN-024", "type": "Freight",     "operator": "MRS",    "cargo": "Mixed",      "status": "in_transit", "progress": 0.50, "current_leg": "SAO-PAULO|CUIABA|rail" },
+    { "id": "TRN-025", "type": "HSR",         "operator": "JR",     "cargo": "Passengers", "status": "in_transit", "progress": 0.40, "current_leg": "TOKYO|OSAKA|hsr" },
+    { "id": "TRN-026", "type": "Ore",         "operator": "Transnet","cargo": "Iron ore", "status": "in_transit", "progress": 0.70, "current_leg": "JOHANNESBURG|CAPE-TOWN|rail" },
+    { "id": "TRN-027", "type": "Manifest",    "operator": "Aurizon","cargo": "Mixed",     "status": "in_transit", "progress": 0.25, "current_leg": "PERTH|SYDNEY|rail" },
+    { "id": "TRN-028", "type": "Manifest",    "operator": "Aurizon","cargo": "Mixed",     "status": "in_transit", "progress": 0.80, "current_leg": "SYDNEY|MELBOURNE|rail" },
+    { "id": "TRN-029", "type": "BeltRoad",    "operator": "KTZ",    "cargo": "Containers","status": "in_transit", "progress": 0.60, "current_leg": "URUMQI|ALMATY|rail" },
+    { "id": "TRN-030", "type": "BeltRoad",    "operator": "RAI",    "cargo": "Mixed",     "status": "in_transit", "progress": 0.40, "current_leg": "ALMATY|TEHRAN|rail" },
+    { "id": "TRN-031", "type": "BeltRoad",    "operator": "TCDD",   "cargo": "Containers","status": "in_transit", "progress": 0.55, "current_leg": "TEHRAN|ISTANBUL|rail" },
+    { "id": "TRN-032", "type": "BeltRoad",    "operator": "TCDD",   "cargo": "Mixed",     "status": "in_transit", "progress": 0.30, "current_leg": "ISTANBUL|MUNICH|rail" },
+    { "id": "TRN-033", "type": "Manifest",    "operator": "PKP",    "cargo": "Mixed",     "status": "in_transit", "progress": 0.45, "current_leg": "WARSAW|MOSCOW|rail" },
+    { "id": "TRN-034", "type": "Manifest",    "operator": "NS",     "cargo": "Mixed",     "status": "arrived",     "progress": 1.00, "current_leg": "ATLANTA|NEW-YORK|rail" },
+    { "id": "TRN-035", "type": "Freight",     "operator": "CNR",    "cargo": "Mixed",     "status": "arrived",     "progress": 1.00, "current_leg": "MONTREAL|TORONTO|rail" }
+  ],
+  "scenarios": {
+    "balanced":       { "label": "Balanced global rail ops" },
+    "belt-road-surge":{ "label": "Belt & Road surge - accelerated China-EU traffic" },
+    "strike-action":  { "label": "Strike action - US Class I railroads halted 30%" },
+    "winter-delay":   { "label": "Winter delay - Russia + Northern Europe +50% transit" }
+  }
+}
