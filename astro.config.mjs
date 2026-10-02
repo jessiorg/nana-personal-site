@@ -2,9 +2,11 @@ import { defineConfig } from 'astro/config';
 
 export default defineConfig({
   site: 'https://nana.kanay.io',
-  output: 'static',
-  compressHTML: true,
+  base: '/nana-personal-site',
   build: {
+    assets: '_astro',
     inlineStylesheets: 'auto',
   },
+  output: 'static',
+  compressHTML: true,
 });
