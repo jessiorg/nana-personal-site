@@ -1,83 +1,3319 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Advanced Crude Refinery Simulator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        body { margin: 0; background: #111; color: #eee; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        #ui { position: absolute; top: 20px; right: 20px; width: 300px; background: rgba(20,20,20,0.9); padding: 20px; border: 1px solid #444; }
-        .metric { margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 5px; }
-        .val { color: #f90; font-family: monospace; font-size: 1.2em; }
-        button { background: #f90; border: none; padding: 10px; width: 100%; cursor: pointer; font-weight: bold; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fable Refinery</title>
+<meta name="description" content="Run — or wreck — a 1992 oil refinery. Fable Refinery is a three.js reconstruction inspired by SimRefinery, the lost Maxis Business Simulations training game built for Chevron: crude slates, cutpoints, maintenance, explosions, and free building.">
+<meta name="theme-color" content="#000080">
+<meta property="og:title" content="Fable Refinery">
+<meta property="og:description" content="Run — or wreck — a 1992 oil refinery. A reconstruction inspired by the lost Maxis/Chevron training game SimRefinery.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23c6c6c6'/%3E%3Crect x='5' y='9' width='6' height='19' fill='%235f6a72'/%3E%3Crect x='13' y='14' width='5' height='14' fill='%2397a0a8'/%3E%3Ccircle cx='24' cy='24' r='4.5' fill='%23e2e4e5' stroke='%235f6a72'/%3E%3Crect x='23' y='7' width='2' height='10' fill='%235f6a72'/%3E%3Cpath d='M24 1 L27 7 L21 7 Z' fill='%23ff8c1a'/%3E%3C/svg%3E">
+<style>
+/* ============ 1992 system chrome ============ */
+* { margin:0; padding:0; box-sizing:border-box; }
+:root{
+  --face:#c6c6c6; --face-hi:#ffffff; --face-lo:#5a5a5a; --face-mid:#9a9a9a;
+  --title:#000080; --title-text:#ffffff; --ink:#000; --paper:#fff;
+  --green:#0a7a2f; --amber:#b07400; --red:#b01818;
+}
+html,body{ height:100%; }
+body{
+  font-family:Tahoma,'MS Sans Serif',Geneva,sans-serif; font-size:12px; color:var(--ink);
+  background:#3a6ea5; overflow:hidden; user-select:none;
+}
+#scene{ position:fixed; inset:0; }
+canvas{ display:block; }
+
+/* bevels */
+.out{ border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); background:var(--face); }
+.in { border:2px solid; border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); background:var(--face); }
+.well{ border:2px solid; border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); background:var(--paper); }
+
+/* menu bar */
+#menubar{ position:fixed; top:0; left:0; right:0; height:26px; display:flex; align-items:stretch; z-index:600;
+  background:var(--face); border-bottom:2px solid var(--face-lo); box-shadow:inset 0 2px 0 var(--face-hi); }
+.menu{ position:relative; display:flex; align-items:center; padding:0 12px; cursor:default; }
+.menu:hover, .menu.open{ background:var(--title); color:var(--title-text); }
+.drop{ display:none; position:absolute; top:100%; left:0; min-width:210px; z-index:700; padding:2px; color:var(--ink); }
+.menu.open .drop{ display:block; }
+.item{ padding:4px 18px 4px 24px; position:relative; white-space:nowrap; }
+.item:hover{ background:var(--title); color:var(--title-text); }
+.item .tick{ position:absolute; left:8px; }
+.sep{ height:0; border-top:1px solid var(--face-lo); border-bottom:1px solid var(--face-hi); margin:3px 2px; }
+#menubar .grow{ flex:1; }
+.statchip{ display:flex; align-items:center; padding:0 10px; font-weight:bold; border-left:2px solid var(--face-lo); box-shadow:inset 2px 0 0 var(--face-hi); }
+.statchip.neg{ color:var(--red); }
+
+/* operations panel */
+#ops{ position:fixed; top:34px; right:8px; width:248px; z-index:500; }
+#ops .body{ padding:5px; max-height:calc(100vh - 110px); overflow-y:auto; }
+.sect{ margin-bottom:7px; }
+.sect h4{ font-size:11px; padding:2px 5px; background:var(--face-mid); color:#fff; text-shadow:1px 1px 0 #00000055; margin-bottom:3px; }
+table.data{ width:100%; border-collapse:collapse; }
+table.data td, table.data th{ padding:1px 4px; font-size:11px; text-align:right; }
+table.data td:first-child, table.data th:first-child{ text-align:left; }
+table.data th{ border-bottom:1px solid var(--face-lo); font-weight:bold; }
+.rowbtn{ cursor:pointer; }
+.rowbtn:hover{ background:#000080; color:#fff; }
+.bar{ height:8px; background:var(--paper); border:1px solid var(--face-lo); position:relative; width:54px; display:inline-block; vertical-align:middle; }
+.bar i{ position:absolute; left:0; top:0; bottom:0; }
+.dot{ display:inline-block; width:9px; height:9px; border:1px solid #00000088; border-radius:50%; vertical-align:middle; }
+.ok{ background:#19a93f; } .warn{ background:#e2a51b; } .bad{ background:#d22; } .off{ background:#777; }
+
+/* windows */
+.win{ position:fixed; min-width:280px; z-index:900; box-shadow:3px 3px 0 rgba(0,0,0,.35); }
+.win .tbar{ height:22px; background:var(--title); color:var(--title-text); display:flex; align-items:center;
+  padding:0 4px 0 8px; font-weight:bold; cursor:move; }
+.win .tbar .grow{ flex:1; }
+.winbtn{ width:18px; height:16px; margin-left:3px; font-size:10px; line-height:12px; text-align:center; cursor:pointer; color:var(--ink); }
+.win .content{ padding:8px; }
+.win h3{ font-size:12px; margin:6px 0 3px; }
+.win p{ margin:4px 0; line-height:1.45; user-select:text; }
+.win label{ display:block; margin-top:6px; }
+.btn{ display:inline-block; padding:4px 14px; cursor:pointer; font-weight:bold; margin:4px 6px 0 0; }
+.btn:active{ border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); }
+input[type=range]{ -webkit-appearance:none; width:100%; height:20px; background:transparent; margin:2px 0; }
+input[type=range]::-webkit-slider-runnable-track{ height:6px; background:var(--paper); border:1px solid var(--face-lo); }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:12px; height:18px; margin-top:-7px;
+  background:var(--face); border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); }
+.kv{ display:flex; justify-content:space-between; padding:1px 0; }
+.kv b{ font-variant-numeric:tabular-nums; }
+.gauge{ height:12px; border:1px solid var(--face-lo); background:linear-gradient(90deg,#19a93f 0 70%,#e2a51b 70% 87%,#d22 87% 100%); position:relative; }
+.gauge .needle{ position:absolute; top:-3px; bottom:-3px; width:3px; background:#000; }
+.notice{ background:#ffffd0; border:1px solid #b0a000; padding:4px 6px; margin:5px 0; }
+.danger{ background:#ffd9d9; border:1px solid #b01818; }
+fieldset{ border:1px solid var(--face-lo); padding:4px 8px 6px; margin-top:6px; }
+legend{ padding:0 4px; font-weight:bold; }
+
+/* ticker */
+#ticker{ position:fixed; left:128px; right:264px; bottom:8px; height:42px; z-index:500; display:flex; flex-direction:column; justify-content:center; padding:2px 8px; overflow:hidden; }
+#ticker div{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:11px; line-height:1.5; }
+#ticker .t0{ font-weight:bold; }
+
+/* stream palette (original-style left button column) */
+#palette{ position:fixed; top:34px; left:8px; width:112px; z-index:500; padding:4px; max-height:calc(100vh - 96px); overflow-y:auto; }
+.pbtn{ display:block; width:100%; margin:3px 0; padding:3px 2px 2px; font-size:10px; font-weight:bold; text-align:center;
+  cursor:pointer; letter-spacing:0.4px; background:var(--face); font-family:inherit;
+  border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); }
+.pbtn:active{ border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); }
+.pbtn.on{ border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); background:#aeb4ae; }
+.pbtn small{ display:block; font-weight:normal; font-size:9px; color:#222; font-variant-numeric:tabular-nums; }
+.pbtn .sw{ display:inline-block; width:8px; height:8px; border:1px solid #00000088; vertical-align:middle; margin-right:3px; }
+.pdiv{ height:0; border-top:1px solid var(--face-lo); border-bottom:1px solid var(--face-hi); margin:5px 2px; }
+#viewTitle{ position:fixed; top:30px; left:50%; transform:translateX(-50%); z-index:400; padding:1px 36px;
+  font-weight:bold; font-size:12px; background:var(--face);
+  border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); }
+
+/* crude unit dialog column graphic */
+.cux{ display:flex; gap:10px; margin-top:6px; }
+.cux .ctlcol{ flex:1; min-width:170px; }
+.colcol{ width:178px; flex:none; display:flex; }
+.coltower{ width:22px; flex:none; margin:4px 6px 4px 0; background:linear-gradient(90deg,#8a939b,#dcdfe2 45%,#7e878f); border:1px solid #444; border-radius:4px 4px 0 0; }
+.drawrows{ flex:1; }
+.draw{ position:relative; margin:3px 0; padding-left:14px; font-size:10px; line-height:1.25; }
+.draw .tap{ position:absolute; left:-8px; top:4px; width:18px; height:5px; border:1px solid #00000066; }
+.draw b{ font-variant-numeric:tabular-nums; }
+.dchip{ display:inline-block; border:1px solid #555; background:#e6e6e6; padding:0 4px; margin-left:3px; font-size:9px; font-weight:bold; }
+.dbar{ height:6px; border:1px solid #444; background:#fff; margin-top:1px; width:92%; }
+.dbar i{ display:block; height:100%; }
+.cutlist{ font-size:11px; margin:4px 0; }
+.cutlist .fixedcut{ color:#555; }
+
+/* emergency shutdown + extras */
+.esd{ display:block; width:100%; padding:7px 4px; margin:2px 0 8px; text-align:center; font-weight:bold;
+  background:#c22; color:#fff; border:2px solid; border-color:#f99 #701010 #701010 #f99; cursor:pointer; letter-spacing:1px; }
+.esd:active{ border-color:#701010 #f99 #f99 #701010; }
+#flashOv{ position:fixed; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:3000; transition:opacity .7s ease-out; }
+#tip{ position:fixed; display:none; z-index:1500; padding:3px 7px; font-size:11px; pointer-events:none;
+  background:#ffffd8; border:1px solid #888; box-shadow:2px 2px 0 rgba(0,0,0,.25); }
+canvas.graph{ background:#fff; border:2px solid; border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); display:block; margin:4px 0; }
+table.ledger td{ font-variant-numeric:tabular-nums; }
+.goalchip{ background:#e8e8d0; border:1px solid #909070; padding:3px 6px; margin-top:4px; font-size:11px; }
+
+/* splash */
+#splash{ position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center;
+  background:repeating-conic-gradient(#3a6ea5 0 25%, #38689c 0 50%) 0 0/4px 4px; }
+#splash .panel{ width:560px; max-width:94vw; }
+#logo{ font-family:'Arial Black',Arial,sans-serif; font-size:46px; letter-spacing:-1px; line-height:1;
+  color:#101010; text-shadow:3px 3px 0 #b01818; padding:10px 0 2px; }
+#logo span{ color:#b01818; text-shadow:3px 3px 0 #101010; }
+.scn{ display:block; width:100%; text-align:left; padding:7px 10px; margin-top:6px; cursor:pointer; }
+.scn:hover{ background:#d6d6d6; }
+.scn b{ display:block; }
+.scn small{ color:#333; }
+.fine{ font-size:10px; color:#333; margin-top:10px; line-height:1.5; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+} }
+</script>
 </head>
 <body>
-    <div id="ui">
-        <h2>Refinery Economics</h2>
-        <div class="metric">Gross Revenue: <br><span id="rev" class="val">$0</span></div>
-        <div class="metric">Net Margin: <br><span id="margin" class="val">$0</span></div>
-        <div class="metric">Margin/bbl: <br><span id="perbbl" class="val">$0</span></div>
-        <hr>
-        <label>Throughput (bpd):</label>
-        <input type="range" id="throughput" min="50000" max="250000" value="200000" style="width:100%">
-        <br><br>
-        <button onclick="runSimulation()">Run Physics Engine</button>
+<div id="scene"></div>
+
+<!-- menu bar (original layout: File, Options, Refinery, Windows, Pause) -->
+<div id="menubar">
+  <div class="menu" data-menu><span>File</span>
+    <div class="drop out">
+      <div class="item" id="mNew">New Game</div>
+      <div class="item" id="mScen">Scenarios...</div>
+      <div class="item" id="mTrain">Operator Training</div>
+      <div class="sep"></div>
+      <div class="item" id="mAbout">About Fable Refinery</div>
     </div>
-    <script>
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+  </div>
+  <div class="menu" data-menu><span>Options</span>
+    <div class="drop out">
+      <div class="item" id="mSound"><span class="tick">✓</span>Sound</div>
+      <div class="item" id="mFlow"><span class="tick">✓</span>Flow Overlay</div>
+      <div class="item" id="mLabels"><span class="tick">✓</span>Unit Labels</div>
+      <div class="sep"></div>
+      <div id="speedMenu">
+        <div class="item" data-speed="1"><span class="tick"></span>Normal Speed</div>
+        <div class="item" data-speed="2"><span class="tick"></span>Fast</div>
+        <div class="item" data-speed="3"><span class="tick"></span>Maximum</div>
+      </div>
+      <div class="sep"></div>
+      <div class="item" id="mCam">Reset Camera</div>
+    </div>
+  </div>
+  <div class="menu" data-menu><span>Refinery</span>
+    <div class="drop out">
+      <div class="item" id="mCrude">Crude Unit...</div>
+      <div class="item" id="mRef">Reformer...</div>
+      <div class="item" id="mFcc">Cat Cracker...</div>
+      <div class="item" id="mHydro">Hydrotreater...</div>
+      <div class="item" id="mDir">Plant Directory...</div>
+      <div class="item" id="mProjects">Capital Projects...</div>
+      <div class="item" id="mBuild">Build...</div>
+      <div class="sep"></div>
+      <div class="item" id="mAuto"><span class="tick"></span>Auto Control</div>
+      <div class="item" id="mShut">Orderly Shutdown</div>
+      <div class="item" id="mStart">Start Up</div>
+      <div class="sep"></div>
+      <div class="item" id="mEsd">Emergency Shutdown...</div>
+    </div>
+  </div>
+  <div class="menu" data-menu><span>Windows</span>
+    <div class="drop out">
+      <div class="item" id="mOps"><span class="tick">✓</span>Operations Panel</div>
+      <div class="item" id="mMap">Map</div>
+      <div class="item" id="mOverhead"><span class="tick"></span>Overhead Map</div>
+      <div class="sep"></div>
+      <div class="item" id="mGraphs">Graphs</div>
+      <div class="item" id="mLedger">$ Budget (Weekly Ledger)</div>
+      <div class="item" id="mReport">Plant Report</div>
+      <div class="item" id="mMsgs">Message Log</div>
+    </div>
+  </div>
+  <div class="menu" id="mPause"><span>Pause</span></div>
+  <div class="menu" data-menu><span>Help</span>
+    <div class="drop out">
+      <div class="item" id="mHow">How to Operate</div>
+      <div class="item" id="mHist">The History</div>
+    </div>
+  </div>
+  <div class="menu" id="mPortal"><a href="index.html" style="color:var(--title-text);text-decoration:none;display:block;padding:0 10px;font-size:11px;font-weight:bold;">← Portal</a></div>
+  <div class="grow"></div>
+  <div id="scenarioBar" style="display:flex;align-items:center;gap:4px;padding:0 8px;">
+    <span style="font-size:10px;color:var(--title-text);opacity:0.7;">SCEN:</span>
+    <button class="scn out" data-scn="steady" id="qsSteady" style="padding:1px 6px;font-size:10px;cursor:pointer;color:var(--title-text);">Steady</button>
+    <button class="scn out" data-scn="heavy" id="qsHeavy" style="padding:1px 6px;font-size:10px;cursor:pointer;color:var(--title-text);">Heavy</button>
+    <button class="scn out" data-scn="winter" id="qsWinter" style="padding:1px 6px;font-size:10px;cursor:pointer;color:var(--title-text);">Winter</button>
+    <button class="scn out" data-scn="failure" id="qsFailure" style="padding:1px 6px;font-size:10px;cursor:pointer;color:var(--title-text);">Failure</button>
+    <button class="scn out" data-scn="wreck" id="qsWreck" style="padding:1px 6px;font-size:10px;cursor:pointer;color:var(--title-text);">Wreck</button>
+  </div>
+  <div class="statchip" id="chipDate">Jan 1, 1992&nbsp;&nbsp;12:00am</div>
+  <div class="statchip" id="chipSpeed">PAUSED</div>
+  <div class="statchip" id="chipCash">$25.0M</div>
+  <div class="statchip" id="chipWeek">wk P&L —</div>
+</div>
+<div id="portalBar" style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--face);border-bottom:1px solid var(--face-lo);">
+  <a href="index.html" style="text-decoration:none;">
+    <button class="out" style="padding:4px 14px;font-size:11px;font-family:inherit;color:var(--ink);cursor:pointer;">&#8592; Portal</button>
+  </a>
+</div>
+<div id="viewTitle">Fable Refinery Edit</div>
 
-        // Distillation Column
-        const columnGeo = new THREE.CylinderGeometry(2, 2, 10, 32);
-        const columnMat = new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 100 });
-        const column = new THREE.Mesh(columnGeo, columnMat);
-        scene.add(column);
+<!-- stream palette (original left button column) -->
+<div id="palette" class="out">
+  <button class="pbtn" id="pAuto">AUTO CTL</button>
+  <button class="pbtn on" id="pManual">MANUAL</button>
+  <button class="pbtn" id="pShut">SHUTDOWN</button>
+  <button class="pbtn" id="pStart">START UP</button>
+  <div class="pdiv"></div>
+  <button class="pbtn" data-stream="crude"><span class="sw" style="background:#4a3b2d"></span>CRUDE<small>—</small></button>
+  <button class="pbtn" data-stream="c34"><span class="sw" style="background:#c887c8"></span>C3−C4<small>—</small></button>
+  <button class="pbtn" data-stream="naphtha"><span class="sw" style="background:#d8c46a"></span>NAPHTHA<small>—</small></button>
+  <button class="pbtn" data-stream="reformate"><span class="sw" style="background:#d6dd7a"></span>REFORMATE<small>—</small></button>
+  <button class="pbtn" data-stream="fccgas"><span class="sw" style="background:#c7d06e"></span>FCC GASO<small>—</small></button>
+  <button class="pbtn" data-stream="alkylate"><span class="sw" style="background:#e2c178"></span>ALKYLATE<small>—</small></button>
+  <button class="pbtn" data-stream="jet"><span class="sw" style="background:#86b1d8"></span>JET<small>—</small></button>
+  <button class="pbtn" data-stream="diesel"><span class="sw" style="background:#9a8e5a"></span>DIESEL<small>—</small></button>
+  <button class="pbtn" data-stream="gasoil"><span class="sw" style="background:#7c5a36"></span>GAS OIL<small>—</small></button>
+  <button class="pbtn" data-stream="resid"><span class="sw" style="background:#3a3430"></span>RESIDUUM<small>—</small></button>
+  <button class="pbtn" data-stream="h2"><span class="sw" style="background:#b9c4e2"></span>H2<small>—</small></button>
+  <button class="pbtn" data-stream="sulfur"><span class="sw" style="background:#e8d83a"></span>SULFUR<small>—</small></button>
+  <div class="pdiv"></div>
+  <button class="pbtn" id="pBuild">BUILD</button>
+  <button class="pbtn" id="pBudget">$ BUDGET</button>
+  <button class="pbtn" id="pReport">REPORT</button>
+</div>
 
-        // Fractional flows
-        const fractions = [];
-        const colors = [0xff0000, 0xffff00, 0x00ff00, 0x0000ff]; // Gaso, Dist, Naph, Resid
-        for(let i=0; i<4; i++) {
-            const pipeGeo = new THREE.CylinderGeometry(0.2, 0.2, 5, 16);
-            const pipeMat = new THREE.MeshBasicMaterial({ color: colors[i] });
-            const pipe = new THREE.Mesh(pipeGeo, pipeMat);
-            pipe.rotation.z = Math.PI / 2;
-            pipe.position.set(3.5, i * 2 - 3, 0);
-            scene.add(pipe);
-            fractions.push(pipe);
+<!-- operations panel -->
+<div id="ops" class="out">
+  <div class="tbar" style="height:22px;background:var(--title);color:#fff;display:flex;align-items:center;padding:0 8px;font-weight:bold;">Operations</div>
+  <div class="body" id="opsBody"></div>
+</div>
+
+<div id="ticker" class="in"><div class="t0" id="tick0"></div><div id="tick1"></div></div>
+<div id="flashOv"></div>
+<div id="tip"></div>
+
+<!-- splash -->
+<div id="splash">
+  <div class="panel out">
+    <div class="content" style="padding:14px 18px 16px;">
+      <div id="logo">Fable <span>Refinery</span></div>
+      <div style="font-size:11px;margin-bottom:8px;">A reconstruction inspired by SimRefinery, the lost 1992 Maxis Business Simulations training game built for the Chevron Richmond refinery. The plant behind this window is running the simulation.</div>
+      <div class="well" style="padding:6px 8px;">
+        <b>Select a scenario.</b>
+        <button class="scn out" id="splashTrain"><b>Operator Training</b><small>New here? Ten guided tasks: feed, pressure, crude slates, treating, severity, turnarounds.</small></button>
+        <button class="scn out" data-scn="steady"><b>Steady State</b><small>Light crude, healthy plant. Learn how the units connect.</small></button>
+        <button class="scn out" data-scn="heavy"><b>Heavy Crude</b><small>Heavy sour crude is $10/bbl cheap. The hydrotreater is the bottleneck.</small></button>
+        <button class="scn out" data-scn="winter"><b>Winter Demand</b><small>Heating oil prices are spiking. Re-cut the barrel toward the bottom.</small></button>
+        <button class="scn out" data-scn="failure"><b>Run to Failure</b><small>Every unit is worn and cash is thin. Stabilize before it spirals.</small></button>
+        <button class="scn out" data-scn="wreck"><b>Wreck the Refinery</b><small>The instructor's exercise: abuse the settings, destroy the plant, get fired.</small></button>
+      </div>
+      <div class="fine">Goal: maximize long-term profit, week to week. There is no ending. Click any unit for its controls; the left palette highlights any product stream on the plant, as in the original. You are fired at −$20M cash or after a second explosion.<br>Homage built from the historical record and surviving screenshots (the original software is lost). Not affiliated with Maxis or Chevron. Version 1.0, June 2026.</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ================================================================
+   SIM CORE — tuned by balance-sim.js (keep in sync)
+   ================================================================ */
+function bindRng(S){
+  S.rng=function(){
+    let a=S.rngState|0; a=(a+0x6D2B79F5)|0; S.rngState=a;
+    let t=Math.imul(a^(a>>>15),1|a);
+    t=(t+Math.imul(t^(t>>>7),61|t))^t;
+    return ((t^(t>>>14))>>>0)/4294967296;
+  };
+  return S;
+}
+
+const CRUDES = {
+  light:  { name:'Light Sweet', basePrice:69, sulfur:0.5, yields:{ gas:0.04, naphtha:0.22, kero:0.14, diesel:0.22, gasoil:0.20, resid:0.18 } },
+  medium: { name:'Medium Blend', basePrice:65, sulfur:1.5, yields:{ gas:0.04, naphtha:0.18, kero:0.12, diesel:0.20, gasoil:0.22, resid:0.24 } },
+  heavy:  { name:'Heavy Sour', basePrice:62, sulfur:3.0, yields:{ gas:0.03, naphtha:0.14, kero:0.10, diesel:0.17, gasoil:0.24, resid:0.32 } },
+};
+const BASE_PRICES = { gasoline:102, jet:95, diesel:90, heating:58, lpg:35, sulfur:85 };
+const UNIT_DEFS = {
+  cdu:      { name:'Crude Distillation Unit', cap:100, wear:0.40, repairCost:3.5, explodeCost:10 },
+  reformer: { name:'Catalytic Reformer',      cap:25,  wear:0.55, repairCost:2.0, explodeCost:6 },
+  fcc:      { name:'Cat Cracker (FCC)',       cap:45,  wear:0.75, repairCost:2.8, explodeCost:8 },
+  hydro:    { name:'Hydrotreater',            cap:50,  wear:0.45, repairCost:1.6, explodeCost:5 },
+  alky:     { name:'Alkylation Unit',         cap:4,   wear:0.50, repairCost:1.4, explodeCost:5 },
+};
+// Capital projects: pay cash up front, construction runs N weeks, then live.
+const PROJECTS = {
+  alky:   { name:'Alkylation Unit',        cost:18, weeks:8, desc:'Converts C3-C4 into 94-octane alkylate for the gasoline pool. 4,000 BPOD; $0.3M/wk operating cost.' },
+  hydro2: { name:'Hydrotreater Expansion', cost:12, weeks:6, desc:'+25,000 BPOD treating capacity.' },
+  cdux:   { name:'CDU Debottleneck',       cost:14, weeks:6, desc:'+15,000 BPOD crude capacity.' },
+  fccx:   { name:'FCC Expansion',          cost:12, weeks:5, desc:'+10,000 BPOD cracking capacity.' },
+  refx:   { name:'Reformer Expansion',     cost:8,  weeks:4, desc:'+5,000 BPOD reforming capacity.' },
+  tank4:  { name:'Crude Tank No. 4',       cost:6,  weeks:4, desc:'+300,000 bbl crude storage.' },
+};
+const CAP_BONUS={ cdu:['cdux',15], fcc:['fccx',10], reformer:['refx',5], hydro:['hydro2',25] };
+// Free placement (SimCity-style). Trains add capacity to their parent unit;
+// tanks add storage; a second flare halves flaring losses; the rest is civic.
+const PLACEABLE={
+  cdu2:   { name:'Additional Crude Unit',   cost:20,  weeks:8, unit:'cdu',      amt:20 },
+  fcc2:   { name:'Additional Cat Cracker',  cost:14,  weeks:6, unit:'fcc',      amt:10 },
+  ref2:   { name:'Additional Reformer',     cost:9,   weeks:5, unit:'reformer', amt:5 },
+  hyd2:   { name:'Additional Hydrotreater', cost:10,  weeks:5, unit:'hydro',    amt:12 },
+  alk2:   { name:'Additional Alkylation',   cost:18,  weeks:8, unit:'alky',     amt:4 },
+  ctank:  { name:'Crude Tank',         cost:4,   weeks:3, tank:150 },
+  flare2: { name:'Second Flare',       cost:5,   weeks:3, flare:true },
+  ptank:  { name:'Product Tank',       cost:1.5, weeks:2 },
+  wh:     { name:'Warehouse',          cost:1,   weeks:1 },
+  office: { name:'Office Building',    cost:2,   weeks:1 },
+  road:   { name:'Road',               cost:0.05, weeks:0 },
+  trees:  { name:'Trees',              cost:0.02, weeks:0 },
+  pole:   { name:'Light Mast',         cost:0.05, weeks:0 },
+};
+function capOf(S,k){
+  if(k==='alky') return alkyCap(S);
+  const b=CAP_BONUS[k];
+  let cap=UNIT_DEFS[k].cap + (b&&S.builds[b[0]].done ? b[1] : 0);
+  for(const p of S.placed){ const d=PLACEABLE[p.type]; if(p.done&&d&&d.unit===k) cap+=d.amt; }
+  return cap;
+}
+// Alkylation exists only if the project was built or a train was placed.
+function alkyCap(S){
+  let c=S.builds.alky.done?UNIT_DEFS.alky.cap:0;
+  for(const p of S.placed) if(p.done&&p.type==='alk2') c+=PLACEABLE.alk2.amt;
+  return c;
+}
+function hasFlare2(S){ return S.placed.some(p=>p.done&&p.type==='flare2'); }
+function startProject(S,key){
+  const p=PROJECTS[key], b=S.builds[key];
+  if(!p||b.started||b.done) return false;
+  if(S.cash<p.cost) return false;
+  S.cash-=p.cost; S.wk.capex+=p.cost;
+  b.started=1; b.weeksLeft=p.weeks;
+  return true;
+}
+function placeItem(S,type,x,z,rot,tieIn){
+  const d=PLACEABLE[type];
+  tieIn=tieIn||0;
+  if(!d||S.cash<d.cost+tieIn) return null;
+  S.cash-=d.cost+tieIn; S.wk.capex+=d.cost+tieIn;
+  const item={ id:S.placedSeq++, type, x, z, rot:rot||0, tieIn, weeksLeft:d.weeks, done:d.weeks===0?1:0 };
+  S.placed.push(item);
+  return item;
+}
+function removeItem(S,id){
+  const i=S.placed.findIndex(p=>p.id===id);
+  if(i<0) return false;
+  const p=S.placed[i], d=PLACEABLE[p.type];
+  if(p.done&&d.tank){ S.tank.cap-=d.tank; S.tank.level=Math.min(S.tank.level,S.tank.cap); }
+  S.placed.splice(i,1);
+  return true;
+}
+const OPEX_PER_DAY=0.40, MAINT_BASE_WEEK=1.6, SULFUR_TON_PER_BBL=0.000136, START_CASH=25, FIRED_CASH=-20;
+const TURNAROUND_COST=1.5, ESD_COST=1.0;
+const SEASON_OFFSET=0; // clock starts Jan 1, 1992 (as in the original)
+
+function newGame(scenario, seed){
+  const S = {
+    rngState:seed>>>0, scenario, day:0, week:0, cash:START_CASH,
+    crudeType:'light', feedRate:90, cuts:{c1:0,c2:0,c3:0}, maint:100, refSeverity:100, fccSeverity:100,
+    prices:{...BASE_PRICES},
+    crude:Object.fromEntries(Object.keys(CRUDES).map(k=>[k,CRUDES[k].basePrice])),
+    units:{},
+    tank:{level:150,cap:900}, skipDelivery:0, lastDelivery:null,
+    sulfurPile:0,
+    weekRevenue:0, weekCrudeCost:0, weekOtherCost:0,
+    wk:{revGasoline:0,revJet:0,revDiesel:0,revHeating:0,revLpg:0,revSulfur:0,flare:0,repairs:0,fines:0,crude:0,capex:0,contractAdj:0},
+    contract:null, contractOffer:null,
+    builds:Object.fromEntries(Object.keys(PROJECTS).map(k=>[k,{started:0,weeksLeft:0,done:0}])),
+    placed:[], placedSeq:1,
+    profitHistory:[], ledger:[], priceHist:[],
+    totalProfit:0,
+    breakdowns:0, explosions:0, fired:false, firedReason:'',
+    offSpecSoldWeek:0, damageTotal:0,
+    upDays:0, unitDays:0,
+    mul:{gasoline:1,jet:1,diesel:1,heating:1,lpg:1,sulfur:1,crude:1,opex:1},
+    event:null, lastWeek:null, dayOutput:null,
+    incidents:[], _minTank:1e9,
+  };
+  bindRng(S);
+  for (const k of Object.keys(UNIT_DEFS)) S.units[k] = { condition:90, pressure:20, downDays:0, destroyed:0, online:true, planned:0, enabled:true };
+  if (scenario==='failure'){ for (const k of Object.keys(S.units)) S.units[k].condition=45; S.cash=8; }
+  if (scenario==='heavy'){ S.crude.heavy=55; S.scenarioHeavyDiscount=true; }
+  if (scenario==='winter'){ S.mul.heating=1.35; S.event={type:'cold', name:'Sustained cold weather', weeksLeft:10}; }
+  if (scenario==='wreck'){ S.tank.level=900; S.cash=60; }  // instructor sandbox: runway to do real damage
+  return S;
+}
+// Planned 4-day outage; unit returns at condition 95. The defensive move the
+// maintenance death spiral is supposed to teach.
+function scheduleTurnaround(S,k){
+  const u=S.units[k];
+  if (u.downDays>0) return false;
+  u.downDays=4; u.online=false; u.planned=1;
+  S.weekOtherCost+=TURNAROUND_COST; S.wk.repairs+=TURNAROUND_COST;
+  return true;
+}
+// Emergency shutdown: trip every running unit for 3 days, vent pressure.
+// Expensive, but it beats an explosion.
+function emergencyShutdown(S){
+  for (const k of Object.keys(S.units)){
+    const u=S.units[k];
+    if (u.downDays===0){ u.downDays=3; u.planned=1; u.online=false; }
+    u.pressure=Math.min(u.pressure,30);
+  }
+  S.weekOtherCost+=ESD_COST; S.wk.repairs+=ESD_COST;
+}
+function seasonFactor(day,phase){ return Math.cos(2*Math.PI*(((day+SEASON_OFFSET)%364)/364 - phase)); }
+function effOf(u){ return Math.min(1, 0.7 + u.condition/200); }
+
+function tickDay(S){
+  const rng=S.rng; S.day++;
+  const out={ flows:{}, blendOctane:0, flared:[], notes:[], exploded:[], broke:[], delivered:0 };
+
+  const winter=Math.max(0,seasonFactor(S.day,0)), summer=Math.max(0,seasonFactor(S.day,0.5));
+  const targets={
+    gasoline:BASE_PRICES.gasoline*(1+0.15*summer)*S.mul.gasoline,
+    jet:BASE_PRICES.jet*S.mul.jet, diesel:BASE_PRICES.diesel*S.mul.diesel,
+    heating:BASE_PRICES.heating*(1+0.50*winter)*S.mul.heating,
+    lpg:BASE_PRICES.lpg*S.mul.lpg, sulfur:BASE_PRICES.sulfur*S.mul.sulfur,
+  };
+  for (const k of Object.keys(S.prices)){
+    const drift=(targets[k]-S.prices[k])*0.04;
+    S.prices[k]=Math.max(5, S.prices[k]+drift+S.prices[k]*(rng()-0.5)*0.022);
+  }
+  for (const k of Object.keys(S.crude)){
+    const base=((S.scenarioHeavyDiscount&&k==='heavy')?55:CRUDES[k].basePrice)*S.mul.crude;
+    const drift=(base-S.crude[k])*0.04;
+    S.crude[k]=Math.max(20, S.crude[k]+drift+S.crude[k]*(rng()-0.5)*0.02);
+  }
+
+  // crude delivery (tanker docks day 1 of each week)
+  if (S.day%7===1){
+    if (S.skipDelivery>0){
+      S.skipDelivery--;
+      out.notes.push('No crude delivery this week. Tank inventory will run down.');
+    } else {
+      const want=Math.max(0, Math.min(S.tank.cap-S.tank.level, S.feedRate*7.7+20));
+      const cost=want*1000*S.crude[S.crudeType]/1e6;
+      S.tank.level+=want;
+      S.weekCrudeCost+=cost; S.wk.crude+=cost;
+      S.lastDelivery={day:S.day, volume:want, cost};
+      out.delivered=want;
+    }
+  }
+
+  for (const k of Object.keys(S.units)){
+    const u=S.units[k];
+    if (u.downDays>0){
+      u.downDays--;
+      if(u.downDays===0){
+        u.online=true;
+        // Repairs restore service, not health: back at 35 unless rebuilt after
+        // an explosion (60) or given a planned turnaround (95). Real recovery
+        // otherwise takes sustained maintenance >115%.
+        u.condition=u.planned&&!u.destroyed?Math.max(u.condition,95)
+                  :Math.max(u.condition, u.destroyed?60:35);
+        u.destroyed=0; u.planned=0;
+        out.notes.push(UNIT_DEFS[k].name+' is back in service.');
+      }
+    }
+  }
+  const up=k=>S.units[k].downDays===0&&S.units[k].enabled;
+
+  const crude=CRUDES[S.crudeType];
+  const cduMax=capOf(S,'cdu')*effOf(S.units.cdu);
+  // Pressure responds to what you ATTEMPT; the tower only physically processes
+  // ~10% over effective capacity. Pushing harder just pressurizes the unit.
+  const attempted=up('cdu')?Math.min(S.feedRate,cduMax*1.25):0;
+  const feedWanted=Math.min(attempted,cduMax*1.10);
+  const feed=Math.min(feedWanted,S.tank.level);   // can't run a dry tank
+  S.tank.level=Math.max(0,S.tank.level-feed);
+  S._minTank=Math.min(S._minTank,S.tank.level);
+  if (feedWanted>0.5&&feed<feedWanted*0.6) out.notes.push('Crude tank low: distillation is starving.');
+  const y={...crude.yields};
+  const sh=f=>f*0.004;
+  y.naphtha+=sh(S.cuts.c1); y.kero-=sh(S.cuts.c1);
+  y.kero+=sh(S.cuts.c2);    y.diesel-=sh(S.cuts.c2);
+  y.gasoil+=sh(S.cuts.c3);  y.resid-=sh(S.cuts.c3);
+  for (const k of Object.keys(y)) y[k]=Math.max(0.01,y[k]);
+
+  const naphtha=feed*y.naphtha, kero=feed*y.kero, diesel=feed*y.diesel, gasoil=feed*y.gasoil, resid=feed*y.resid;
+
+  const refS=S.refSeverity/100;
+  const refCap=up('reformer')?capOf(S,'reformer')*effOf(S.units.reformer):0;
+  const refFeed=Math.min(naphtha,refCap);
+  const srNaphtha=naphtha-refFeed;
+  const reformate=refFeed*(0.88-(refS-1)*0.35);
+  const refOctane=88+(refS-0.8)*25;
+  const hydrogenOk=refFeed>1;  // reformer byproduct hydrogen feeds the hydrotreater
+
+  const fccS=S.fccSeverity/100;
+  const fccCap=up('fcc')?capOf(S,'fcc')*effOf(S.units.fcc):0;
+  const fccFeed=Math.min(gasoil,fccCap*1.2);
+  const fccProcessed=Math.min(fccFeed,fccCap);
+  const fccGas=fccProcessed*(0.50+(fccS-1)*0.25);
+  const lco=fccProcessed*(0.22-(fccS-1)*0.10);
+  const lpg=fccProcessed*(0.08+(fccS-1)*0.05);
+  const unconverted=gasoil-fccProcessed;
+
+  const needsTreat=crude.sulfur>0.8;
+  const distillate=kero+diesel+lco;
+  let jet, dieselOut, heatingExtra=0, offSpec=0, sulfurTons=0, treatedFrac=1;
+  if (needsTreat){
+    // Sourer crude consumes hydrotreater capacity faster; without reformer
+    // hydrogen the unit runs at 55% capacity.
+    const sulfurLoad=crude.sulfur/1.5;
+    let hCap=up('hydro')?capOf(S,'hydro')*effOf(S.units.hydro)/sulfurLoad:0;
+    if(!hydrogenOk) hCap*=0.55;
+    const treated=Math.min(distillate,hCap);
+    treatedFrac=distillate>0?treated/distillate:0;
+    sulfurTons=treated*1000*SULFUR_TON_PER_BBL*crude.sulfur;
+    jet=kero*treatedFrac;
+    heatingExtra+=kero*(1-treatedFrac);
+    dieselOut=(diesel+lco);
+    offSpec=(diesel+lco)*(1-treatedFrac);
+    S.units.hydro._load=treated*sulfurLoad/Math.max(1,capOf(S,'hydro'));
+  } else { jet=kero; dieselOut=diesel+lco; S.units.hydro._load=0; }
+  S.sulfurPile+=sulfurTons;
+
+  // alkylation: C3-C4 upgraded to 94-octane alkylate (when built)
+  let alkyFeed=0, alkylate=0, lpgSold=lpg;
+  const alkyOn=alkyCap(S)>0&&up('alky');
+  if(alkyOn){
+    alkyFeed=Math.min(lpg,capOf(S,'alky')*effOf(S.units.alky));
+    alkylate=alkyFeed; lpgSold=lpg-alkyFeed;
+    S.weekOtherCost+=0.3/7;   // acid + isobutane operating cost
+  }
+
+  const gasVol=srNaphtha+reformate+fccGas+alkylate;
+  const octane=gasVol>0?(srNaphtha*71+reformate*refOctane+fccGas*92+alkylate*94)/gasVol:0;
+  const octaneSpec=S.octaneSpec||87;
+  const onSpecGas=octane>=octaneSpec;
+  const heating=resid+unconverted+heatingExtra;
+
+  const P=S.prices;
+  const revGasoline=gasVol*1000*P.gasoline*(onSpecGas?1:0.82)/1e6;
+  const revJet=jet*1000*P.jet/1e6;
+  const revDiesel=((dieselOut-offSpec)*P.diesel+offSpec*P.diesel*0.70)*1000/1e6;
+  const revHeating=heating*1000*P.heating/1e6;
+  const revLpg=lpgSold*1000*P.lpg/1e6;
+  const rev=revGasoline+revJet+revDiesel+revHeating+revLpg;
+  S.wk.revGasoline+=revGasoline; S.wk.revJet+=revJet; S.wk.revDiesel+=revDiesel;
+  S.wk.revHeating+=revHeating; S.wk.revLpg+=revLpg;
+  // supply contract: committed volume sells at the fixed price instead of market
+  let contractAdj=0;
+  if(S.contract){
+    const c=S.contract;
+    const prodMap={gasoline:gasVol, jet, diesel:dieselOut, heating};
+    const mktMap={gasoline:P.gasoline*(onSpecGas?1:0.82), jet:P.jet, diesel:P.diesel, heating:P.heating};
+    const del=Math.min(prodMap[c.product]||0, c.bpod);
+    c.deliveredWk=(c.deliveredWk||0)+del;
+    c.requiredWk=(c.requiredWk||0)+c.bpod;
+    contractAdj=del*1000*(c.price-mktMap[c.product])/1e6;
+    S.wk.contractAdj+=contractAdj;
+  }
+  const crudeCost=feed*1000*S.crude[S.crudeType]/1e6; // info only; billing is on delivery
+
+  const press=(k,util,sev)=>{
+    const u=S.units[k];
+    if (u.downDays>0&&u.destroyed===0){ u.pressure=Math.max(5,u.pressure-8); return; }
+    let target=18+58*util+(sev?(sev-1)*90:0)+(u.condition<50?12:0);
+    if (util>1) target+=(util-1)*380;
+    u.pressure+=(target-u.pressure)*0.25;
+    if (u.pressure>85){ u.pressure-=10; const fc=hasFlare2(S)?0.04:0.08; S.weekOtherCost+=fc; S.wk.flare+=fc; out.flared.push(k); }
+    if (u.pressure>105){
+      const chance=0.12+(u.pressure-105)*0.02;
+      if (rng()<chance) explode(S,k,out,util);
+    }
+  };
+  press('cdu',attempted/Math.max(1,cduMax),null);
+  press('reformer',refCap>0?refFeed/refCap:0,refS);
+  press('fcc',fccCap>0?fccFeed/fccCap:0,fccS);
+  press('hydro',S.units.hydro._load||0,null);
+  if(alkyCap(S)>0) press('alky',alkyFeed/Math.max(1,capOf(S,'alky')),null);
+
+  const maintF=Math.max(-0.3, 1.65-1.4*(S.maint/100));
+  const sevFor=k=>k==='fcc'?(0.5+0.5*fccS*fccS):k==='reformer'?(0.5+0.5*refS*refS):1;
+  for (const k of Object.keys(S.units)){
+    if(k==='alky'&&alkyCap(S)===0) continue;
+    const u=S.units[k];
+    S.unitDays++; if(u.downDays===0) S.upDays++;
+    if (u.downDays>0) continue;
+    const running=(k==='cdu'&&feed>0)||(k==='reformer'&&refFeed>0)||(k==='fcc'&&fccProcessed>0)||(k==='hydro'&&(S.units.hydro._load||0)>0)||(k==='alky'&&alkyFeed>0);
+    if (!running) continue;
+    u.condition=Math.min(100,Math.max(0,u.condition-UNIT_DEFS[k].wear*sevFor(k)*maintF));
+    if (u.condition<40){
+      const chance=(40-u.condition)*0.004+0.01;
+      if (rng()<chance){
+        u.downDays=7; u.online=false; u.planned=0; S.breakdowns++;
+        S.weekOtherCost+=UNIT_DEFS[k].repairCost; S.wk.repairs+=UNIT_DEFS[k].repairCost;
+        S.damageTotal+=UNIT_DEFS[k].repairCost;
+        out.broke.push(k);
+        out.notes.push(UNIT_DEFS[k].name+' broke down. Offline 7 days. Repair $'+UNIT_DEFS[k].repairCost+'M.');
+      }
+    }
+  }
+
+  S.weekRevenue+=rev+contractAdj;
+  S.weekOtherCost+=OPEX_PER_DAY*S.mul.opex+(MAINT_BASE_WEEK*S.maint/100)/7;
+  S.offSpecSoldWeek+=offSpec+(onSpecGas?0:gasVol);
+
+  if (S.day%7===0){
+    S.week++;
+    // capital project progress
+    for(const k of Object.keys(S.builds)){
+      const b=S.builds[k];
+      if(b.started&&!b.done){
+        b.weeksLeft--;
+        if(b.weeksLeft<=0){
+          b.done=1;
+          if(k==='tank4') S.tank.cap+=300;
+          out.notes.push(PROJECTS[k].name+' is complete and in service.');
         }
-
-        const light = new THREE.PointLight(0xffffff, 1, 100);
-        light.position.set(10, 10, 10);
-        scene.add(light);
-        scene.add(new THREE.AmbientLight(0x404040));
-
-        camera.position.z = 15;
-
-        function animate() {
-            requestAnimationFrame(animate);
-            column.rotation.y += 0.005;
-            renderer.render(scene, camera);
+      }
+    }
+    // placed construction progress
+    for(const p of S.placed){
+      if(!p.done&&p.weeksLeft>0){
+        p.weeksLeft--;
+        if(p.weeksLeft<=0){
+          p.done=1;
+          const d=PLACEABLE[p.type];
+          if(d.tank) S.tank.cap+=d.tank;
+          out.notes.push(d.name+' is complete and in service.');
         }
-        animate();
+      }
+    }
+    // contract week settlement: penalty if delivered under 90% of commitment
+    if(S.contract){
+      const c=S.contract;
+      if((c.deliveredWk||0)<(c.requiredWk||0)*0.9){
+        S.cash-=c.penalty; S.wk.fines+=c.penalty;
+        out.notes.push('Contract shortfall on '+c.product+': delivered '+Math.round((c.deliveredWk/Math.max(1,c.requiredWk))*100)+'% of commitment. Penalty $'+c.penalty.toFixed(1)+'M.');
+      }
+      c.deliveredWk=0; c.requiredWk=0;
+      c.weeksLeft--;
+      if(c.weeksLeft<=0){
+        out.notes.push('Contract complete: '+c.product+' commitment fulfilled and closed.');
+        S.contract=null;
+      }
+    }
+    const sRev=S.sulfurPile*S.prices.sulfur/1e6; S.wk.revSulfur=sRev; S.sulfurPile=0;
+    const profit=S.weekRevenue+sRev-S.weekCrudeCost-S.weekOtherCost;
+    S.cash+=profit; S.totalProfit+=profit;
+    S.profitHistory.push(profit);
+    if (S.offSpecSoldWeek>30 && S.rng()<0.25){
+      S.cash-=1.5; S.wk.fines+=1.5;
+      out.notes.push('Regulatory fine: $1.5M for off-specification product shipments.');
+    }
+    S.lastWeek={revenue:S.weekRevenue+sRev, crudeCost:S.weekCrudeCost, otherCost:S.weekOtherCost, profit,
+      detail:{...S.wk, maint:MAINT_BASE_WEEK*S.maint/100, opex:OPEX_PER_DAY*7*S.mul.opex}};
+    S.ledger.push({week:S.week, ...S.lastWeek.detail, profit});
+    if (S.ledger.length>13) S.ledger.shift();
+    S.priceHist.push({g:S.prices.gasoline, j:S.prices.jet, d:S.prices.diesel, h:S.prices.heating});
+    if (S.priceHist.length>52) S.priceHist.shift();
+    S.weekRevenue=S.weekCrudeCost=S.weekOtherCost=0; S.offSpecSoldWeek=0;
+    S.wk={revGasoline:0,revJet:0,revDiesel:0,revHeating:0,revLpg:0,revSulfur:0,flare:0,repairs:0,fines:0,crude:0,capex:0,contractAdj:0};
+    if (S.cash<FIRED_CASH&&!S.fired){ S.fired=true; S.firedReason='losses'; }
+  }
 
-        async function runSimulation() {
-            const tp = document.getElementById('throughput').value;
-            const res = await fetch(`http://localhost:8000/simulate/refinery?throughput=${tp}`);
-            const data = await res.json();
-            
-            document.getElementById('rev').innerText = '$' + data.economics.gross_revenue.toLocaleString();
-            document.getElementById('margin').innerText = '$' + data.economics.net_margin.toLocaleString();
-            document.getElementById('perbbl').innerText = '$' + data.economics.margin_per_bbl;
+  out.flows={ feed, attempted, feedWanted, naphtha, srNaphtha, refFeed, reformate, refOctane, kero, diesel, gasoil,
+    fccFeed:fccProcessed, fccGas, lco, lpg, lpgSold, alkyFeed, alkylate, alkyOn, resid, unconverted, jet, dieselOut, offSpec, heating, gasVol,
+    octane, onSpecGas, octaneSpec, sulfurTons, treatedFrac, needsTreat, hydrogenOk, rev, crudeCost, cduMax, refCap, fccCap };
+  out.blendOctane=octane;
+  S.dayOutput=out;
+  return out;
+}
+function explode(S,k,out,util){
+  const u=S.units[k];
+  if (u.downDays>0) return;
+  const factors=[];
+  if (util>1.02) factors.push('feed sustained above effective capacity');
+  if (k==='fcc'&&S.fccSeverity>110) factors.push('high-severity cracking');
+  if (k==='reformer'&&S.refSeverity>110) factors.push('high-severity reforming');
+  if (u.condition<40) factors.push('advanced equipment degradation');
+  if (S.maint<60) factors.push('sustained under-maintenance');
+  if (!factors.length) factors.push('overpressure');
+  S.incidents.push({day:S.day, unit:k, pressure:Math.round(u.pressure), condition:Math.round(u.condition), factors});
+  u.destroyed=1; u.downDays=28; u.online=false; u.condition=0; u.pressure=10; u.planned=0;
+  S.explosions++; S.cash-=UNIT_DEFS[k].explodeCost; S.damageTotal+=UNIT_DEFS[k].explodeCost;
+  out.exploded.push(k);
+  out.notes.push('EXPLOSION at the '+UNIT_DEFS[k].name+'. Offline 28 days. Damage $'+UNIT_DEFS[k].explodeCost+'M.');
+  if (k==='cdu') S.units.fcc.condition=Math.max(0,S.units.fcc.condition-20);
+  if (k==='fcc') S.units.cdu.condition=Math.max(0,S.units.cdu.condition-15);
+  if (S.explosions>=2&&!S.fired){ S.fired=true; S.firedReason='safety'; }
+}
 
-            // Animate flows based on results
-            fractions.forEach((f, i) => {
-                f.scale.x = 0.5 + Math.random(); // dynamic effect
-            });
-        }
-    </script>
+/* weekly random events (game layer; multipliers default to 1 in the tuned core) */
+const EVENTS=[
+  { type:'cold', name:'Cold snap', weeks:2, on:S=>S.mul.heating=1.30, off:S=>S.mul.heating=1, msg:'Cold snap. Heating oil demand is up for two weeks.' },
+  { type:'driving', name:'Driving season', weeks:2, on:S=>S.mul.gasoline=1.12, off:S=>S.mul.gasoline=1, msg:'Strong gasoline demand for two weeks.' },
+  { type:'crude', name:'Tight crude market', weeks:2, on:S=>S.mul.crude=1.10, off:S=>S.mul.crude=1, msg:'Crude market is tight. All grades cost about 10% more.' },
+  { type:'tanker', name:'Tanker delay', weeks:1, on:S=>S.skipDelivery++, off:S=>{}, msg:'Next crude delivery is cancelled. The tank farm will have to carry the plant.' },
+  { type:'labor', name:'Labor action', weeks:2, on:S=>S.mul.opex=1.6, off:S=>S.mul.opex=1, msg:'Labor action. Operating costs up 60% for two weeks.' },
+  { type:'hurricane', name:'Hurricane offshore', weeks:3, on:S=>{S.mul.crude=1.18; S.skipDelivery++;}, off:S=>S.mul.crude=1, msg:'Hurricane in the shipping lanes. Crude is 18% dearer for three weeks and one delivery is lost.' },
+  { type:'octane', name:'Octane spec change', weeks:4, on:S=>S.octaneSpec=89, off:S=>S.octaneSpec=87, msg:'Regulators have raised the gasoline octane minimum to 89 for four weeks. Check the blend.' },
+  { type:'pricewar', name:'Gasoline price war', weeks:2, on:S=>S.mul.gasoline=0.88, off:S=>S.mul.gasoline=1, msg:'Retail price war. Gasoline is paying 12% less for two weeks.' },
+];
+function weeklyEvents(S, pushMsg){
+  if (S.event){
+    S.event.weeksLeft--;
+    if (S.event.weeksLeft<=0){
+      const ev=EVENTS.find(e=>e.type===S.event.type);
+      if (ev) ev.off(S); else { S.mul.heating=1; }
+      pushMsg(S.event.name+' has ended.');
+      S.event=null;
+    }
+  } else if (S.week>=3 && S.rng()<0.15){
+    // grace period: no market events in the first two weeks while the tank fills
+    const ev=EVENTS[Math.floor(S.rng()*EVENTS.length)];
+    ev.on(S); S.event={type:ev.type,name:ev.name,weeksLeft:ev.weeks};
+    pushMsg(ev.msg);
+  }
+}
+
+/* ================================================================
+   THREE.JS SCENE
+   ================================================================ */
+const container=document.getElementById('scene');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
+container.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x9fb8c8);
+scene.fog=new THREE.Fog(0x9fb8c8,160,420);
+
+let viewSize=78;
+const camera=new THREE.OrthographicCamera(-1,1,1,-1,-200,600);
+function setFrustum(){
+  const a=innerWidth/innerHeight;
+  camera.left=-viewSize*a/2; camera.right=viewSize*a/2;
+  camera.top=viewSize/2; camera.bottom=-viewSize/2;
+  camera.updateProjectionMatrix();
+}
+setFrustum();
+const HOME_POS=new THREE.Vector3(95,85,95), HOME_TGT=new THREE.Vector3(-2,0,2);
+camera.position.copy(HOME_POS);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.target.copy(HOME_TGT);
+controls.enableDamping=true; controls.dampingFactor=0.08;
+controls.maxPolarAngle=1.32; controls.minZoom=0.45; controls.maxZoom=4;
+controls.mouseButtons={LEFT:THREE.MOUSE.ROTATE, MIDDLE:THREE.MOUSE.DOLLY, RIGHT:THREE.MOUSE.PAN};
+
+const hemi=new THREE.HemisphereLight(0xdfeaf2,0x6e6a5c,0.95);
+scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff2dc,1.5);
+sun.position.set(70,110,40);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-110; sun.shadow.camera.right=110;
+sun.shadow.camera.top=110; sun.shadow.camera.bottom=-110;
+sun.shadow.camera.far=400; sun.shadow.bias=-0.0005;
+scene.add(sun);
+
+const M={
+  steel:new THREE.MeshStandardMaterial({color:0x97a0a8,roughness:0.55,metalness:0.35}),
+  lightSteel:new THREE.MeshStandardMaterial({color:0xc9ced3,roughness:0.5,metalness:0.3}),
+  darkSteel:new THREE.MeshStandardMaterial({color:0x5f6a72,roughness:0.6,metalness:0.4}),
+  tank:new THREE.MeshStandardMaterial({color:0xe2e4e5,roughness:0.6,metalness:0.15}),
+  rust:new THREE.MeshStandardMaterial({color:0x9c6242,roughness:0.85,metalness:0.1}),
+  yellow:new THREE.MeshStandardMaterial({color:0xd9a514,roughness:0.7}),
+  concrete:new THREE.MeshStandardMaterial({color:0xb8b4aa,roughness:0.95}),
+  pad:new THREE.MeshStandardMaterial({color:0x8f8c84,roughness:0.95}),
+  road:new THREE.MeshStandardMaterial({color:0x6b6a66,roughness:0.95}),
+  water:new THREE.MeshStandardMaterial({color:0x2e4d63,roughness:0.25,metalness:0.5}),
+  grass:new THREE.MeshStandardMaterial({color:0x76815c,roughness:1}),
+  hull:new THREE.MeshStandardMaterial({color:0x7a2f25,roughness:0.7}),
+  white:new THREE.MeshStandardMaterial({color:0xeceff0,roughness:0.6}),
+  sulfur:new THREE.MeshStandardMaterial({color:0xe8d83a,roughness:0.9}),
+  flame:new THREE.MeshBasicMaterial({color:0xff8c1a,transparent:true,opacity:0.95}),
+  flameCore:new THREE.MeshBasicMaterial({color:0xffe26b,transparent:true,opacity:0.95}),
+  char:new THREE.MeshStandardMaterial({color:0x2a2723,roughness:0.95}),
+};
+function box(w,h,d,m,cs=true){ const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); g.castShadow=cs; g.receiveShadow=true; return g; }
+function cyl(r,h,m,seg=18,rt=r){ const g=new THREE.Mesh(new THREE.CylinderGeometry(rt,r,h,seg),m); g.castShadow=true; g.receiveShadow=true; return g; }
+
+/* ---- ground ---- */
+// mottled scrub texture so the grass isn't one flat green
+{
+  const c=document.createElement('canvas'); c.width=c.height=256;
+  const x=c.getContext('2d');
+  x.fillStyle='#76815c'; x.fillRect(0,0,256,256);
+  for(let i=0;i<700;i++){
+    x.fillStyle=Math.random()<0.5?'rgba(90,100,68,0.35)':'rgba(126,134,98,0.3)';
+    const px=Math.random()*256, py=Math.random()*256, rr=2+Math.random()*9;
+    x.beginPath(); x.arc(px,py,rr,0,7); x.fill();
+  }
+  for(let i=0;i<60;i++){
+    x.fillStyle='rgba(140,124,90,0.18)';
+    x.beginPath(); x.arc(Math.random()*256,Math.random()*256,8+Math.random()*20,0,7); x.fill();
+  }
+  const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace;
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(22,22);
+  M.grass.map=tex; M.grass.color.set(0xffffff); M.grass.needsUpdate=true;
+}
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(800,800),M.grass);
+ground.rotation.x=-Math.PI/2; ground.position.y=-0.05; ground.receiveShadow=true; scene.add(ground);
+const plantPad=new THREE.Mesh(new THREE.PlaneGeometry(150,108),M.concrete);
+plantPad.rotation.x=-Math.PI/2; plantPad.position.set(2,0,2); plantPad.receiveShadow=true; scene.add(plantPad);
+const water=new THREE.Mesh(new THREE.PlaneGeometry(120,800),M.water);
+water.rotation.x=-Math.PI/2; water.position.set(-118,0.02,0); water.receiveShadow=true; scene.add(water);
+// shoreline
+const shore=box(6,1.6,800,M.pad); shore.position.set(-60,0.6,0); scene.add(shore);
+// roads
+function roadStrip(w,d,x,z){ const r=new THREE.Mesh(new THREE.PlaneGeometry(w,d),M.road); r.rotation.x=-Math.PI/2; r.position.set(x,0.06,z); r.receiveShadow=true; scene.add(r); }
+roadStrip(150,5,2,-49); roadStrip(150,5,2,53); roadStrip(5,107,-71,2); roadStrip(5,107,75,2); roadStrip(5,98,-22,2);
+
+/* ---- wharf + tanker ---- */
+const wharf=box(14,1.8,26,M.pad); wharf.position.set(-58,0.9,-14); scene.add(wharf);
+const tanker=new THREE.Group();
+{
+  const hull=box(10,3,40,M.hull); hull.position.y=1.2; tanker.add(hull);
+  const deck=box(9,0.8,38,new THREE.MeshStandardMaterial({color:0x8a4034,roughness:0.8})); deck.position.y=2.9; tanker.add(deck);
+  const house=box(7,6,7,M.white); house.position.set(0,6,-14); tanker.add(house);
+  const stack=cyl(0.8,3.4,M.darkSteel); stack.position.set(0,10.5,-14); tanker.add(stack);
+  for (let i=0;i<3;i++){ const dome=new THREE.Mesh(new THREE.SphereGeometry(1.5,12,8),M.lightSteel); dome.castShadow=true; dome.position.set(0,3.6,8-i*7); tanker.add(dome); }
+  tanker.position.set(-76,0,-8); scene.add(tanker);
+}
+
+/* ---- unit builders ---- */
+const UNITS3D={};   // key -> {group, center, statusLamp, hit, meshes}
+function registerUnit(key,group,center,lampPos,hitSize){
+  group.traverse(o=>{ if(o.isMesh){o.castShadow=true;o.receiveShadow=true;} });
+  const lampPole=cyl(0.12,2.2,M.darkSteel); lampPole.position.copy(lampPos); group.add(lampPole);
+  const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.55,10,8),
+    new THREE.MeshStandardMaterial({color:0x19a93f,emissive:0x19a93f,emissiveIntensity:0.9}));
+  lamp.position.copy(lampPos).y+=1.4; group.add(lamp);
+  const hit=new THREE.Mesh(new THREE.BoxGeometry(...hitSize),new THREE.MeshBasicMaterial({visible:false}));
+  hit.position.copy(center); hit.userData.unitKey=key; group.add(hit);
+  scene.add(group);
+  const meshes=[]; group.traverse(o=>{ if(o.isMesh&&o!==hit&&o!==lamp) meshes.push(o); });
+  UNITS3D[key]={group,center:center.clone(),statusLamp:lamp,hit,meshes,origMats:meshes.map(m=>m.material)};
+}
+
+/* crude tank farm (info target) */
+{
+  const g=new THREE.Group();
+  [[-40,-16],[-40,2],[-40,20]].forEach(([x,z],i)=>{
+    const t=cyl(7,8,M.tank,28); t.position.set(x,4,z); g.add(t);
+    const rim=cyl(7.15,0.5,M.steel,28); rim.position.set(x,8.1,z); g.add(rim);
+    const stair=box(0.8,8,2.4,M.steel); stair.position.set(x+6.4,4,z+3); stair.rotation.y=0.5; g.add(stair);
+    const dike=new THREE.Mesh(new THREE.RingGeometry(8.4,9.4,28),M.pad); dike.rotation.x=-Math.PI/2; dike.position.set(x,0.08,z); g.add(dike);
+  });
+  registerUnit('tanks',g,new THREE.Vector3(-40,5,2),new THREE.Vector3(-40,9.6,-7),[18,12,42]);
+}
+/* CDU — tall tower + furnace */
+{
+  const g=new THREE.Group();
+  const tower=cyl(2.6,22,M.lightSteel,20); tower.position.set(-12,11,-8); g.add(tower);
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(2.6,20,10,0,Math.PI*2,0,Math.PI/2),M.lightSteel); cap.position.set(-12,22,-8); g.add(cap);
+  for (let i=0;i<5;i++){ const noz=box(1.6,1.0,1.2,M.steel); noz.position.set(-9.9,4.5+i*3.6,-8); g.add(noz); }
+  const ladder=box(0.3,21,0.9,M.darkSteel); ladder.position.set(-14.4,10.5,-8); g.add(ladder);
+  const skirt=cyl(3.0,1.6,M.darkSteel,20); skirt.position.set(-12,0.8,-8); g.add(skirt);
+  const furnace=box(6,7,6,M.rust); furnace.position.set(-12,3.5,3); g.add(furnace);
+  const fstack=cyl(0.9,15,M.darkSteel); fstack.position.set(-12,14.5,3); g.add(fstack);
+  const xfer=cyl(0.5,7,M.steel); xfer.rotation.x=Math.PI/2; xfer.position.set(-12,5.5,-2.4); g.add(xfer);
+  registerUnit('cdu',g,new THREE.Vector3(-12,8,-4),new THREE.Vector3(-7,1.1,-13),[14,24,18]);
+}
+/* Reformer — furnace row + 3 spherical reactors */
+{
+  const g=new THREE.Group();
+  for (let i=0;i<3;i++){ const f=box(4,5.5,4.4,M.rust); f.position.set(2+i*5.4,2.75,-28); g.add(f);
+    const st=cyl(0.55,9,M.darkSteel); st.position.set(2+i*5.4,10,-28); g.add(st); }
+  for (let i=0;i<3;i++){ const r=new THREE.Mesh(new THREE.SphereGeometry(2.1,16,12),M.lightSteel); r.castShadow=true; r.position.set(2+i*5.4,3.4,-21.5); g.add(r);
+    const leg=cyl(1.4,2.4,M.darkSteel,10); leg.position.set(2+i*5.4,1.2,-21.5); g.add(leg); }
+  const drum=cyl(1.5,7,M.steel,14); drum.rotation.z=Math.PI/2; drum.position.set(7.4,2.2,-17.5); g.add(drum);
+  registerUnit('reformer',g,new THREE.Vector3(7.4,4,-23),new THREE.Vector3(15.5,1.1,-25),[20,12,15]);
+}
+/* FCC — regenerator + reactor pair */
+{
+  const g=new THREE.Group();
+  const regen=cyl(4.2,11,M.lightSteel,22); regen.position.set(10,7.5,-2); g.add(regen);
+  const regenTop=new THREE.Mesh(new THREE.SphereGeometry(4.2,22,10,0,Math.PI*2,0,Math.PI/2),M.lightSteel); regenTop.position.set(10,13,-2); g.add(regenTop);
+  const reactor=cyl(2.5,9,M.steel,18); reactor.position.set(17,11.5,-4); g.add(reactor);
+  const riser=cyl(1.0,12,M.darkSteel,12); riser.rotation.z=0.42; riser.position.set(13.6,6.4,-3.2); g.add(riser);
+  const stand=cyl(1.1,9,M.darkSteel,12); stand.rotation.z=-0.5; stand.position.set(13.4,11.2,-2.4); g.add(stand);
+  const cyc1=cyl(0.9,3.4,M.steel,10); cyc1.position.set(16.2,17.6,-4); g.add(cyc1);
+  const skirtR=cyl(2.8,5.5,M.darkSteel,18); skirtR.position.set(17,2.75,-4); g.add(skirtR);
+  const skirtG=cyl(4.5,2,M.darkSteel,22); skirtG.position.set(10,1,-2); g.add(skirtG);
+  const frac=cyl(1.7,14,M.lightSteel,16); frac.position.set(22.5,7,-1); g.add(frac);
+  registerUnit('fcc',g,new THREE.Vector3(15.5,8,-2.6),new THREE.Vector3(8,1.1,-9.5),[22,22,16]);
+}
+/* Hydrotreater — reactor + horizontal drums */
+{
+  const g=new THREE.Group();
+  const rx=cyl(1.8,9,M.lightSteel,16); rx.position.set(6,4.5,16); g.add(rx);
+  for (let i=0;i<2;i++){ const d=cyl(1.6,8,M.steel,14); d.rotation.z=Math.PI/2; d.position.set(12,1.9+i*4,18.5); g.add(d);
+    const sad1=box(1.2,1.9,1.4,M.darkSteel); sad1.position.set(9.5,0.95,18.5); g.add(sad1);
+    const sad2=box(1.2,1.9,1.4,M.darkSteel); sad2.position.set(14.5,0.95,18.5); g.add(sad2); }
+  const heater=box(3.6,4.5,3.6,M.rust); heater.position.set(5.6,2.25,22.5); g.add(heater);
+  const hstack=cyl(0.5,7.5,M.darkSteel); hstack.position.set(5.6,8,22.5); g.add(hstack);
+  registerUnit('hydro',g,new THREE.Vector3(9.5,4,18.5),new THREE.Vector3(16.5,1.1,13.5),[16,12,14]);
+}
+/* product tank farm */
+{
+  const g=new THREE.Group();
+  const spots=[[36,-20,'gasoline'],[36,-8,'jet'],[36,4,'diesel'],[36,16,'heating']];
+  spots.forEach(([x,z])=>{
+    const t=cyl(4.6,6.5,M.tank,24); t.position.set(x,3.25,z); g.add(t);
+    const rim=cyl(4.7,0.4,M.steel,24); rim.position.set(x,6.6,z); g.add(rim);
+  });
+  const sphere1=new THREE.Mesh(new THREE.SphereGeometry(2.6,18,14),M.white); sphere1.castShadow=true; sphere1.position.set(36,3,28); g.add(sphere1);
+  const legs=cyl(2.0,1.6,M.darkSteel,12); legs.position.set(36,0.8,28); g.add(legs);
+  registerUnit('ptanks',g,new THREE.Vector3(36,4,2),new THREE.Vector3(42,1.1,-26),[14,10,56]);
+}
+/* flare */
+{
+  const g=new THREE.Group();
+  const stack=cyl(0.7,26,M.steel,12,0.55); stack.position.set(40,13,40); g.add(stack);
+  for (const a of [0,2.1,4.2]){ const guy=cyl(0.06,15,M.darkSteel,6); guy.position.set(40+Math.cos(a)*4,6,40+Math.sin(a)*4); guy.rotation.z=Math.cos(a)*0.27; guy.rotation.x=-Math.sin(a)*0.27; g.add(guy); }
+  registerUnit('flare',g,new THREE.Vector3(40,12,40),new THREE.Vector3(36,1.1,36),[8,28,8]);
+}
+const flameOuter=new THREE.Mesh(new THREE.ConeGeometry(1.3,4.6,10),M.flame);
+flameOuter.position.set(40,27.5,40); scene.add(flameOuter);
+const flameInner=new THREE.Mesh(new THREE.ConeGeometry(0.7,3,10),M.flameCore);
+flameInner.position.set(40,27.0,40); scene.add(flameInner);
+const flareLight=new THREE.PointLight(0xff9a40,0,90,1.8); flareLight.position.set(40,28,40); scene.add(flareLight);
+// additive halo around the flare tip — reads at distance and glows at night
+const flareGlow=(()=>{
+  const c=document.createElement('canvas'); c.width=c.height=64;
+  const x=c.getContext('2d'); const g=x.createRadialGradient(32,32,2,32,32,30);
+  g.addColorStop(0,'rgba(255,190,110,0.9)'); g.addColorStop(0.45,'rgba(255,140,40,0.4)'); g.addColorStop(1,'rgba(255,120,20,0)');
+  x.fillStyle=g; x.fillRect(0,0,64,64);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,opacity:0.25,depthWrite:false,blending:THREE.AdditiveBlending}));
+  sp.position.set(40,28.6,40); sp.scale.set(11,11,1); scene.add(sp); return sp;
+})();
+
+/* sulfur pad */
+let sulfurCone;
+{
+  const g=new THREE.Group();
+  const pad=box(10,0.5,10,M.pad); pad.position.set(18,0.25,36); g.add(pad);
+  sulfurCone=new THREE.Mesh(new THREE.ConeGeometry(4.6,4.4,14),M.sulfur);
+  sulfurCone.castShadow=true; sulfurCone.position.set(18,2.2,36); g.add(sulfurCone);
+  registerUnit('sulfur',g,new THREE.Vector3(18,2,36),new THREE.Vector3(13,1.1,31),[11,6,11]);
+}
+/* cooling tower + admin */
+{
+  const g=new THREE.Group();
+  const ct=box(10,6,5,M.white); ct.position.set(-14,3,24); g.add(ct);
+  for(let i=0;i<3;i++){ const fan=cyl(1.4,0.5,M.darkSteel,14); fan.position.set(-17.5+i*3.5,6.3,24); g.add(fan); }
+  registerUnit('cooling',g,new THREE.Vector3(-14,3,24),new THREE.Vector3(-19.5,1.1,20.5),[12,8,7]);
+}
+{
+  const g=new THREE.Group();
+  const b=box(12,3.4,7,M.white); b.position.set(-38,1.7,40); g.add(b);
+  const door=box(1.6,2.2,0.3,M.darkSteel); door.position.set(-38,1.1,43.6); g.add(door);
+  const lot=new THREE.Mesh(new THREE.PlaneGeometry(14,8),M.road); lot.rotation.x=-Math.PI/2; lot.position.set(-38,0.07,31); g.add(lot);
+  registerUnit('admin',g,new THREE.Vector3(-38,2,40),new THREE.Vector3(-31,1.1,44),[14,6,10]);
+}
+
+/* ---- pipe rack + pipes ---- */
+function makePipeRack(x1,x2,z,h){
+  const g=new THREE.Group();
+  for(let x=x1;x<=x2;x+=8){ const p=box(0.5,h,0.5,M.darkSteel); p.position.set(x,h/2,z); g.add(p);
+    const cross=box(0.4,0.4,3.2,M.darkSteel); cross.position.set(x,h,z); g.add(cross); }
+  scene.add(g);
+}
+makePipeRack(-30,30,6,3.6);
+
+const ROUTES={};
+function makePipe(key,pts,r,color){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshStandardMaterial({color,roughness:0.5,metalness:0.4});
+  const segs=[]; let total=0;
+  for(let i=0;i<pts.length-1;i++){
+    const a=new THREE.Vector3(...pts[i]), b=new THREE.Vector3(...pts[i+1]);
+    const len=a.distanceTo(b); total+=len; segs.push({a,b,len});
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(r,r,len,8),mat);
+    c.castShadow=true;
+    c.position.copy(a).add(b).multiplyScalar(0.5);
+    c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.clone().sub(a).normalize());
+    g.add(c);
+    const elbow=new THREE.Mesh(new THREE.SphereGeometry(r*1.25,8,8),mat); elbow.position.copy(b); g.add(elbow);
+  }
+  scene.add(g);
+  const sample=t=>{ let d=t*total;
+    for(const s of segs){ if(d<=s.len) return s.a.clone().lerp(s.b,d/s.len); d-=s.len; }
+    return segs[segs.length-1].b.clone(); };
+  ROUTES[key]={group:g,total,sample,flow:0,cap:1,slugs:[],color,mat};
+}
+const RH=3.7; // rack height
+makePipe('crude',   [[-33,2,2],[-26,2,2],[-26,2,-8],[-15,2,-8]],0.45,0x4a3b2d);
+makePipe('naphtha', [[-12,16,-8],[-12,16,-14],[-2,16,-14],[-2,4,-14],[-2,4,-21],[0,4,-21.5]],0.3,0xd8c46a);
+makePipe('gasoil',  [[-10.5,5,-8],[-4,5,-8],[-4,3.2,-2],[5.5,3.2,-2]],0.34,0x7c5a36);
+makePipe('dist',    [[-10.5,7,-8],[-6,7,-8],[-6,2.6,6],[-6,2.6,16],[4,2.6,16]],0.3,0xb8862e);
+makePipe('resid',   [[-12,1.2,-5.4],[-12,1.2,8],[28,1.2,8],[28,1.2,16],[31.5,1.2,16]],0.36,0x3a3430);
+makePipe('reformate',[[10,5.5,-21.5],[18,5.5,-21.5],[18,3.4,-20],[31.5,3.4,-20]],0.28,0xd6dd7a);
+makePipe('fccgas',  [[22.5,9,-1],[27,9,-1],[27,3,-8],[31.5,3,-8]],0.28,0xc7d06e);
+makePipe('jetline', [[12,3.4,15],[20,3.4,15],[20,2.4,-2],[31.5,2.4,-8]],0.26,0x86b1d8);
+makePipe('dieselline',[[14,2.2,18.5],[24,2.2,18.5],[24,2.2,4],[31.5,2.2,4]],0.26,0x9a8e5a);
+makePipe('flarehdr',[[-12,4.2,-12],[-12,5.2,-16],[26,5.2,-16],[26,5.2,34],[39.5,5.2,39.5],[40,24,40]],0.22,0x8a4a42);
+makePipe('sulfline',[[7,1.2,20],[7,1.2,33],[14.5,1.2,35.5]],0.18,0xb0a23a);
+makePipe('h2line',  [[9.5,4.6,-20],[1,4.6,-18],[1,2.0,10],[5,2.0,13.5]],0.16,0xb9c4e2);
+makePipe('lpgline', [[20,2.6,-1],[29,2.6,2],[29,2.6,24],[33.5,2.6,27.5]],0.2,0xc887c8);
+makePipe('alkyfeed',[[22.5,2.2,-3],[24,2.2,-12],[24,2.2,-28]],0.18,0xe2c178);
+makePipe('alkyline',[[26.5,1.6,-32],[31.5,1.6,-26],[31.5,1.6,-21]],0.18,0xe2c178);
+ROUTES.alkyfeed.group.visible=false; ROUTES.alkyline.group.visible=false; // until built
+
+/* flow slugs */
+const slugGeo=new THREE.SphereGeometry(0.42,8,8);
+for (const key of Object.keys(ROUTES)){
+  const R=ROUTES[key];
+  const n=Math.max(3,Math.round(R.total/7));
+  const mat=new THREE.MeshBasicMaterial({color:R.color});
+  for(let i=0;i<n;i++){
+    const s=new THREE.Mesh(slugGeo,mat);
+    s.userData.t=i/n; s.visible=false; scene.add(s); R.slugs.push(s);
+  }
+}
+
+/* unit labels */
+const LABELS=[];
+function makeLabel(text,pos,scale=1){
+  const c=document.createElement('canvas'); c.width=256; c.height=56;
+  const x=c.getContext('2d');
+  x.fillStyle='#c6c6c6'; x.fillRect(0,0,256,56);
+  x.strokeStyle='#5a5a5a'; x.lineWidth=4; x.strokeRect(0,0,256,56);
+  x.fillStyle='#000'; x.font='bold 26px Tahoma,sans-serif'; x.textAlign='center'; x.textBaseline='middle';
+  x.fillText(text.toUpperCase(),128,30);
+  const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,depthTest:false}));
+  sp.scale.set(11*scale,2.4*scale,1); sp.position.copy(pos); sp.renderOrder=5;
+  scene.add(sp); LABELS.push(sp); return sp;
+}
+makeLabel('Crude Tanks',new THREE.Vector3(-40,12.5,2));
+makeLabel('Distillation',new THREE.Vector3(-12,26,-8));
+makeLabel('Reformer',new THREE.Vector3(7.4,12,-24));
+makeLabel('Cat Cracker',new THREE.Vector3(14,20.5,-3));
+makeLabel('Hydrotreater',new THREE.Vector3(9.5,11.5,17.5));
+makeLabel('Product Tanks',new THREE.Vector3(36,10.5,-2));
+makeLabel('Flare',new THREE.Vector3(40,31.5,40),0.8);
+makeLabel('Sulfur',new THREE.Vector3(18,6.5,36),0.7);
+
+/* ---- plant dressing: fence, masts, rail spur, cars, stripes, roofs ---- */
+// procedural concrete texture for the plant pad
+{
+  const c=document.createElement('canvas'); c.width=c.height=256;
+  const x=c.getContext('2d');
+  x.fillStyle='#b8b4aa'; x.fillRect(0,0,256,256);
+  for(let i=0;i<900;i++){ x.fillStyle='rgba(0,0,0,'+(Math.random()*0.05)+')';
+    x.fillRect(Math.random()*256,Math.random()*256,Math.random()*4+1,Math.random()*4+1); }
+  for(let i=0;i<14;i++){ x.fillStyle='rgba(60,50,40,'+(Math.random()*0.10)+')';
+    const px=Math.random()*256, py=Math.random()*256, r=6+Math.random()*22;
+    x.beginPath(); x.arc(px,py,r,0,7); x.fill(); }
+  x.strokeStyle='rgba(0,0,0,0.10)'; x.lineWidth=1;
+  for(let i=0;i<=4;i++){ x.beginPath(); x.moveTo(i*64,0); x.lineTo(i*64,256); x.stroke();
+    x.beginPath(); x.moveTo(0,i*64); x.lineTo(256,i*64); x.stroke(); }
+  const tex=new THREE.CanvasTexture(c); tex.colorSpace=THREE.SRGBColorSpace;
+  tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(7,5);
+  M.concrete.map=tex; M.concrete.color.set(0xffffff); M.concrete.needsUpdate=true;
+}
+// road center stripes
+{
+  const sm=new THREE.MeshBasicMaterial({color:0xd8d4c8});
+  const mk=(w,d,px,pz)=>{ const s=new THREE.Mesh(new THREE.PlaneGeometry(w,d),sm); s.rotation.x=-Math.PI/2; s.position.set(px,0.09,pz); scene.add(s); };
+  for(let x=-66;x<=66;x+=10){ mk(4,0.4,x,-49); mk(4,0.4,x,53); }
+  for(let z=-44;z<=48;z+=10){ mk(0.4,4,-71,z); mk(0.4,4,75,z); mk(0.4,4,-22,z); }
+}
+// perimeter fence — rebuilt to enclose whatever the player builds
+const FENCE_BASE={x1:-72,x2:76,z1:-52,z2:56};
+let FENCE=null, FENCE_BOUNDS=null;
+const postGeo=new THREE.BoxGeometry(0.22,2.2,0.22), railGeo=new THREE.BoxGeometry(6,0.12,0.12);
+function buildFence(b){
+  if(FENCE) scene.remove(FENCE);
+  FENCE=new THREE.Group();
+  const fm=M.darkSteel;
+  const edges=[[b.x1,b.z1,b.x2,b.z1,true],[b.x1,b.z2,b.x2,b.z2,true],[b.x1,b.z1,b.x1,b.z2,false],[b.x2,b.z1,b.x2,b.z2,false]];
+  for(const [x1,z1,x2,z2,horiz] of edges){
+    const len=horiz?x2-x1:z2-z1, n=Math.ceil(Math.abs(len)/6);
+    for(let i=0;i<=n;i++){
+      const t=i/n, px=x1+(x2-x1)*t, pz=z1+(z2-z1)*t;
+      if(horiz&&Math.abs(px-54)<=5) continue;          // rail gate gap
+      const p=new THREE.Mesh(postGeo,fm); p.position.set(px,1.1,pz); p.castShadow=true; FENCE.add(p);
+      if(i<n&&!(horiz&&Math.abs(px+3-54)<=5)){
+        const r=new THREE.Mesh(railGeo,fm); r.position.set(px+(horiz?3:0),1.9,pz+(horiz?0:3));
+        if(!horiz) r.rotation.y=Math.PI/2; FENCE.add(r);
+      }
+    }
+  }
+  scene.add(FENCE);
+  FENCE_BOUNDS=b;
+}
+buildFence({...FENCE_BASE});
+function recomputeFence(){
+  const b={...FENCE_BASE};
+  for(const p of (S?S.placed:[])){
+    if(p.type==='road'||p.type==='trees'||p.type==='pole') continue;
+    const fp=FOOTPRINT[p.type];
+    const w=(p.rot%2===0?fp[0]:fp[1])/2+8, d=(p.rot%2===0?fp[1]:fp[0])/2+8;
+    b.x1=Math.min(b.x1,Math.round((p.x-w)/2)*2); b.x2=Math.max(b.x2,Math.round((p.x+w)/2)*2);
+    b.z1=Math.min(b.z1,Math.round((p.z-d)/2)*2); b.z2=Math.max(b.z2,Math.round((p.z+d)/2)*2);
+  }
+  if(!FENCE_BOUNDS||b.x1!==FENCE_BOUNDS.x1||b.x2!==FENCE_BOUNDS.x2||b.z1!==FENCE_BOUNDS.z1||b.z2!==FENCE_BOUNDS.z2)
+    buildFence(b);
+}
+// high-mast light poles + night point lights
+const mastHeads=[], nightLights=[];
+{
+  const spots=[[-28,-40],[18,-40],[-28,30],[28,28],[-52,8],[58,-12],[58,30],[-2,46]];
+  for(const [px,pz] of spots){
+    const pole=cyl(0.28,14,M.darkSteel,8); pole.position.set(px,7,pz); scene.add(pole);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.5,1.0),
+      new THREE.MeshStandardMaterial({color:0xd8d8c8,emissive:0xffe9b0,emissiveIntensity:0.15}));
+    head.position.set(px,14.2,pz); scene.add(head); mastHeads.push(head);
+  }
+  for(const [px,pz] of [[-28,-40],[18,-40],[-28,30],[28,28]]){
+    const L=new THREE.PointLight(0xffd9a0,0,78,1.5); L.position.set(px,13,pz); scene.add(L); nightLights.push(L);
+  }
+}
+// rail spur + a product train that actually comes and goes
+let productTrain=null;
+{
+  const bed=new THREE.Mesh(new THREE.PlaneGeometry(4.4,330),M.road); bed.rotation.x=-Math.PI/2; bed.position.set(54,0.07,-120); bed.receiveShadow=true; scene.add(bed);
+  for(const off of [-1.1,1.1]){ const r=box(0.24,0.24,330,M.darkSteel,false); r.position.set(54+off,0.32,-120); scene.add(r); }
+  // buffer stop at the south end of the spur
+  const stop=box(3,1.6,0.8,M.rust); stop.position.set(54,0.8,38); scene.add(stop);
+  const g1=box(0.5,6,0.5,M.steel); g1.position.set(50.5,3,16); scene.add(g1);
+  const g2=box(0.5,6,0.5,M.steel); g2.position.set(57.5,3,16); scene.add(g2);
+  const g3=box(8,0.5,0.5,M.steel); g3.position.set(54,6,16); scene.add(g3);
+  makeLabel('Rail Loading',new THREE.Vector3(54,9,8),0.75);
+  productTrain=new THREE.Group();
+  const loco=new THREE.Group();
+  const lb=box(2.7,2.6,7.5,new THREE.MeshStandardMaterial({color:0x2e4a36,roughness:0.6,metalness:0.3})); lb.position.y=1.9; loco.add(lb);
+  const cab=box(2.5,1.8,2.4,new THREE.MeshStandardMaterial({color:0x223a2a,roughness:0.6})); cab.position.set(0,3.9,-2.2); loco.add(cab);
+  const nose=box(2.3,1.1,1.4,M.darkSteel); nose.position.set(0,1.2,4.2); loco.add(nose);
+  const stack=cyl(0.3,1.2,M.darkSteel,8); stack.position.set(0,3.6,2.6); loco.add(stack);
+  productTrain.add(loco);
+  for(let i=0;i<3;i++){
+    const z=-9-i*11;
+    const frame=box(2.4,0.5,10,M.darkSteel); frame.position.set(0,1.0,z); productTrain.add(frame);
+    const tcar=cyl(1.5,9.4,M.rust,14); tcar.rotation.x=Math.PI/2; tcar.position.set(0,2.4,z); productTrain.add(tcar);
+    const dome=cyl(0.5,0.6,M.darkSteel,10); dome.position.set(0,4.1,z); productTrain.add(dome);
+  }
+  productTrain.traverse(o=>{ if(o.isMesh){ o.castShadow=true; } });
+  productTrain.position.set(54,0,-175);
+  scene.add(productTrain);
+}
+// loading position puts the cars under the gantry; days 3-5 each week
+const TRAIN_LOAD_Z=28, TRAIN_AWAY_Z=-185;
+function updateTrain(dt){
+  const wd=((S.day-1)%7+7)%7;
+  const wantZ=(wd>=3&&wd<=5)?TRAIN_LOAD_Z:TRAIN_AWAY_Z;
+  const dz=wantZ-productTrain.position.z;
+  const step=Math.sign(dz)*Math.min(Math.abs(dz),dt*22);
+  productTrain.position.z+=step;
+  productTrain.visible=productTrain.position.z>-168;   // gone past the map edge
+  if(Math.abs(dz)>2&&Math.random()<dt*6&&productTrain.position.z>-120)
+    spawnPuff(new THREE.Vector3(54,4.6,productTrain.position.z+2.6),
+      {color:0x575350,size:1.0,life:1.3,rise:2.6,grow:1.2,jitter:0.5,opacity:0.4});
+}
+// parked cars at admin
+{
+  const colors=[0x7a3030,0x33507a,0xc8c8c8,0x3a5a3a,0x806030,0x404048];
+  colors.forEach((col,i)=>{
+    const bx=-43+i*2.6;
+    const body=box(2,0.8,4.2,new THREE.MeshStandardMaterial({color:col,roughness:0.4,metalness:0.4}));
+    body.position.set(bx,0.55,31); scene.add(body);
+    const cab=box(1.7,0.6,2.2,new THREE.MeshStandardMaterial({color:col,roughness:0.35,metalness:0.3}));
+    cab.position.set(bx,1.2,31.3); scene.add(cab);
+  });
+}
+// crude tank floating roofs (height shows inventory)
+const tankRoofs=[];
+for(const [tx,tz] of [[-40,-16],[-40,2],[-40,20]]){
+  const roof=new THREE.Mesh(new THREE.CylinderGeometry(6.7,6.7,0.5,28),M.steel);
+  roof.position.set(tx,7.4,tz); roof.castShadow=true; scene.add(roof); tankRoofs.push(roof);
+}
+// aircraft warning beacons
+const beacons=[];
+for(const pos of [[-12,22.6,-8],[40,26.4,40],[-12,22.2,3]]){
+  const b=new THREE.Mesh(new THREE.SphereGeometry(0.34,8,6),
+    new THREE.MeshStandardMaterial({color:0xff2020,emissive:0xff2020,emissiveIntensity:1}));
+  b.position.set(...pos); scene.add(b); beacons.push(b);
+}
+// furnace glow panes
+const glowPanes=[];
+for(const [gx,gy,gz,ph] of [[-12,1.6,6.05,0],[2,1.4,-25.75,1],[7.4,1.4,-25.75,2],[12.8,1.4,-25.75,3],[5.6,1.2,24.35,4]]){
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(2.2,1.4),
+    new THREE.MeshBasicMaterial({color:0xff7a20,transparent:true,opacity:0.4}));
+  p.position.set(gx,gy,gz); p.userData.ph=ph; scene.add(p); glowPanes.push(p);
+}
+// admin window strip
+const adminWin=new THREE.Mesh(new THREE.PlaneGeometry(10.5,1.2),
+  new THREE.MeshStandardMaterial({color:0x223044,emissive:0xffe9b0,emissiveIntensity:0}));
+adminWin.position.set(-38,2.0,43.55); scene.add(adminWin);
+// water glint
+let glint;
+{
+  const c=document.createElement('canvas'); c.width=c.height=128;
+  const x=c.getContext('2d'); x.clearRect(0,0,128,128);
+  for(let i=0;i<260;i++){ x.fillStyle='rgba(255,255,255,'+(Math.random()*0.5)+')';
+    x.fillRect(Math.random()*128,Math.random()*128,2+Math.random()*5,1); }
+  const tex=new THREE.CanvasTexture(c); tex.wrapS=tex.wrapT=THREE.RepeatWrapping; tex.repeat.set(10,40);
+  glint=new THREE.Mesh(new THREE.PlaneGeometry(120,800),
+    new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0.10,depthWrite:false}));
+  glint.rotation.x=-Math.PI/2; glint.position.set(-118,0.06,0); scene.add(glint);
+}
+
+/* ---- sky: clouds, sun, moon, stars ---- */
+const SKY={clouds:[],gulls:[]};
+{
+  // soft cloud blob texture
+  const cc=document.createElement('canvas'); cc.width=128; cc.height=64;
+  const cx=cc.getContext('2d');
+  for(const [bx,by,br] of [[40,36,26],[64,28,30],[90,38,24],[52,42,20],[78,44,18]]){
+    const g=cx.createRadialGradient(bx,by,2,bx,by,br);
+    g.addColorStop(0,'rgba(255,255,255,0.85)'); g.addColorStop(1,'rgba(255,255,255,0)');
+    cx.fillStyle=g; cx.fillRect(0,0,128,64);
+  }
+  const ctex=new THREE.CanvasTexture(cc); ctex.colorSpace=THREE.SRGBColorSpace;
+  for(let i=0;i<8;i++){
+    const m=new THREE.SpriteMaterial({map:ctex,transparent:true,opacity:0.45,depthWrite:false,fog:false});
+    const sp=new THREE.Sprite(m);
+    const s=42+Math.random()*48;
+    sp.scale.set(s,s*0.42,1);
+    sp.position.set(-220+Math.random()*440, 68+Math.random()*45, -160+Math.random()*320);
+    sp.userData.drift=0.8+Math.random()*1.2;
+    scene.add(sp); SKY.clouds.push(sp);
+  }
+  // stars
+  const N=520, pos=new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    const az=Math.random()*Math.PI*2, el=0.12+Math.random()*1.35, R=330;
+    pos[i*3]=Math.cos(az)*Math.cos(el)*R; pos[i*3+1]=Math.sin(el)*R; pos[i*3+2]=Math.sin(az)*Math.cos(el)*R;
+  }
+  const sg=new THREE.BufferGeometry(); sg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  SKY.stars=new THREE.Points(sg,new THREE.PointsMaterial({color:0xdfe6ff,size:1.6,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false}));
+  scene.add(SKY.stars);
+  // sun disc + moon
+  const mk=(draw)=>{ const c=document.createElement('canvas'); c.width=c.height=64; draw(c.getContext('2d'));
+    const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace;
+    return new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthWrite:false,fog:false})); };
+  SKY.sun=mk(x=>{ const g=x.createRadialGradient(32,32,4,32,32,30);
+    g.addColorStop(0,'rgba(255,250,225,1)'); g.addColorStop(0.4,'rgba(255,236,170,0.9)'); g.addColorStop(1,'rgba(255,230,150,0)');
+    x.fillStyle=g; x.fillRect(0,0,64,64); });
+  SKY.sun.scale.set(46,46,1); scene.add(SKY.sun);
+  SKY.moon=mk(x=>{ x.fillStyle='rgba(232,236,240,0.95)'; x.beginPath(); x.arc(32,32,16,0,7); x.fill();
+    x.fillStyle='rgba(190,198,208,0.8)';
+    for(const [mx,my,mr] of [[26,28,3.4],[38,36,2.6],[30,40,2],[40,25,1.8]]){ x.beginPath(); x.arc(mx,my,mr,0,7); x.fill(); } });
+  SKY.moon.scale.set(18,18,1); scene.add(SKY.moon);
+  // gulls over the bay
+  const gc=document.createElement('canvas'); gc.width=32; gc.height=16;
+  const gx=gc.getContext('2d'); gx.strokeStyle='rgba(60,64,70,0.95)'; gx.lineWidth=2.4; gx.lineCap='round';
+  gx.beginPath(); gx.moveTo(3,12); gx.quadraticCurveTo(10,4,16,10); gx.quadraticCurveTo(22,4,29,12); gx.stroke();
+  const gtex=new THREE.CanvasTexture(gc); gtex.colorSpace=THREE.SRGBColorSpace;
+  const defs=[{cx:-96,cz:18,y:20,r:18,sp:0.28,ph:0},{cx:-112,cz:-30,y:25,r:24,sp:-0.2,ph:2.1},{cx:-88,cz:46,y:17,r:13,sp:0.34,ph:4.2}];
+  for(const d of defs){
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:gtex,transparent:true,depthWrite:false}));
+    sp.scale.set(3.2,1.6,1); sp.userData=d; scene.add(sp); SKY.gulls.push(sp);
+  }
+}
+function updateSky(dt,t){
+  for(const c of SKY.clouds){
+    c.position.x+=dt*c.userData.drift;
+    if(c.position.x>240) c.position.x=-240;
+  }
+  for(const g of SKY.gulls){
+    const d=g.userData, a=t*d.sp+d.ph;
+    g.position.set(d.cx+Math.cos(a)*d.r, d.y+Math.sin(t*1.7+d.ph)*1.6, d.cz+Math.sin(a)*d.r);
+  }
+}
+/* ---- patrol truck on the perimeter road ---- */
+const truck=new THREE.Group();
+{
+  const body=box(1.7,1.1,3.6,new THREE.MeshStandardMaterial({color:0xd8d8d2,roughness:0.5,metalness:0.3})); body.position.y=1.0; truck.add(body);
+  const cab=box(1.6,1.0,1.4,new THREE.MeshStandardMaterial({color:0x33507a,roughness:0.5})); cab.position.set(0,1.95,0.7); truck.add(cab);
+  const bed=box(1.5,0.4,1.6,M.darkSteel); bed.position.set(0,1.45,-0.9); truck.add(bed);
+  truck.traverse(o=>{ if(o.isMesh) o.castShadow=true; });
+  truck.position.set(-71,0,-49); scene.add(truck);
+}
+const TRUCK_PATH=[[-71,-49],[75,-49],[75,53],[-71,53]];
+let truckDist=0, TRUCK_TOTAL=0;
+const TRUCK_SEGS=TRUCK_PATH.map((p,i)=>{
+  const q=TRUCK_PATH[(i+1)%TRUCK_PATH.length];
+  const len=Math.hypot(q[0]-p[0],q[1]-p[1]); TRUCK_TOTAL+=len;
+  return {p,q,len};
+});
+function updateTruck(dt){
+  truckDist=(truckDist+dt*8)%TRUCK_TOTAL;
+  let d=truckDist;
+  for(const s of TRUCK_SEGS){
+    if(d<=s.len){
+      const t2=d/s.len;
+      const x=s.p[0]+(s.q[0]-s.p[0])*t2, z=s.p[1]+(s.q[1]-s.p[1])*t2;
+      truck.position.set(x,0,z);
+      truck.rotation.y=Math.atan2(s.q[0]-s.p[0],s.q[1]-s.p[1]);
+      return;
+    }
+    d-=s.len;
+  }
+}
+
+/* ---- day/night cycle ---- */
+let dayPhase=0.30; // start mid-morning
+let nightFactor=0;
+const SUNC_DAY=new THREE.Color(0xfff2dc), SUNC_NIGHT=new THREE.Color(0x8fa8cc);
+const skyDay=new THREE.Color(0x9fb8c8), skyDusk=new THREE.Color(0xd9956a), skyNight=new THREE.Color(0x1a2433);
+const skyCur=new THREE.Color();
+function updateDayNight(dt){
+  if(speed>0&&!S.fired) dayPhase=(dayPhase+dt/150)%1;
+  const a=dayPhase*Math.PI*2 - Math.PI/2;       // phase 0.25 = noon-ish
+  const sunH=Math.sin(a);
+  sun.position.set(Math.cos(a)*120, Math.max(sunH,-0.25)*110+12, 40+Math.cos(a*0.7)*30);
+  const dayness=THREE.MathUtils.clamp((sunH+0.15)/0.5,0,1);
+  const duskness=THREE.MathUtils.clamp(1-Math.abs(sunH)/0.32,0,1);
+  skyCur.copy(skyNight).lerp(skyDay,dayness).lerp(skyDusk,duskness*0.45);
+  scene.background.copy(skyCur); scene.fog.color.copy(skyCur);
+  sun.intensity=1.5*dayness+0.14;                      // moonlight floor
+  sun.color.copy(SUNC_NIGHT).lerp(SUNC_DAY,dayness);
+  hemi.intensity=0.34+0.62*dayness;
+  const nightF=1-dayness;
+  nightFactor=nightF;
+  for(const L of nightLights) L.intensity=3.4*nightF;
+  for(const h of mastHeads) h.material.emissiveIntensity=0.15+3.0*nightF;
+  adminWin.material.emissiveIntensity=1.35*nightF;
+  const t=performance.now()*0.001;
+  for(const g of glowPanes) g.material.opacity=0.22+0.55*(0.4+0.6*nightF)*(0.75+0.25*Math.sin(t*9+g.userData.ph*2.1));
+  const blink=(Math.sin(t*3.4)>0.55)?1:0.06;
+  for(const b of beacons) b.material.emissiveIntensity=blink*(0.7+1.6*nightF);
+  if(glint) { glint.material.map.offset.x+=dt*0.012; glint.material.map.offset.y+=dt*0.007; }
+  // celestial bodies follow the cycle
+  const sunDir=sun.position.clone().normalize();
+  SKY.sun.position.copy(sunDir).multiplyScalar(335);
+  SKY.sun.material.opacity=0.95*dayness;
+  SKY.moon.position.copy(sunDir).multiplyScalar(-335);
+  SKY.moon.position.y=Math.max(SKY.moon.position.y,18);
+  SKY.moon.material.opacity=0.9*nightF;
+  SKY.stars.material.opacity=0.85*nightF;
+  for(const c of SKY.clouds) c.material.opacity=0.08+0.4*dayness;
+  updateSky(dt,t);
+  if(speed>0&&!S.fired) updateTruck(dt);
+}
+
+/* ---- tanker schedule animation ---- */
+const TANKER_BERTH=new THREE.Vector3(-76,0,-8), TANKER_AWAY=new THREE.Vector3(-86,0,-170);
+function updateTanker(dt){
+  const wd=((S.day-1)%7+7)%7;            // 0 = delivery day
+  const want=(wd<=2)?TANKER_BERTH:TANKER_AWAY;
+  tanker.position.lerp(want,Math.min(1,dt*0.5));
+  tanker.position.y=Math.sin(performance.now()*0.0007)*0.18;
+  // over the horizon, not parked in view
+  tanker.visible=Math.hypot(tanker.position.x-TANKER_AWAY.x,tanker.position.z-TANKER_AWAY.z)>9;
+}
+
+/* ---- capital project 3D: built geometry, scaffolds, shared crane ---- */
+const BUILD3D={};
+function makeScaffold(x,y,z,w,h,d){
+  const g=new THREE.Group();
+  const edges=new THREE.LineSegments(
+    new THREE.EdgesGeometry(new THREE.BoxGeometry(w,h,d)),
+    new THREE.LineBasicMaterial({color:0x6b5d3f}));
+  edges.position.set(x,y+h/2,z); g.add(edges);
+  const pad=new THREE.Mesh(new THREE.PlaneGeometry(w+2,d+2),M.pad);
+  pad.rotation.x=-Math.PI/2; pad.position.set(x,0.1,z); g.add(pad);
+  g.visible=false; scene.add(g); return g;
+}
+// alkylation unit (full clickable unit at (24,-32))
+{
+  const g=new THREE.Group();
+  for(let i=0;i<2;i++){
+    const drum=cyl(1.4,7,M.steel,14); drum.rotation.z=Math.PI/2; drum.position.set(24,1.8+i*3.4,-34); g.add(drum);
+    const sad=box(1.2,1.6,1.2,M.darkSteel); sad.position.set(21.5,0.8,-34); g.add(sad);
+    const sad2=box(1.2,1.6,1.2,M.darkSteel); sad2.position.set(26.5,0.8,-34); g.add(sad2);
+  }
+  const col=cyl(1.1,7.5,M.lightSteel,14); col.position.set(20.5,3.75,-29); g.add(col);
+  const acid=cyl(1.0,2.6,M.white,12); acid.position.set(27.5,1.3,-29); g.add(acid);
+  registerUnit('alky',g,new THREE.Vector3(24,3,-31.5),new THREE.Vector3(19,1.1,-35.5),[11,9,9]);
+  g.visible=false;
+  BUILD3D.alky={built:g,scaffold:makeScaffold(24,0,-32,12,7,10)};
+}
+const alkyLabel=makeLabel('Alkylation',new THREE.Vector3(24,8.5,-31.5),0.85);
+alkyLabel.userData.gated='alky';
+// expansions + tank 4
+{
+  const g=new THREE.Group();
+  const col=cyl(1.8,16,M.lightSteel,16); col.position.set(-19,8,-8); g.add(col);
+  const cap=new THREE.Mesh(new THREE.SphereGeometry(1.8,16,8,0,Math.PI*2,0,Math.PI/2),M.lightSteel); cap.position.set(-19,16,-8); g.add(cap);
+  const skirt=cyl(2.1,1.4,M.darkSteel,16); skirt.position.set(-19,0.7,-8); g.add(skirt);
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  g.visible=false; scene.add(g);
+  BUILD3D.cdux={built:g,scaffold:makeScaffold(-19,0,-8,5,16,5)};
+}
+{
+  const g=new THREE.Group();
+  const drum=cyl(2,7,M.lightSteel,16); drum.position.set(4.5,3.5,-9); g.add(drum);
+  const cyc=cyl(0.8,3,M.steel,10); cyc.position.set(4.5,8.5,-9); g.add(cyc);
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  g.visible=false; scene.add(g);
+  BUILD3D.fccx={built:g,scaffold:makeScaffold(4.5,0,-9,6,9,6)};
+}
+{
+  const g=new THREE.Group();
+  const f=box(4,5.5,4.4,M.rust); f.position.set(18.2,2.75,-28); g.add(f);
+  const st=cyl(0.55,9,M.darkSteel); st.position.set(18.2,10,-28); g.add(st);
+  const r=new THREE.Mesh(new THREE.SphereGeometry(2.1,16,12),M.lightSteel); r.castShadow=true; r.position.set(18.2,3.4,-21.5); g.add(r);
+  const leg=cyl(1.4,2.4,M.darkSteel,10); leg.position.set(18.2,1.2,-21.5); g.add(leg);
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  g.visible=false; scene.add(g);
+  BUILD3D.refx={built:g,scaffold:makeScaffold(18.2,0,-25,6,8,11)};
+}
+{
+  const g=new THREE.Group();
+  for(let i=0;i<2;i++){
+    const d=cyl(1.6,8,M.steel,14); d.rotation.z=Math.PI/2; d.position.set(12,1.9+i*4,26); g.add(d);
+  }
+  const sad1=box(1.2,1.9,1.4,M.darkSteel); sad1.position.set(9.5,0.95,26); g.add(sad1);
+  const sad2=box(1.2,1.9,1.4,M.darkSteel); sad2.position.set(14.5,0.95,26); g.add(sad2);
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  g.visible=false; scene.add(g);
+  BUILD3D.hydro2={built:g,scaffold:makeScaffold(12,0,26,9,6,7)};
+}
+let tank4Roof=null;
+{
+  const g=new THREE.Group();
+  const t=cyl(7,8,M.tank,28); t.position.set(-40,4,-34); g.add(t);
+  const rim=cyl(7.15,0.5,M.steel,28); rim.position.set(-40,8.1,-34); g.add(rim);
+  const dike=new THREE.Mesh(new THREE.RingGeometry(8.4,9.4,28),M.pad); dike.rotation.x=-Math.PI/2; dike.position.set(-40,0.08,-34); g.add(dike);
+  g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+  g.visible=false; scene.add(g);
+  tank4Roof=new THREE.Mesh(new THREE.CylinderGeometry(6.7,6.7,0.5,28),M.steel);
+  tank4Roof.position.set(-40,7.4,-34); tank4Roof.castShadow=true; tank4Roof.visible=false; scene.add(tank4Roof);
+  tankRoofs.push(tank4Roof);
+  BUILD3D.tank4={built:g,scaffold:makeScaffold(-40,0,-34,15,9,15)};
+}
+// one shared tower crane, parked at the active site
+const crane=new THREE.Group();
+let craneJib=null;
+{
+  const base=box(2.6,1.2,2.6,M.yellow); base.position.y=0.6; crane.add(base);
+  const mast=box(1.1,20,1.1,M.yellow); mast.position.y=11; crane.add(mast);
+  craneJib=new THREE.Group();
+  const jib=box(14,0.7,0.7,M.yellow); jib.position.set(6,0,0); craneJib.add(jib);
+  const cjib=box(4.5,0.7,0.7,M.yellow); cjib.position.set(-3,0,0); craneJib.add(cjib);
+  const wt=box(1.4,1.4,1.4,M.darkSteel); wt.position.set(-4.8,-0.8,0); craneJib.add(wt);
+  const cable=cyl(0.06,6,M.darkSteel,6); cable.position.set(11,-3,0); craneJib.add(cable);
+  const hook=box(0.8,0.8,0.8,M.darkSteel); hook.position.set(11,-6.2,0); craneJib.add(hook);
+  craneJib.position.y=21.2; crane.add(craneJib);
+  crane.traverse(o=>{if(o.isMesh){o.castShadow=true;}});
+  crane.visible=false; scene.add(crane);
+}
+const BUILD_SITES={ alky:[31,-32], cdux:[-24,-8], fccx:[0,-9], refx:[23,-25], hydro2:[17,26], tank4:[-50,-34] };
+function applyBuilds3D(){
+  let craneAt=null;
+  for(const k of Object.keys(BUILD3D)){
+    const b=S.builds[k], v=BUILD3D[k];
+    v.built.visible=!!b.done;
+    v.scaffold.visible=!!(b.started&&!b.done);
+    if(b.started&&!b.done&&!craneAt) craneAt=BUILD_SITES[k];
+  }
+  if(tank4Roof) tank4Roof.visible=!!S.builds.tank4.done;
+  // widen hit boxes so expansions are clickable as part of their unit
+  UNITS3D.reformer.hit.scale.x=S.builds.refx.done?1.25:1;
+  UNITS3D.hydro.hit.scale.z=S.builds.hydro2.done?1.45:1;
+  UNITS3D.tanks.hit.scale.z=S.builds.tank4.done?1.7:1;
+  if(ROUTES.alkyfeed){
+    const av=S.builds.alky.done||alkyCap(S)>0;
+    ROUTES.alkyfeed.group.visible=av; ROUTES.alkyline.group.visible=av;
+  }
+  applyPlaced3D();
+  if(!craneAt){
+    const p=S.placed.find(q=>!q.done&&q.weeksLeft>0);
+    if(p) craneAt=[p.x+(FOOTPRINT[p.type]?FOOTPRINT[p.type][0]/2+4:6), p.z];
+  }
+  crane.visible=!!craneAt;
+  if(craneAt) crane.position.set(craneAt[0],0,craneAt[1]);
+}
+
+/* ================================================================
+   FREE BUILDING — SimCity-style placement on the map
+   ================================================================ */
+const PLACED3D={};      // id -> {group, scaffold, hit, roof, flame, apron, tie}
+const placedHits=[];
+const FOOTPRINT={ cdu2:[14,14], fcc2:[13,12], ref2:[10,12], hyd2:[10,9], alk2:[12,10],
+  ctank:[17,17], flare2:[8,8], ptank:[11,11], wh:[13,9], office:[9,9], road:[4,4], trees:[6,6], pole:[3,3] };
+const FLARE2S=[];       // extra flare flames to animate
+
+/* building logic: road access, pipe tie-ins, aprons */
+const NEEDS_ROAD=['cdu2','fcc2','ref2','hyd2','alk2','ctank','flare2','ptank','wh','office'];
+const APRON_TYPES=NEEDS_ROAD;                       // industrial items get a concrete slab
+const TIE_RATE=0.02;                                // $M per unit of pipe run
+// static road rectangles, matching the roadStrip() calls
+const ROAD_RECTS=[
+  {x1:-73,x2:77,z1:-51.5,z2:-46.5},{x1:-73,x2:77,z1:50.5,z2:55.5},
+  {x1:-73.5,x2:-68.5,z1:-51.5,z2:55.5},{x1:72.5,x2:77.5,z1:-51.5,z2:55.5},
+  {x1:-24.5,x2:-19.5,z1:-47,z2:51},
+];
+function nearRoad(x,z,r){
+  r=r||16;
+  for(const a of ROAD_RECTS)
+    if(x>=a.x1-r&&x<=a.x2+r&&z>=a.z1-r&&z<=a.z2+r) return true;
+  for(const p of S.placed)
+    if(p.type==='road'&&Math.abs(p.x-x)<=r+2&&Math.abs(p.z-z)<=r+2) return true;
+  return false;
+}
+// where a new structure's pipe ties into the existing plant
+function tieTargetOf(type,x,z){
+  const d=PLACEABLE[type];
+  if(type==='alk2') return UNITS3D.fcc.center;
+  if(d.unit) return UNITS3D[d.unit].center;
+  if(type==='ctank') return new THREE.Vector3(-40,1,2);
+  if(type==='ptank') return new THREE.Vector3(36,1,2);
+  if(type==='flare2') return new THREE.Vector3(40,1,40);
+  return null;
+}
+function computeTieIn(type,x,z){
+  const t=tieTargetOf(type,x,z);
+  if(!t) return {cost:0,target:null};
+  const dist=Math.abs(t.x-x)+Math.abs(t.z-z);
+  return {cost:Math.round(dist*TIE_RATE*100)/100, target:t};
+}
+function makeTiePipe(x,z,t){
+  const g=new THREE.Group();
+  const mat=M.darkSteel;
+  const segs=[[x,0.9,z,x,0.9,t.z],[x,0.9,t.z,t.x,0.9,t.z]];
+  for(const [ax,ay,az,bx,by,bz] of segs){
+    const a=new THREE.Vector3(ax,ay,az), b=new THREE.Vector3(bx,by,bz);
+    const len=a.distanceTo(b); if(len<0.5) continue;
+    const c=new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,len,8),mat);
+    c.position.copy(a).add(b).multiplyScalar(0.5);
+    c.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.clone().sub(a).normalize());
+    c.castShadow=true; g.add(c);
+  }
+  scene.add(g);
+  return g;
+}
+let buildReason='';
+
+function makePlacedMesh(type){
+  const g=new THREE.Group();
+  if(type==='cdu2'){
+    const t=cyl(2.2,18,M.lightSteel,18); t.position.y=9; g.add(t);
+    const cp=new THREE.Mesh(new THREE.SphereGeometry(2.2,18,9,0,Math.PI*2,0,Math.PI/2),M.lightSteel); cp.position.y=18; g.add(cp);
+    const sk=cyl(2.5,1.4,M.darkSteel,18); sk.position.y=0.7; g.add(sk);
+    const fb=box(5,5.5,5,M.rust); fb.position.set(4.5,2.75,4.5); g.add(fb);
+    const st=cyl(0.7,12,M.darkSteel); st.position.set(4.5,11.5,4.5); g.add(st);
+  } else if(type==='fcc2'){
+    const regen=cyl(3.2,9,M.lightSteel,20); regen.position.set(-2,5.5,0); g.add(regen);
+    const top=new THREE.Mesh(new THREE.SphereGeometry(3.2,20,9,0,Math.PI*2,0,Math.PI/2),M.lightSteel); top.position.set(-2,10,0); g.add(top);
+    const rx=cyl(1.9,7.5,M.steel,16); rx.position.set(3.4,8,-1); g.add(rx);
+    const riser=cyl(0.8,9,M.darkSteel,10); riser.rotation.z=0.45; riser.position.set(0.8,5,-0.5); g.add(riser);
+    const sk=cyl(3.4,1.6,M.darkSteel,20); sk.position.set(-2,0.8,0); g.add(sk);
+  } else if(type==='ref2'){
+    const f=box(4,5.5,4.4,M.rust); f.position.set(-2.5,2.75,0); g.add(f);
+    const st=cyl(0.55,9,M.darkSteel); st.position.set(-2.5,10,0); g.add(st);
+    const r=new THREE.Mesh(new THREE.SphereGeometry(2.1,16,12),M.lightSteel); r.position.set(2.6,3.4,0); g.add(r);
+    const leg=cyl(1.4,2.4,M.darkSteel,10); leg.position.set(2.6,1.2,0); g.add(leg);
+  } else if(type==='hyd2'){
+    for(let i=0;i<2;i++){ const d=cyl(1.6,8,M.steel,14); d.rotation.z=Math.PI/2; d.position.set(0,1.9+i*4,0); g.add(d); }
+    const s1=box(1.2,1.9,1.4,M.darkSteel); s1.position.set(-2.5,0.95,0); g.add(s1);
+    const s2=box(1.2,1.9,1.4,M.darkSteel); s2.position.set(2.5,0.95,0); g.add(s2);
+  } else if(type==='alk2'){
+    for(let i=0;i<2;i++){ const d=cyl(1.4,7,M.steel,14); d.rotation.z=Math.PI/2; d.position.set(0.5,1.8+i*3.4,-1.5); g.add(d); }
+    const col=cyl(1.1,7.5,M.lightSteel,14); col.position.set(-3.5,3.75,2); g.add(col);
+    const acid=cyl(1.0,2.6,M.white,12); acid.position.set(3.5,1.3,2.5); g.add(acid);
+  } else if(type==='ctank'){
+    const t=cyl(6.5,7.5,M.tank,28); t.position.y=3.75; g.add(t);
+    const rim=cyl(6.65,0.5,M.steel,28); rim.position.y=7.6; g.add(rim);
+    const dike=new THREE.Mesh(new THREE.RingGeometry(7.8,8.8,28),M.pad); dike.rotation.x=-Math.PI/2; dike.position.y=0.08; g.add(dike);
+  } else if(type==='flare2'){
+    const stack=cyl(0.65,22,M.steel,12,0.5); stack.position.y=11; g.add(stack);
+    for(const a of [0.4,2.5,4.6]){ const guy=cyl(0.06,13,M.darkSteel,6); guy.position.set(Math.cos(a)*3.4,5,Math.sin(a)*3.4); guy.rotation.z=Math.cos(a)*0.26; guy.rotation.x=-Math.sin(a)*0.26; g.add(guy); }
+  } else if(type==='ptank'){
+    const t=cyl(4.6,6.5,M.tank,24); t.position.y=3.25; g.add(t);
+    const rim=cyl(4.7,0.4,M.steel,24); rim.position.y=6.6; g.add(rim);
+  } else if(type==='wh'){
+    const b1=box(12,5,8,new THREE.MeshStandardMaterial({color:0xb9bfc4,roughness:0.7,metalness:0.2})); b1.position.y=2.5; g.add(b1);
+    const roof=box(12.6,0.4,8.6,M.darkSteel); roof.position.y=5.2; g.add(roof);
+    const door=box(3,3.4,0.3,M.darkSteel); door.position.set(0,1.7,4.1); g.add(door);
+  } else if(type==='office'){
+    const b1=box(7,8,7,M.white); b1.position.y=4; g.add(b1);
+    for(let i=0;i<3;i++){ const win=new THREE.Mesh(new THREE.PlaneGeometry(6,0.9),new THREE.MeshStandardMaterial({color:0x223044,roughness:0.4})); win.position.set(0,2+i*2.2,3.55); g.add(win); }
+  } else if(type==='road'){
+    const r=new THREE.Mesh(new THREE.PlaneGeometry(4,4),M.road); r.rotation.x=-Math.PI/2; r.position.y=0.08; r.receiveShadow=true; g.add(r);
+  } else if(type==='trees'){
+    for(const [ox,oz] of [[-1.6,-1],[1.4,0.6],[-0.2,1.6]]){
+      const tr=cyl(0.25,1.2,new THREE.MeshStandardMaterial({color:0x6b4a2e,roughness:1}),8); tr.position.set(ox,0.6,oz); g.add(tr);
+      const cn=new THREE.Mesh(new THREE.ConeGeometry(1.3,3,8),new THREE.MeshStandardMaterial({color:0x4a6b3a,roughness:1})); cn.position.set(ox,2.6,oz); cn.castShadow=true; g.add(cn);
+    }
+  } else if(type==='pole'){
+    const p=cyl(0.28,14,M.darkSteel,8); p.position.y=7; g.add(p);
+    const head=new THREE.Mesh(new THREE.BoxGeometry(2.4,0.5,1.0),
+      new THREE.MeshStandardMaterial({color:0xd8d8c8,emissive:0xffe9b0,emissiveIntensity:0.15}));
+    head.position.y=14.2; g.add(head);
+  }
+  g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  return g;
+}
+function createPlaced3D(item){
+  if(PLACED3D[item.id]) return;
+  const d=PLACEABLE[item.type], fp=FOOTPRINT[item.type];
+  const group=makePlacedMesh(item.type);
+  group.position.set(item.x,0,item.z);
+  group.rotation.y=item.rot*Math.PI/2;
+  group.visible=!!item.done;
+  scene.add(group);
+  let scaffold=null;
+  if(d.weeks>0){
+    scaffold=makeScaffold(item.x,0,item.z,fp[0],Math.min(14,6+d.weeks),fp[1]);
+    scaffold.visible=!item.done;
+  }
+  const hit=new THREE.Mesh(new THREE.BoxGeometry(fp[0],12,fp[1]),new THREE.MeshBasicMaterial({visible:false}));
+  hit.position.set(item.x,5,item.z);
+  hit.userData={placedId:item.id, unitKey:d.unit||null, placedType:item.type};
+  scene.add(hit); placedHits.push(hit);
+  const entry={group,scaffold,hit};
+  if(APRON_TYPES.includes(item.type)){
+    const apron=new THREE.Mesh(new THREE.PlaneGeometry(fp[0]+3.5,fp[1]+3.5),M.pad);
+    apron.rotation.x=-Math.PI/2; apron.rotation.z=item.rot*Math.PI/2;
+    apron.position.set(item.x,0.065,item.z); apron.receiveShadow=true;
+    scene.add(apron); entry.apron=apron;
+  }
+  if(item.type==='ctank'){
+    const roof=new THREE.Mesh(new THREE.CylinderGeometry(6.2,6.2,0.5,28),M.steel);
+    roof.position.set(item.x,6.9,item.z); roof.castShadow=true; roof.visible=!!item.done;
+    scene.add(roof); tankRoofs.push(roof); entry.roof=roof;
+  }
+  if(item.type==='flare2'){
+    const fo=new THREE.Mesh(new THREE.ConeGeometry(1.1,3.8,10),M.flame);
+    const fi=new THREE.Mesh(new THREE.ConeGeometry(0.6,2.5,10),M.flameCore);
+    fo.position.set(item.x,23.4,item.z); fi.position.set(item.x,23.1,item.z);
+    fo.visible=fi.visible=!!item.done;
+    scene.add(fo); scene.add(fi);
+    entry.flame=[fo,fi]; FLARE2S.push(entry);
+  }
+  if(item.type==='pole'){
+    const head=group.children.find(c=>c.geometry&&c.geometry.parameters&&c.geometry.parameters.depth===1.0);
+    if(head) mastHeads.push(head);
+  }
+  PLACED3D[item.id]=entry;
+}
+function applyPlaced3D(){
+  for(const item of S.placed){
+    if(!PLACED3D[item.id]) createPlaced3D(item);
+    const e=PLACED3D[item.id];
+    e.group.visible=!!item.done;
+    if(e.scaffold) e.scaffold.visible=!item.done;
+    if(e.roof) e.roof.visible=!!item.done;
+    if(e.flame) e.flame.forEach(f=>f.visible=!!item.done);
+    // pipe tie-in appears when the structure goes live
+    if(item.done&&!e.tie){
+      const t=tieTargetOf(item.type,item.x,item.z);
+      if(t) e.tie=makeTiePipe(item.x,item.z,t);
+    }
+  }
+  // remove visuals for demolished items
+  for(const id of Object.keys(PLACED3D)){
+    if(!S.placed.some(p=>String(p.id)===String(id))) destroyPlaced3D(id);
+  }
+  recomputeFence();
+}
+function destroyPlaced3D(id){
+  const e=PLACED3D[id]; if(!e) return;
+  scene.remove(e.group); if(e.scaffold) scene.remove(e.scaffold);
+  scene.remove(e.hit);
+  const hi=placedHits.indexOf(e.hit); if(hi>=0) placedHits.splice(hi,1);
+  if(e.roof){ scene.remove(e.roof); const ri=tankRoofs.indexOf(e.roof); if(ri>=0) tankRoofs.splice(ri,1); }
+  if(e.flame){ e.flame.forEach(f=>scene.remove(f)); const fi=FLARE2S.indexOf(e); if(fi>=0) FLARE2S.splice(fi,1); }
+  if(e.apron) scene.remove(e.apron);
+  if(e.tie) scene.remove(e.tie);
+  delete PLACED3D[id];
+}
+function clearPlaced3D(){ for(const id of Object.keys(PLACED3D)) destroyPlaced3D(id); }
+
+/* build mode: ghost + placement + bulldozer */
+let buildTool=null, ghost=null, ghostRot=0, ghostValid=false;
+const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+const ghostPoint=new THREE.Vector3();
+let STATIC_OBS=null;
+function staticObstacles(){
+  if(STATIC_OBS) return STATIC_OBS;
+  STATIC_OBS=[];
+  for(const k of Object.keys(UNITS3D)){
+    const b=new THREE.Box3().setFromObject(UNITS3D[k].hit); b.expandByScalar(1); STATIC_OBS.push(b);
+  }
+  for(const k of Object.keys(BUILD_SITES)){
+    const p=BUILD_SITES[k];
+    STATIC_OBS.push(new THREE.Box3(new THREE.Vector3(p[0]-8,-1,p[1]-8),new THREE.Vector3(p[0]+8,20,p[1]+8)));
+  }
+  STATIC_OBS.push(new THREE.Box3(new THREE.Vector3(48,-1,-35),new THREE.Vector3(60,20,38))); // rail spur
+  STATIC_OBS.push(new THREE.Box3(new THREE.Vector3(-66,-1,-28),new THREE.Vector3(-50,20,2))); // wharf
+  return STATIC_OBS;
+}
+function placementValid(type,x,z,rot){
+  const fp=FOOTPRINT[type];
+  const w=(rot%2===0?fp[0]:fp[1])/2, d=(rot%2===0?fp[1]:fp[0])/2;
+  buildReason='';
+  if(x-w<-50||x+w>140||z-d<-140||z+d>140){ buildReason='edge'; return false; } // off the map or in the water
+  const me=new THREE.Box3(new THREE.Vector3(x-w,0,z-d),new THREE.Vector3(x+w,10,z+d));
+  const soft=type==='road'||type==='trees';
+  for(const b of staticObstacles()) if(me.intersectsBox(b)){ buildReason='overlap'; return false; }
+  for(const p of S.placed){
+    if(soft&&(p.type==='road'||p.type==='trees')) continue;
+    const f2=FOOTPRINT[p.type];
+    const w2=(p.rot%2===0?f2[0]:f2[1])/2, d2=(p.rot%2===0?f2[1]:f2[0])/2;
+    const pb=new THREE.Box3(new THREE.Vector3(p.x-w2,0,p.z-d2),new THREE.Vector3(p.x+w2,10,p.z+d2));
+    if(me.intersectsBox(pb)){ buildReason='overlap'; return false; }
+  }
+  if(NEEDS_ROAD.includes(type)&&!nearRoad(x,z)){ buildReason='road'; return false; }
+  return true;
+}
+function setBuildTool(t){
+  buildTool=t; ghostRot=0;
+  if(ghost){ scene.remove(ghost); ghost=null; }
+  controls.enableRotate=!t;
+  renderer.domElement.style.cursor=t?'crosshair':'default';
+  if(t&&t!=='dozer'){
+    ghost=makePlacedMesh(t);
+    ghost.traverse(o=>{ if(o.isMesh){ o.material=o.material.clone(); o.material.transparent=true; o.material.opacity=0.55; o.userData.baseColor=o.material.color.getHex(); o.castShadow=false; } });
+    ghost.visible=false;
+    scene.add(ghost);
+  }
+  const bw=$('buildWin');
+  if(bw) bw.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===buildTool));
+}
+function updateGhost(e){
+  if(!buildTool||buildTool==='dozer'||!ghost) return;
+  ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+  ray.setFromCamera(ndc,camera);
+  if(!ray.ray.intersectPlane(groundPlane,ghostPoint)){ ghost.visible=false; $('tip').style.display='none'; return; }
+  const x=Math.round(ghostPoint.x/2)*2, z=Math.round(ghostPoint.z/2)*2;
+  ghost.position.set(x,0,z); ghost.rotation.y=ghostRot*Math.PI/2; ghost.visible=true;
+  ghostValid=placementValid(buildTool,x,z,ghostRot);
+  ghost.traverse(o=>{ if(o.isMesh) o.material.color.setHex(ghostValid?o.userData.baseColor:0xcc3030); });
+  const tip=$('tip'), d=PLACEABLE[buildTool];
+  if(ghostValid){
+    const tie=computeTieIn(buildTool,x,z);
+    tip.textContent=d.name+' — $'+d.cost+'M'+(tie.cost?' + $'+tie.cost.toFixed(2)+'M pipe tie-in':'')+'. Click to place, R to rotate.';
+  } else {
+    tip.textContent={ edge:'Blocked: off the buildable ground (or in the water).',
+      overlap:'Blocked: overlaps existing structures.',
+      road:'No road access. Industrial structures need a road within 16 — lay ROAD tiles out to the site first.' }[buildReason]||'Blocked.';
+  }
+  tip.style.display='block';
+  tip.style.left=Math.min(e.clientX+14,innerWidth-260)+'px';
+  tip.style.top=(e.clientY+18)+'px';
+}
+function tryPlace(){
+  if(!ghost||!ghost.visible) return;
+  if(!ghostValid){
+    pushMsg(buildReason==='road'?'No road access at that site. Lay ROAD tiles out to it first.'
+      :'That spot is blocked. Pick clear ground away from the water and other equipment.');
+    return;
+  }
+  const d=PLACEABLE[buildTool];
+  const tie=computeTieIn(buildTool,ghost.position.x,ghost.position.z);
+  const item=placeItem(S,buildTool,ghost.position.x,ghost.position.z,ghostRot,tie.cost);
+  if(!item){ pushMsg('Not enough cash: '+d.name+' costs $'+(d.cost+tie.cost).toFixed(2)+'M including the pipe tie-in.'); return; }
+  createPlaced3D(item);
+  applyBuilds3D();
+  pushMsg(d.name+(item.done?' placed.':' under construction: '+d.weeks+' weeks, $'+(d.cost+tie.cost).toFixed(2)+'M paid'+(tie.cost?' ($'+tie.cost.toFixed(2)+'M of that is the pipe run)':'')+'.'));
+  refreshHud(); refreshOps();
+  updateGhost({clientX:lastPointer[0],clientY:lastPointer[1]});
+}
+function tryDoze(e){
+  ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+  ray.setFromCamera(ndc,camera);
+  const hits=ray.intersectObjects(placedHits);
+  if(!hits.length) return;
+  const id=hits[0].object.userData.placedId;
+  const p=S.placed.find(q=>q.id===id);
+  if(!p) return;
+  removeItem(S,id);
+  applyBuilds3D();
+  pushMsg(PLACEABLE[p.type].name+' demolished. No refund.');
+  refreshHud(); refreshOps();
+}
+let lastPointer=[0,0];
+function showBuild(){
+  const c=makeWindow('buildWin','Build',innerWidth-580,64,310);
+  const eff={ cdu2:'+20,000 BPOD crude', fcc2:'+10,000 BPOD cracking', ref2:'+5,000 BPOD reforming',
+    hyd2:'+12,000 BPOD treating', alk2:'+4,000 BPOD alkylation', ctank:'+150,000 bbl crude storage',
+    flare2:'halves flaring losses', ptank:'no process effect', wh:'no process effect',
+    office:'no process effect', road:'no process effect', trees:'no process effect', pole:'lights the site at night' };
+  let h='<p>Select a tool, then click the map to place. R rotates; right-click or Esc puts the tool down.</p>'+
+    '<p style="font-size:10px;color:#333;">Rules: industrial structures need a road within 16 (lay ROAD tiles to reach new ground), pay a pipe tie-in by distance from their connection point, and take weeks to build. The fence and concrete grow with the plant. Demolition pays no refund.</p>';
+  for(const k of Object.keys(PLACEABLE)){
+    const p=PLACEABLE[k];
+    h+='<button class="pbtn" data-tool="'+k+'" style="text-align:left;padding-left:8px;">'+p.name.toUpperCase()+
+       '<small>$'+p.cost+'M'+(p.weeks?', '+p.weeks+' wk':'')+' — '+eff[k]+'</small></button>';
+  }
+  h+='<div class="pdiv"></div><button class="pbtn" data-tool="dozer" style="text-align:left;padding-left:8px;">BULLDOZER<small>demolish a placed item</small></button>';
+  c.innerHTML=h;
+  c.querySelectorAll('[data-tool]').forEach(b=>b.addEventListener('click',()=>setBuildTool(b.dataset.tool===buildTool?null:b.dataset.tool)));
+  $('buildWin').querySelector('[data-close]').addEventListener('click',()=>setBuildTool(null));
+}
+
+/* ================================================================
+   FX — explosions, smoke, steam, shake
+   ================================================================ */
+const FX={debris:[],puffs:[],flashes:[],shake:0};
+const puffTex=(()=>{ const c=document.createElement('canvas'); c.width=c.height=64;
+  const x=c.getContext('2d'); const g=x.createRadialGradient(32,32,4,32,32,30);
+  g.addColorStop(0,'rgba(255,255,255,0.9)'); g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=g; x.fillRect(0,0,64,64);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; })();
+function spawnPuff(pos,opt){
+  const mat=new THREE.SpriteMaterial({map:puffTex,color:opt.color,transparent:true,opacity:opt.opacity??0.55,depthWrite:false});
+  const sp=new THREE.Sprite(mat);
+  sp.position.copy(pos).add(new THREE.Vector3((Math.random()-0.5)*opt.jitter,0,(Math.random()-0.5)*opt.jitter));
+  const s=opt.size*(0.7+Math.random()*0.6); sp.scale.set(s,s,1);
+  scene.add(sp);
+  FX.puffs.push({sp,life:0,maxLife:opt.life,rise:opt.rise,grow:opt.grow});
+}
+const SCORCHES={};
+function addScorch(key){
+  if(SCORCHES[key]) return;
+  const U=UNITS3D[key]; if(!U) return;
+  const s=new THREE.Mesh(new THREE.CircleGeometry(9,24),
+    new THREE.MeshBasicMaterial({color:0x171310,transparent:true,opacity:0.62,depthWrite:false}));
+  s.rotation.x=-Math.PI/2; s.position.set(U.center.x,0.12,U.center.z);
+  scene.add(s); SCORCHES[key]=s;
+}
+function removeScorch(key){ if(SCORCHES[key]){ scene.remove(SCORCHES[key]); delete SCORCHES[key]; } }
+function boom(key){
+  const U=UNITS3D[key]; if(!U) return;
+  const p=U.center.clone();
+  // flash
+  const light=new THREE.PointLight(0xffc187,10,80,1.6); light.position.copy(p).y+=4; scene.add(light);
+  const ball=new THREE.Mesh(new THREE.SphereGeometry(1,16,12),new THREE.MeshBasicMaterial({color:0xffd27a,transparent:true,opacity:0.95}));
+  ball.position.copy(p).y+=3; scene.add(ball);
+  // ground shockwave ring
+  const ring=new THREE.Mesh(new THREE.RingGeometry(0.8,1.6,32),
+    new THREE.MeshBasicMaterial({color:0xd9c8a8,transparent:true,opacity:0.7,side:THREE.DoubleSide,depthWrite:false}));
+  ring.rotation.x=-Math.PI/2; ring.position.set(p.x,0.25,p.z); scene.add(ring);
+  FX.flashes.push({light,ball,ring,life:0});
+  addScorch(key);
+  // screen flash + klaxon
+  const ov=document.getElementById('flashOv');
+  if(ov){ ov.style.transition='none'; ov.style.opacity=0.85;
+    requestAnimationFrame(()=>{ ov.style.transition='opacity .7s ease-out'; ov.style.opacity=0; }); }
+  sfxBoom(); setTimeout(sfxAlarm,700);
+  // debris
+  for(let i=0;i<42;i++){
+    const d=new THREE.Mesh(new THREE.BoxGeometry(0.5+Math.random()*0.7,0.5+Math.random()*0.7,0.5+Math.random()*0.7),
+      Math.random()<0.5?M.darkSteel:M.rust);
+    d.position.copy(p).add(new THREE.Vector3((Math.random()-0.5)*3,2+Math.random()*3,(Math.random()-0.5)*3));
+    d.castShadow=true;
+    const a=Math.random()*Math.PI*2, sp=5+Math.random()*13;
+    scene.add(d);
+    FX.debris.push({m:d,v:new THREE.Vector3(Math.cos(a)*sp,9+Math.random()*11,Math.sin(a)*sp),
+      w:new THREE.Vector3(Math.random()*6,Math.random()*6,Math.random()*6),life:0});
+  }
+  FX.shake=0.9;
+  charUnit(key,true);
+}
+function charUnit(key,on){
+  const U=UNITS3D[key]; if(!U) return;
+  U.meshes.forEach((m,i)=>{ m.material=on?M.char:U.origMats[i]; });
+}
+function updateFX(dt,S){
+  // debris
+  for(let i=FX.debris.length-1;i>=0;i--){
+    const d=FX.debris[i]; d.life+=dt;
+    d.v.y-=22*dt; d.m.position.addScaledVector(d.v,dt);
+    d.m.rotation.x+=d.w.x*dt; d.m.rotation.y+=d.w.y*dt;
+    if(d.m.position.y<0.3){ d.m.position.y=0.3; d.v.set(0,0,0); d.w.set(0,0,0); }
+    if(d.life>6){ scene.remove(d.m); FX.debris.splice(i,1); }
+  }
+  // flashes
+  for(let i=FX.flashes.length-1;i>=0;i--){
+    const f=FX.flashes[i]; f.life+=dt;
+    const k=f.life/0.7;
+    f.light.intensity=Math.max(0,10*(1-k));
+    f.ball.scale.setScalar(1+k*9); f.ball.material.opacity=Math.max(0,0.95*(1-k));
+    if(f.ring){ const rk=Math.min(1,f.life/0.9); f.ring.scale.setScalar(1+rk*22); f.ring.material.opacity=0.7*(1-rk); }
+    if(k>=1){ scene.remove(f.light); scene.remove(f.ball); if(f.ring) scene.remove(f.ring); FX.flashes.splice(i,1); }
+  }
+  // puffs
+  for(let i=FX.puffs.length-1;i>=0;i--){
+    const q=FX.puffs[i]; q.life+=dt;
+    q.sp.position.y+=q.rise*dt;
+    const s=q.sp.scale.x+q.grow*dt; q.sp.scale.set(s,s,1);
+    q.sp.material.opacity*=(1-dt*0.9/q.maxLife*1.6);
+    if(q.life>q.maxLife){ scene.remove(q.sp); FX.puffs.splice(i,1); }
+  }
+  // ongoing unit smoke/steam/fire
+  if (S){
+    for(const k of Object.keys(S.units)){
+      const u=S.units[k], U=UNITS3D[k]; if(!U) continue;
+      if(u.destroyed&&Math.random()<dt*9)
+        spawnPuff(U.center,{color:0x35312d,size:3.5,life:3.2,rise:4.2,grow:2.6,jitter:5,opacity:0.6});
+      if(u.destroyed&&u.downDays>20&&Math.random()<dt*7)
+        spawnPuff(U.center.clone().setY(U.center.y-1),{color:0xff7a1a,size:1.8,life:0.7,rise:3.5,grow:1.4,jitter:4,opacity:0.8});
+      if(!u.destroyed&&u.downDays>0&&Math.random()<dt*4)
+        spawnPuff(U.center,{color:0xffffff,size:1.6,life:1.6,rise:2.6,grow:1.6,jitter:3,opacity:0.5});
+    }
+  }
+  // camera shake
+  if(FX.shake>0){
+    FX.shake=Math.max(0,FX.shake-dt*1.2);
+    const a=FX.shake*0.7;
+    camera.position.x+=(Math.random()-0.5)*a; camera.position.y+=(Math.random()-0.5)*a*0.6;
+  }
+}
+
+/* ================================================================
+   SOUND — synthesized, no assets. Ambient hum, flare roar, boom, alarm.
+   ================================================================ */
+let AC=null, master=null, flareGain=null;
+let soundOn=(localStorage.getItem('sr3.sound')??'1')==='1';
+function noiseBuf(){
+  const b=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate), d=b.getChannelData(0);
+  let last=0;
+  for(let i=0;i<d.length;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=last*3.5; }
+  return b;
+}
+function initAudio(){
+  if(AC) return;
+  try{ AC=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }
+  master=AC.createGain(); master.gain.value=soundOn?1:0; master.connect(AC.destination);
+  const nb=noiseBuf();
+  const hum=AC.createOscillator(); hum.type='sine'; hum.frequency.value=55;
+  const hg=AC.createGain(); hg.gain.value=0.012; hum.connect(hg); hg.connect(master); hum.start();
+  const ns=AC.createBufferSource(); ns.buffer=nb; ns.loop=true;
+  const nf=AC.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=300;
+  const ng=AC.createGain(); ng.gain.value=0.014; ns.connect(nf); nf.connect(ng); ng.connect(master); ns.start();
+  const fs=AC.createBufferSource(); fs.buffer=nb; fs.loop=true;
+  const ff=AC.createBiquadFilter(); ff.type='bandpass'; ff.frequency.value=850; ff.Q.value=0.6;
+  flareGain=AC.createGain(); flareGain.gain.value=0; fs.connect(ff); ff.connect(flareGain); flareGain.connect(master); fs.start();
+}
+function sfxBoom(){
+  if(!AC||!soundOn) return; const t=AC.currentTime;
+  const o=AC.createOscillator(); o.type='sine';
+  o.frequency.setValueAtTime(72,t); o.frequency.exponentialRampToValueAtTime(27,t+1.1);
+  const g=AC.createGain(); g.gain.setValueAtTime(0.85,t); g.gain.exponentialRampToValueAtTime(0.001,t+1.4);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+1.5);
+  const ns=AC.createBufferSource(); ns.buffer=noiseBuf();
+  const f=AC.createBiquadFilter(); f.type='lowpass';
+  f.frequency.setValueAtTime(2600,t); f.frequency.exponentialRampToValueAtTime(110,t+1.0);
+  const g2=AC.createGain(); g2.gain.setValueAtTime(0.65,t); g2.gain.exponentialRampToValueAtTime(0.001,t+1.2);
+  ns.connect(f); f.connect(g2); g2.connect(master); ns.start(t); ns.stop(t+1.3);
+}
+function sfxAlarm(){
+  if(!AC||!soundOn) return; const t=AC.currentTime;
+  for(let i=0;i<3;i++){
+    const o=AC.createOscillator(); o.type='square'; o.frequency.value=i%2?640:820;
+    const g=AC.createGain(); g.gain.setValueAtTime(0,t+i*0.32);
+    g.gain.linearRampToValueAtTime(0.05,t+i*0.32+0.03);
+    g.gain.setValueAtTime(0.05,t+i*0.32+0.22); g.gain.linearRampToValueAtTime(0,t+i*0.32+0.27);
+    o.connect(g); g.connect(master); o.start(t+i*0.32); o.stop(t+i*0.32+0.3);
+  }
+}
+function sfxClunk(){
+  if(!AC||!soundOn) return; const t=AC.currentTime;
+  const o=AC.createOscillator(); o.type='triangle';
+  o.frequency.setValueAtTime(120,t); o.frequency.exponentialRampToValueAtTime(55,t+0.18);
+  const g=AC.createGain(); g.gain.setValueAtTime(0.22,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.3);
+}
+function sfxClick(){
+  if(!AC||!soundOn) return; const t=AC.currentTime;
+  const o=AC.createOscillator(); o.type='square'; o.frequency.value=1350;
+  const g=AC.createGain(); g.gain.setValueAtTime(0.035,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.04);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t+0.05);
+}
+let lastHorn=-1e9;
+function sfxHorn(kind){
+  if(!AC||!soundOn) return;
+  if(speed>=3) return;                                  // no honking at Maximum speed
+  const now=performance.now();
+  if(now-lastHorn<75000) return;                        // at most one horn per ~75s of real time
+  lastHorn=now;
+  const t=AC.currentTime;
+  const tones=kind==='train'?[311,392]:[98,123];
+  const dur=kind==='train'?0.5:1.3, blasts=kind==='train'?2:1;
+  for(let b=0;b<blasts;b++){
+    const t0=t+b*(dur+0.22);
+    for(const fq of tones){
+      const o=AC.createOscillator(); o.type='sawtooth'; o.frequency.value=fq;
+      const fl=AC.createBiquadFilter(); fl.type='lowpass'; fl.frequency.value=kind==='train'?1200:480;
+      const g=AC.createGain();
+      g.gain.setValueAtTime(0,t0); g.gain.linearRampToValueAtTime(0.028,t0+0.07);
+      g.gain.setValueAtTime(0.028,t0+dur-0.12); g.gain.linearRampToValueAtTime(0,t0+dur);
+      o.connect(fl); fl.connect(g); g.connect(master);
+      o.start(t0); o.stop(t0+dur+0.05);
+    }
+  }
+}
+// rare, quiet industrial one-shots so the ambience isn't a flat loop
+let nextAmbient=performance.now()+20000;
+function sfxAmbientOneShot(){
+  if(!AC||!soundOn) return;
+  const t=AC.currentTime;
+  if(Math.random()<0.5){ // distant clank
+    const o=AC.createOscillator(); o.type='triangle';
+    o.frequency.setValueAtTime(420+Math.random()*300,t);
+    o.frequency.exponentialRampToValueAtTime(140,t+0.25);
+    const f=AC.createBiquadFilter(); f.type='bandpass'; f.frequency.value=620; f.Q.value=2.5;
+    const g=AC.createGain(); g.gain.setValueAtTime(0.016,t); g.gain.exponentialRampToValueAtTime(0.0008,t+0.5);
+    o.connect(f); f.connect(g); g.connect(master); o.start(t); o.stop(t+0.55);
+  } else { // steam vent hiss
+    const ns=AC.createBufferSource(); ns.buffer=noiseBuf();
+    const f=AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=1800;
+    const g=AC.createGain(); g.gain.setValueAtTime(0.0001,t);
+    g.gain.linearRampToValueAtTime(0.011,t+0.3); g.gain.linearRampToValueAtTime(0.0001,t+1.6);
+    ns.connect(f); f.connect(g); g.connect(master); ns.start(t); ns.stop(t+1.7);
+  }
+}
+addEventListener('pointerdown',()=>{ initAudio(); if(AC&&AC.state==='suspended') AC.resume(); },{once:false});
+
+/* ================================================================
+   GAME STATE + LOOP
+   ================================================================ */
+let S=newGame('steady', (Math.random()*1e9)|0);
+let speed=1;
+const SPEED_MS=[0,900,300,90];
+let simAcc=0, lastT=performance.now();
+let flowOverlay=true, labelsOn=true;
+let flareHeat=0;                   // visual flare intensity 0..1
+let autoCtl=false, selectedStream=null, overheadMap=false, opsVisible=true;
+function fmtB(kbd){ return Math.round(kbd*1000).toLocaleString('en-US'); }
+// palette stream key -> pipe route(s)
+const STREAMS={ crude:['crude'], c34:['lpgline'], naphtha:['naphtha'], reformate:['reformate'],
+  fccgas:['fccgas'], alkylate:['alkyfeed','alkyline'], jet:['jetline'], diesel:['dieselline'], gasoil:['gasoil'],
+  resid:['resid'], h2:['h2line'], sulfur:['sulfline'] };
+function selectStream(key){
+  selectedStream=(selectedStream===key)?null:key;
+  for(const rk of Object.keys(ROUTES)){
+    const R=ROUTES[rk];
+    const sel=!selectedStream||STREAMS[selectedStream].includes(rk);
+    R.mat.transparent=true;
+    R.mat.opacity=sel?1:0.13;
+    R.mat.emissive.setHex(sel&&selectedStream?R.color:0x000000);
+    R.mat.emissiveIntensity=sel&&selectedStream?0.45:0;
+    R.mat.needsUpdate=true;
+  }
+  document.querySelectorAll('#palette [data-stream]').forEach(b=>b.classList.toggle('on',b.dataset.stream===selectedStream));
+}
+function refreshPalette(){
+  const f=S.dayOutput&&S.dayOutput.flows;
+  const vals={
+    crude:f&&fmtB(f.feed), c34:f&&fmtB(f.lpgSold!==undefined?f.lpgSold:f.lpg), naphtha:f&&fmtB(f.naphtha), reformate:f&&fmtB(f.reformate),
+    fccgas:f&&fmtB(f.fccGas), alkylate:alkyCap(S)>0?(f&&fmtB(f.alkylate)):'not built',
+    jet:f&&fmtB(f.jet), diesel:f&&fmtB(f.dieselOut), gasoil:f&&fmtB(f.gasoil),
+    resid:f&&fmtB(f.resid), h2:f?(f.needsTreat?(f.hydrogenOk?'supplying':'SHORT'):'idle'):null,
+    sulfur:Math.round(S.sulfurPile)+' t',
+  };
+  document.querySelectorAll('#palette [data-stream]').forEach(b=>{
+    b.querySelector('small').textContent=vals[b.dataset.stream]||'—';
+  });
+  $('pShut').classList.toggle('on',S.feedRate===0);
+  $('pAuto').classList.toggle('on',autoCtl);
+  $('pManual').classList.toggle('on',!autoCtl);
+}
+function setAutoCtl(on){
+  if(autoCtl===on) { refreshPalette(); return; }
+  autoCtl=on;
+  $('mAuto').querySelector('.tick').textContent=on?'✓':'';
+  pushMsg(on?'Auto control engaged. Feed is cut when any unit passes pressure 88 and restored as pressure clears.'
+            :'Manual control. All rates are yours.');
+  refreshPalette();
+}
+function orderlyShutdown(){
+  if(S.feedRate>0) S.feedSetpoint=S.feedRate;
+  S.feedRate=0;
+  pushMsg('Orderly shutdown: crude feed to zero. Idle units take no wear. START UP restores the previous rate.');
+  refreshOps(); refreshUnitWin(); refreshPalette();
+}
+function startUp(){
+  S.feedRate=S.feedSetpoint||90;
+  pushMsg('Start up: crude feed restored to '+fmtB(S.feedRate)+' BPOD.');
+  refreshOps(); refreshUnitWin(); refreshPalette();
+}
+function setOverhead(on){
+  overheadMap=on;
+  $('viewTitle').textContent=on?'Fable Refinery Map':'Fable Refinery Edit';
+  $('mOverhead').querySelector('.tick').textContent=on?'✓':'';
+  camTween={ fromT:controls.target.clone(), toT:on?new THREE.Vector3(2,0,2):HOME_TGT.clone(), t:0,
+    fromP:camera.position.clone(), toP:on?new THREE.Vector3(2,185,3.2):HOME_POS.clone(),
+    fromZ:camera.zoom, toZ:on?0.55:1 };
+}
+function openEsdConfirm(){
+  const c=makeWindow('esdWin','Emergency Shutdown',innerWidth/2-190,180,380);
+  c.innerHTML='<p>Trip every unit for 3 days and vent all pressure. Costs $1.0M plus three days of production. Use it when pressure is critical and nothing else will come down fast enough.</p>'+
+    '<button class="btn out" id="esdGo">Shut the plant down</button><button class="btn out" onclick="this.closest(\'.win\').remove()">Cancel</button>';
+  $('esdGo').addEventListener('click',()=>{
+    emergencyShutdown(S);
+    pushMsg('EMERGENCY SHUTDOWN. All units tripped for 3 days; pressure vented. $1.0M charge.');
+    closeWindow('esdWin'); refreshOps(); refreshUnitWin();
+  });
+}
+/* ---- minimap: the original's Map window, miniaturized ---- */
+const MM={w:222,h:178,minX:-132,maxX:148,minZ:-118,maxZ:138};
+MM.kx=MM.w/(MM.maxX-MM.minX); MM.kz=MM.h/(MM.maxZ-MM.minZ);
+const mmX=x=>(x-MM.minX)*MM.kx, mmZ=z=>(z-MM.minZ)*MM.kz;
+function showMap(){
+  if($('mapWin')) { $('mapWin').style.zIndex=2000; return; }
+  const c=makeWindow('mapWin','Map',innerWidth-520,innerHeight-262,238);
+  c.innerHTML='<canvas id="mmCanvas" width="'+MM.w+'" height="'+MM.h+'" style="display:block;border:1px solid #555;cursor:crosshair;"></canvas>'+
+    '<div style="font-size:9px;color:#333;margin-top:2px;">Click to look there. White cross is your view.</div>';
+  $('mmCanvas').addEventListener('pointerdown',e=>{
+    const b=e.target.getBoundingClientRect();
+    const wx=(e.clientX-b.left)/MM.kx+MM.minX, wz=(e.clientY-b.top)/MM.kz+MM.minZ;
+    camTween={fromT:controls.target.clone(), toT:new THREE.Vector3(wx,2,wz), t:0};
+  });
+  drawMinimap();
+}
+function drawMinimap(){
+  const cv=$('mmCanvas'); if(!cv) return;
+  const x=cv.getContext('2d');
+  x.fillStyle='#46503c'; x.fillRect(0,0,MM.w,MM.h);                       // scrub
+  x.fillStyle='#27435a'; x.fillRect(0,0,mmX(-58),MM.h);                   // bay
+  if(FENCE_BOUNDS){ x.fillStyle='#7e7b73';                                // plant ground
+    x.fillRect(mmX(FENCE_BOUNDS.x1),mmZ(FENCE_BOUNDS.z1),(FENCE_BOUNDS.x2-FENCE_BOUNDS.x1)*MM.kx,(FENCE_BOUNDS.z2-FENCE_BOUNDS.z1)*MM.kz); }
+  x.strokeStyle='#beb6a6'; x.lineWidth=1;
+  if(FENCE_BOUNDS) x.strokeRect(mmX(FENCE_BOUNDS.x1),mmZ(FENCE_BOUNDS.z1),(FENCE_BOUNDS.x2-FENCE_BOUNDS.x1)*MM.kx,(FENCE_BOUNDS.z2-FENCE_BOUNDS.z1)*MM.kz);
+  x.fillStyle='#5b5a56';                                                  // roads
+  for(const a of [[-73,-51.5,150,5],[-73,50.5,150,5],[-73.5,-51.5,5,107],[72.5,-51.5,5,107],[-24.5,-47,5,98]])
+    x.fillRect(mmX(a[0]),mmZ(a[1]),a[2]*MM.kx,a[3]*MM.kz);
+  x.fillRect(mmX(52),mmZ(-118),4*MM.kx,160*MM.kz);                        // rail
+  for(const p of S.placed){
+    const fp=FOOTPRINT[p.type], w=(p.rot%2?fp[1]:fp[0]), d=(p.rot%2?fp[0]:fp[1]);
+    if(p.type==='road'){ x.fillStyle='#5b5a56'; x.fillRect(mmX(p.x-2),mmZ(p.z-2),4*MM.kx,4*MM.kz); continue; }
+    if(p.type==='trees'){ x.fillStyle='#3a5232'; x.fillRect(mmX(p.x-3),mmZ(p.z-3),6*MM.kx,6*MM.kz); continue; }
+    x.fillStyle=p.done?'#a8adb2':'#6b6354';
+    x.fillRect(mmX(p.x-w/2),mmZ(p.z-d/2),w*MM.kx,d*MM.kz);
+  }
+  for(const k of Object.keys(UNITS3D)){                                   // fixed units + status
+    const U=UNITS3D[k]; if(!U.group.visible) continue;
+    const g=U.hit.geometry.parameters;
+    const w=g.width*U.hit.scale.x, d=g.depth*U.hit.scale.z;
+    x.fillStyle='#b9bec3';
+    x.fillRect(mmX(U.center.x-w/2),mmZ(U.center.z-d/2),Math.max(2,w*MM.kx),Math.max(2,d*MM.kz));
+    const u=S.units[k];
+    if(u){
+      x.fillStyle=u.downDays>0?'#d22':(u.pressure>85||u.condition<40)?'#e2a51b':'#19a93f';
+      x.fillRect(mmX(U.center.x)-1.5,mmZ(U.center.z)-1.5,3,3);
+    }
+  }
+  const dot=(px,pz,col,s)=>{ x.fillStyle=col; x.fillRect(mmX(px)-s/2,mmZ(pz)-s/2,s,s); };
+  if(tanker.visible) dot(tanker.position.x,tanker.position.z,'#7fd4ff',4);
+  if(productTrain.visible) dot(productTrain.position.x,productTrain.position.z,'#e0883a',4);
+  dot(truck.position.x,truck.position.z,'#ffffff',3);
+  x.strokeStyle='#fff'; x.lineWidth=1.2;                                  // camera target
+  const cx2=mmX(controls.target.x), cz2=mmZ(controls.target.z);
+  x.beginPath(); x.moveTo(cx2-5,cz2); x.lineTo(cx2+5,cz2); x.moveTo(cx2,cz2-5); x.lineTo(cx2,cz2+5); x.stroke();
+}
+let mmNext=0;
+
+function showContractOffer(){
+  const o=S.contractOffer; if(!o) return;
+  const c=makeWindow('contractWin','Supply Contract Offer',innerWidth/2-210,150,420);
+  const pn={gasoline:'gasoline',jet:'jet fuel',diesel:'diesel',heating:'heating oil'}[o.product];
+  c.innerHTML='<p>A buyer offers a fixed-price commitment:</p><table class="data">'+
+    '<tr><td>Product</td><td><b>'+pn+'</b></td></tr>'+
+    '<tr><td>Volume</td><td><b>'+fmtB(o.bpod)+' BPOD, every day</b></td></tr>'+
+    '<tr><td>Fixed price</td><td><b>$'+o.price.toFixed(2)+'/bbl (market is $'+S.prices[o.product].toFixed(2)+' today)</b></td></tr>'+
+    '<tr><td>Term</td><td><b>'+o.weeks+' weeks</b></td></tr>'+
+    '<tr><td>Shortfall penalty</td><td><b>$'+o.penalty.toFixed(1)+'M per week delivered under 90%</b></td></tr></table>'+
+    '<p>Committed barrels sell at the fixed price whether the market moves up or down. A breakdown during the term is your problem, not the buyer\'s.</p>'+
+    '<button class="btn out" id="cAccept">Accept</button><button class="btn out" id="cDecline">Decline</button>';
+  $('cAccept').addEventListener('click',()=>{
+    S.contract={...S.contractOffer, weeksLeft:S.contractOffer.weeks, deliveredWk:0, requiredWk:0};
+    S.contractOffer=null;
+    pushMsg('Contract signed: '+fmtB(S.contract.bpod)+' BPOD '+pn+' at $'+S.contract.price.toFixed(2)+'/bbl for '+S.contract.weeksLeft+' weeks.');
+    closeWindow('contractWin'); refreshOps();
+  });
+  $('cDecline').addEventListener('click',()=>{
+    S.contractOffer=null;
+    pushMsg('Contract offer declined.');
+    closeWindow('contractWin');
+  });
+}
+
+/* ---- operator training: checked, hands-on tasks ---- */
+const TRAINING=[
+  { text:'Set the speed to Normal (Options menu, or press 1).', check:()=>speed>0 },
+  { text:'Click the tall distillation tower to open the Crude Unit, and cut the feed rate to 80,000 BPOD or less.', check:()=>S.feedRate<=80 },
+  { text:'Pressure follows feed. Wait until CDU pressure reads below 55 (watch the dialog or the Operations panel).', check:()=>S.units.cdu.pressure<55 },
+  { text:'Bring the feed rate back up to at least 95,000 BPOD.', check:()=>S.feedRate>=95 },
+  { text:'Press NEXT CRUDE until the slate is Medium Blend. Compare the indicative margins while you cycle.', check:()=>S.crudeType==='medium' },
+  { text:'Open the Hydrotreater. Sour crude needs treating — confirm Treated reads 100%.', check:()=>S.dayOutput&&S.dayOutput.flows.needsTreat&&S.dayOutput.flows.treatedFrac>0.99 },
+  { text:'Open the Cat Cracker and raise severity to 110% for more gasoline. Watch its pressure and wear.', check:()=>S.fccSeverity>=110 },
+  { text:'Open Windows > Graphs and look at the weekly profit bars.', check:()=>!!document.getElementById('gProfit') },
+  { text:'Schedule a turnaround on any unit (button in its dialog). Planned downtime beats a breakdown.', check:()=>Object.values(S.units).some(u=>u.planned&&u.downDays>0) },
+  { text:'Run the plant to week 4 with positive total profit. Then it is yours.', check:()=>S.week>=4&&S.totalProfit>0 },
+];
+let trainIdx=-1;
+function renderTraining(){
+  const c=makeWindow('trainWin','Operator Training',130,innerHeight-235,360);
+  c.innerHTML='<p><b>Step '+(trainIdx+1)+' of '+TRAINING.length+'.</b> '+TRAINING[trainIdx].text+'</p>'+
+    '<button class="btn out" id="trainEnd">End training</button>';
+  $('trainEnd').addEventListener('click',()=>{ trainIdx=-1; closeWindow('trainWin'); pushMsg('Training ended.'); });
+}
+function startTraining(){
+  startGame('steady');
+  trainIdx=0;
+  renderTraining();
+  pushMsg('Operator training: follow the steps in the Training window. The simulation checks your work.');
+}
+function showProjects(){
+  const c=makeWindow('projWin','Capital Projects',150,70,440);
+  let h='<p>Projects are paid in cash when work starts. A crane marks the site; the capacity goes live when construction finishes.</p><table class="data">';
+  for(const k of Object.keys(PROJECTS)){
+    const p=PROJECTS[k], b=S.builds[k];
+    let status;
+    if(b.done) status='<b>IN SERVICE</b>';
+    else if(b.started) status='<b>building — '+b.weeksLeft+' wk left</b>';
+    else status='<button class="btn out" data-build="'+k+'" style="margin:0;padding:2px 8px;">BUILD</button>';
+    h+='<tr><td style="vertical-align:top;"><b>'+p.name+'</b><br><span style="font-size:10px;color:#333;">'+p.desc+'</span></td>'+
+       '<td style="vertical-align:top;white-space:nowrap;text-align:right;">$'+p.cost+'M, '+p.weeks+' wk<br>'+status+'</td></tr>';
+  }
+  h+='</table>';
+  c.innerHTML=h;
+  c.querySelectorAll('[data-build]').forEach(btn=>btn.addEventListener('click',()=>{
+    const k=btn.dataset.build;
+    if(startProject(S,k)){
+      pushMsg(PROJECTS[k].name+' under construction: '+PROJECTS[k].weeks+' weeks, $'+PROJECTS[k].cost+'M paid.');
+      applyBuilds3D(); refreshHud(); refreshOps(); showProjects();
+    } else {
+      pushMsg('Cannot start '+PROJECTS[k].name+': it needs $'+PROJECTS[k].cost+'M in cash.');
+    }
+  }));
+}
+function showReport(){
+  const c=makeWindow('reportWin','Plant Report',170,80,420);
+  const f=S.dayOutput&&S.dayOutput.flows;
+  const uptime=S.unitDays?Math.round(100*S.upDays/S.unitDays):100;
+  c.innerHTML='<table class="data">'+
+    '<tr><td>Date</td><td><b>'+dateStr(S.day)+'</b></td></tr>'+
+    '<tr><td>Crude slate / rate</td><td><b>'+CRUDES[S.crudeType].name+' @ '+fmtB(S.feedRate)+' BPOD</b></td></tr>'+
+    (f?'<tr><td>Gasoline octane</td><td><b>'+f.octane.toFixed(1)+(f.onSpecGas?'':' — BELOW SPEC')+'</b></td></tr>':'')+
+    '<tr><td>12-week average profit</td><td><b>'+money(avg(S.profitHistory.slice(-12)))+'/wk</b></td></tr>'+
+    '<tr><td>Cash / total profit</td><td><b>'+money(S.cash)+' / '+money(S.totalProfit)+'</b></td></tr>'+
+    '<tr><td>Unit uptime</td><td><b>'+uptime+'%</b></td></tr>'+
+    '<tr><td>Breakdowns / explosions</td><td><b>'+S.breakdowns+' / '+S.explosions+'</b></td></tr>'+
+    '<tr><td>Review grade</td><td><b>'+grade()+'</b></td></tr></table>'+
+    (GOALS[S.scenario]?'<div class="goalchip"><b>Objective:</b> '+GOALS[S.scenario].text+' '+
+      (S.goalChecked?(S.goalMet?'MET':'NOT MET'):(S.goalMet?'MET':'in progress'))+'</div>':'');
+}
+
+const startDate=Date.UTC(1992,0,1);
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function dateStr(day){
+  const d=new Date(startDate+day*86400000);
+  return MONTHS[d.getUTCMonth()]+' '+d.getUTCDate()+', '+d.getUTCFullYear();
+}
+function timeStr(){
+  // sweeps through the day between sim ticks, like the original's hour clock
+  const frac=speed>0?Math.min(0.999,simAcc/SPEED_MS[speed]):0;
+  const t=frac*24;
+  let hh=Math.floor(t); const mm=Math.floor((t-hh)*60);
+  const ap=hh<12?'am':'pm';
+  hh=hh%12; if(hh===0) hh=12;
+  return hh+':'+String(mm).padStart(2,'0')+ap;
+}
+
+const MSGS=[];
+function pushMsg(text){
+  MSGS.push({day:S.day,text});
+  if(MSGS.length>200) MSGS.shift();
+  document.getElementById('tick0').textContent=dateStr(S.day)+' — '+text;
+  const prev=MSGS[MSGS.length-2];
+  document.getElementById('tick1').textContent=prev?(dateStr(prev.day)+' — '+prev.text):'';
+  const lw=document.getElementById('msgList');
+  if(lw){ const d=document.createElement('div'); d.textContent=dateStr(S.day)+' — '+text; lw.appendChild(d); lw.scrollTop=lw.scrollHeight; }
+}
+
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+const GOALS={
+  steady:{ week:26, text:'Average at least $3.0M/wk profit through week 26.',
+    check:S=>avg(S.profitHistory.slice(0,26))>=3.0 },
+  heavy:{ week:26, text:'Average at least $4.5M/wk profit through week 26.',
+    check:S=>avg(S.profitHistory.slice(0,26))>=4.5 },
+  winter:{ week:13, text:'Average at least $4.0M/wk profit through week 13.',
+    check:S=>avg(S.profitHistory.slice(0,13))>=4.0 },
+  failure:{ week:26, text:'Reach $25M cash by week 26 with no explosions.',
+    check:S=>S.cash>=25&&S.explosions===0 },
+  wreck:{ week:0, text:'Cause at least $25M in damage.',
+    check:S=>S.damageTotal>=25 },
+};
+function doTick(){
+  const out=tickDay(S);
+  for(const k of out.exploded){ boom(k); showIncident(S.incidents[S.incidents.length-1]); speed=0; }
+  if(out.broke.length) sfxClunk();
+  for(const n of out.notes) pushMsg(n);
+  if(out.delivered>10){ pushMsg('Tanker delivery: '+fmtB(out.delivered)+' bbl of '+CRUDES[S.crudeType].name+' crude, $'+S.lastDelivery.cost.toFixed(1)+'M.'); sfxHorn('ship'); }
+  if(((S.day-1)%7+7)%7===3) sfxHorn('train');
+  if(out.flared.length) flareHeat=Math.min(1,flareHeat+0.45);
+  // pressure-critical alarm on rising edge
+  for(const k of Object.keys(S.units)){
+    const u=S.units[k];
+    if(u.pressure>100&&!u._alarmed){ u._alarmed=true; sfxAlarm(); pushMsg('ALERT: '+UNIT_DEFS[k].name+' pressure critical ('+Math.round(u.pressure)+'). Cut feed or severity, or use emergency shutdown.'); }
+    else if(u.pressure<95) u._alarmed=false;
+  }
+  if(S.day%7===0){
+    weeklyEvents(S,pushMsg);
+    const w=S.lastWeek;
+    pushMsg('Week '+S.week+': revenue $'+w.revenue.toFixed(1)+'M, crude $'+w.crudeCost.toFixed(1)+'M, operating $'+w.otherCost.toFixed(1)+'M, profit '+(w.profit>=0?'+':'')+'$'+w.profit.toFixed(1)+'M.');
+    // scenario objective check
+    const G=GOALS[S.scenario];
+    if(G&&G.week>0&&S.week===G.week&&!S.goalChecked){
+      S.goalChecked=true; S.goalMet=G.check(S);
+      showGoalResult(G);
+    }
+    if(S.week%13===0&&!S.fired) showQuarterly();
+    // marketing brings a contract offer now and then (one at a time)
+    if(!S.contract&&!S.contractOffer&&S.week>=4&&S.scenario!=='wreck'&&S.rng()<0.22){
+      const opts=[['jet',10],['gasoline',20],['diesel',16],['heating',12]];
+      const [prod,vol]=opts[Math.floor(S.rng()*opts.length)];
+      S.contractOffer={ product:prod, bpod:Math.round(vol*(0.7+S.rng()*0.5)),
+        price:Math.round((S.prices[prod]+2.5+S.rng()*2)*100)/100,
+        penalty:1.5, weeks:4+Math.floor(S.rng()*4) };
+      showContractOffer();
+    }
+    if($('gProfit')) drawGraphs();   // keep an open Graphs window current
+    applyBuilds3D();
+    saveGame();
+  }
+  // wreck objective is open-ended: announce the moment it is reached
+  if(S.scenario==='wreck'&&!S.goalMet&&GOALS.wreck.check(S)){
+    S.goalMet=true; pushMsg('Exercise objective met: more than $25M in damage caused.');
+  }
+  // auto control: the supervisor mode from the original's AUTO CTL button
+  if(autoCtl&&!S.fired){
+    let maxP=0,maxK=null;
+    for(const k of Object.keys(S.units)){ if(S.units[k].pressure>maxP){ maxP=S.units[k].pressure; maxK=k; } }
+    if(maxP>88&&S.feedRate>0){
+      if(!S.feedSetpoint) S.feedSetpoint=S.feedRate;
+      S.feedRate=Math.max(0,S.feedRate-5);
+      pushMsg('Auto control: '+UNIT_DEFS[maxK].name+' at pressure '+Math.round(maxP)+' — feed cut to '+fmtB(S.feedRate)+' BPOD.');
+    } else if(maxP<70&&S.feedSetpoint&&S.feedRate<S.feedSetpoint){
+      S.feedRate=Math.min(S.feedSetpoint,S.feedRate+3);
+    }
+  }
+  if(S.fired){ speed=0; showFired(); saveGame(); }
+  // training progression
+  if(trainIdx>=0&&trainIdx<TRAINING.length){
+    try{
+      if(TRAINING[trainIdx].check()){
+        pushMsg('Training step '+(trainIdx+1)+' complete.');
+        trainIdx++;
+        if(trainIdx>=TRAINING.length){
+          trainIdx=-1; closeWindow('trainWin');
+          pushMsg('Operator training complete. You are certified for basic operations — the plant is yours.');
+        } else renderTraining();
+      }
+    }catch(e){}
+  }
+  refreshHud();
+  if(!uiHold){ refreshOps(); refreshUnitWin(); refreshPalette(); }
+  return out;
+}
+/* freeze panel rebuilds while the user is interacting with a slider/window */
+let uiHold=false;
+addEventListener('pointerdown',e=>{ if(e.target.closest&&e.target.closest('#ops,.win')) uiHold=true; },true);
+addEventListener('pointerup',()=>{ uiHold=false; },true);
+
+/* visual state per frame */
+function syncVisuals(dt){
+  const f=S.dayOutput?S.dayOutput.flows:null;
+  // status lamps
+  for(const k of Object.keys(UNITS3D)){
+    const U=UNITS3D[k], u=S.units[k];
+    if(!U.statusLamp) continue;
+    let col=0x19a93f, blink=0;
+    if(u){
+      if(u.destroyed){ col=0xd22222; blink=8; }
+      else if(u.downDays>0){ col=0xd22222; blink=3; }
+      else if(u.pressure>85||u.condition<40){ col=0xe2a51b; blink=1.5; }
+    }
+    const m=U.statusLamp.material;
+    m.color.setHex(col); m.emissive.setHex(col);
+    m.emissiveIntensity=blink?(0.5+0.5*Math.sin(performance.now()*0.001*blink*Math.PI*2))*1.4:0.9;
+  }
+  // restore charred meshes when rebuilt
+  for(const k of Object.keys(S.units)){
+    const u=S.units[k];
+    if(UNITS3D[k]&&!u.destroyed&&u.downDays===0&&UNITS3D[k].meshes[0].material===M.char){ charUnit(k,false); removeScorch(k); }
+  }
+  // cooling tower steam
+  if(speed>0&&Math.random()<dt*5)
+    spawnPuff(new THREE.Vector3(-17.5+Math.floor(Math.random()*3)*3.5,7,24),
+      {color:0xffffff,size:1.5,life:2.2,rise:3.2,grow:1.8,jitter:1,opacity:0.38});
+  // crude tank floating roofs ride on inventory
+  const fill=Math.max(0.06,Math.min(1,S.tank.level/S.tank.cap));
+  for(const roof of tankRoofs){ if(!roof.visible) continue; roof.position.y=1.2+6.2*fill; }
+  // flare
+  flareHeat=Math.max(0,flareHeat-dt*0.25);
+  const fl=0.34+flareHeat*1.6+Math.sin(performance.now()*0.013)*0.06;
+  flameOuter.scale.set(fl,fl*(1+Math.sin(performance.now()*0.021)*0.15),fl);
+  flameInner.scale.copy(flameOuter.scale).multiplyScalar(0.8);
+  flameOuter.position.y=26.2+1.4*flameOuter.scale.y;
+  flameInner.position.y=26.1+1.1*flameOuter.scale.y;
+  flareLight.intensity=2.5*flareHeat+0.25;
+  flareGlow.position.y=flameOuter.position.y+1.3;
+  flareGlow.material.opacity=0.12+0.5*flareHeat+0.28*nightFactor;
+  const gs=9+15*flareHeat+4*nightFactor; flareGlow.scale.set(gs,gs,1);
+  if(flareHeat>0.25&&Math.random()<dt*6)
+    spawnPuff(new THREE.Vector3(40,29+flareHeat*3,40),{color:0x44403a,size:2.2,life:2.4,rise:5,grow:2,jitter:2,opacity:0.45});
+  // sulfur pile
+  const pile=Math.min(1.6,0.5+S.sulfurPile/700);
+  sulfurCone.scale.set(pile,pile,pile); sulfurCone.position.y=0.5+1.7*pile;
+  // flow slugs
+  if(f){
+    const setFlow=(key,vol,cap)=>{ const R=ROUTES[key]; if(R){ R.flow=vol; R.cap=cap; } };
+    setFlow('crude',f.feed,100); setFlow('naphtha',f.naphtha,25); setFlow('gasoil',f.gasoil,45);
+    setFlow('dist',f.kero+f.diesel,60); setFlow('resid',f.resid+f.unconverted,40);
+    setFlow('reformate',f.reformate,22); setFlow('fccgas',f.fccGas,25);
+    setFlow('jetline',f.jet,15); setFlow('dieselline',f.dieselOut,30);
+    setFlow('flarehdr',S.dayOutput.flared.length?8:0,8); setFlow('sulfline',f.sulfurTons>0?5:0,5);
+    setFlow('h2line',(f.hydrogenOk&&f.needsTreat)?4:0,4); setFlow('lpgline',f.lpgSold,6);
+    setFlow('alkyfeed',f.alkyFeed||0,4); setFlow('alkyline',f.alkylate||0,4);
+  }
+  if(crane.visible&&craneJib) craneJib.rotation.y+=dt*0.3;
+  if(hoverBox.visible) hoverBox.material.opacity=0.55+0.3*Math.sin(performance.now()*0.006);
+  for(const e of FLARE2S){
+    if(!e.flame[0].visible) continue;
+    const fl=0.22+flareHeat*1.4+Math.sin(performance.now()*0.011+1.7)*0.05;
+    e.flame[0].scale.set(fl,fl,fl); e.flame[1].scale.set(fl*0.8,fl*0.8,fl*0.8);
+  }
+  const vmul=[1,1,1.8,3][speed]||1;
+  const selRoutes=selectedStream?STREAMS[selectedStream]:null;
+  for(const key of Object.keys(ROUTES)){
+    const R=ROUTES[key];
+    const sel=!selRoutes||selRoutes.includes(key);
+    const on=flowOverlay&&R.flow>0.3&&sel&&R.group.visible;
+    const rate=(0.012+0.05*(R.flow/Math.max(1,R.cap)))*vmul;
+    for(const s of R.slugs){
+      s.visible=on;
+      if(on){ s.userData.t=(s.userData.t+rate*dt)%1; s.position.copy(R.sample(s.userData.t)); }
+    }
+  }
+  for(const sp of LABELS) sp.visible=!!(labelsOn&&(!sp.userData.gated||S.builds[sp.userData.gated].done));
+}
+
+/* ================================================================
+   UI — HUD, panel, windows
+   ================================================================ */
+const $=id=>document.getElementById(id);
+function money(v){ return (v<0?'-$':'$')+Math.abs(v).toFixed(1)+'M'; }
+
+function refreshHud(){
+  $('chipDate').innerHTML=dateStr(S.day)+'&nbsp;&nbsp;'+timeStr();
+  $('mPause').classList.toggle('open',speed===0);
+  $('chipCash').textContent=money(S.cash);
+  $('chipCash').classList.toggle('neg',S.cash<0);
+  const w=S.lastWeek;
+  $('chipWeek').textContent=w?('wk P&L '+(w.profit>=0?'+':'')+w.profit.toFixed(1)+'M'):'wk P&L —';
+  $('chipWeek').classList.toggle('neg',!!w&&w.profit<0);
+  $('chipSpeed').textContent=['PAUSED','NORMAL','FAST','MAX'][speed];
+  document.querySelectorAll('#speedMenu .item').forEach(el=>{
+    el.querySelector('.tick').textContent=(+el.dataset.speed===speed)?'✓':'';
+  });
+}
+
+function condBar(c){
+  const cls=c>=60?'ok':c>=40?'warn':'bad';
+  return '<span class="bar"><i class="'+cls+'" style="width:'+Math.round(c)+'%"></i></span>';
+}
+function statusDot(u){
+  if(u.destroyed) return '<span class="dot bad" title="destroyed"></span>';
+  if(u.downDays>0) return '<span class="dot bad"></span>';
+  if(u.pressure>85||u.condition<40) return '<span class="dot warn"></span>';
+  return '<span class="dot ok"></span>';
+}
+function grade(){
+  const h=S.profitHistory.slice(-12);
+  if(!h.length) return '—';
+  const a=h.reduce((x,y)=>x+y,0)/h.length;
+  return a>=4.5?'A':a>=3?'B':a>=1.5?'C':a>=0?'D':'F';
+}
+
+function refreshOps(){
+  const f=S.dayOutput?S.dayOutput.flows:null;
+  const P=S.prices, C=S.crude;
+  let h='';
+  h+='<button class="esd" id="esdBtn">EMERGENCY SHUTDOWN</button>';
+  h+='<div class="sect"><h4>PLANT — click a unit</h4><table class="data">';
+  h+='<tr><th>Unit</th><th>Cond</th><th>Press</th><th></th></tr>';
+  for(const k of Object.keys(UNIT_DEFS)){
+    if(k==='alky'&&alkyCap(S)===0) continue;
+    const u=S.units[k];
+    h+='<tr class="rowbtn" data-unit="'+k+'"><td>'+UNIT_DEFS[k].name.replace(' Unit','').replace('Catalytic ','')+'</td>'+
+       '<td>'+condBar(u.condition)+'</td><td>'+Math.round(u.pressure)+'</td><td>'+statusDot(u)+
+       (u.downDays>0?' '+u.downDays+'d':'')+'</td></tr>';
+  }
+  h+='</table></div>';
+
+  {
+    const lvl=S.tank.level, cap=S.tank.cap;
+    const wd=((S.day-1)%7+7)%7;
+    const next=((8-(S.day%7))%7)||7;
+    const status=S.skipDelivery>0?'Next delivery cancelled':(wd<=2?'Tanker at berth':'Next tanker in '+next+' day'+(next>1?'s':''));
+    const cls=lvl<150?'bad':lvl<300?'warn':'ok';
+    h+='<div class="sect"><h4>CRUDE SUPPLY</h4>'+
+      '<div class="kv"><span>Tank inventory (bbl)</span><b>'+fmtB(lvl)+' / '+fmtB(cap)+'</b></div>'+
+      '<div class="bar" style="width:100%"><i class="'+cls+'" style="width:'+Math.round(lvl/cap*100)+'%"></i></div>'+
+      '<div class="kv"><span>'+status+'</span><b>'+(S.lastDelivery?('last: '+fmtB(S.lastDelivery.volume)):'')+'</b></div>'+
+      '<div style="font-size:10px;color:#333;">Crude is bought by the tanker load at the current slate price. A dry tank starves the distillation unit.</div></div>';
+  }
+  h+='<div class="sect"><h4>MAINTENANCE BUDGET</h4>'+
+     '<div class="kv"><span>Spending</span><b id="maintVal">'+S.maint+'% — $'+(MAINT_BASE_WEEK*S.maint/100).toFixed(1)+'M/wk</b></div>'+
+     '<input type="range" id="maintSlider" min="0" max="200" step="5" value="'+S.maint+'">'+
+     '<div style="font-size:10px;color:#333;">Above 115% slowly restores unit condition. Below it, units wear.</div></div>';
+
+  h+='<div class="sect"><h4>CRUDE MARKET ($/bbl)</h4><table class="data">';
+  for(const k of Object.keys(CRUDES)){
+    h+='<tr><td>'+CRUDES[k].name+(S.crudeType===k?' ◄':'')+'</td><td>'+CRUDES[k].sulfur.toFixed(1)+'%S</td><td><b>$'+C[k].toFixed(2)+'</b></td></tr>';
+  }
+  h+='</table></div>';
+
+  h+='<div class="sect"><h4>PRODUCT PRICES ($/bbl)</h4><table class="data">';
+  const pn={gasoline:'Gasoline',jet:'Jet fuel',diesel:'Diesel',heating:'Heating oil',lpg:'LPG'};
+  for(const k of Object.keys(pn)) h+='<tr><td>'+pn[k]+'</td><td><b>$'+P[k].toFixed(2)+'</b></td></tr>';
+  h+='<tr><td>Sulfur ($/t)</td><td><b>$'+P.sulfur.toFixed(0)+'</b></td></tr>';
+  h+='</table></div>';
+
+  if(f){
+    h+='<div class="sect"><h4>TODAY\'S PRODUCTION (BPOD)</h4><table class="data">';
+    h+='<tr><td>Crude processed</td><td><b>'+fmtB(f.feed)+'</b></td></tr>';
+    h+='<tr><td>Gasoline (octane '+f.octane.toFixed(1)+(f.onSpecGas?'':' — BELOW '+f.octaneSpec+' SPEC')+')</td><td><b>'+fmtB(f.gasVol)+'</b></td></tr>';
+    h+='<tr><td>Jet fuel</td><td><b>'+fmtB(f.jet)+'</b></td></tr>';
+    h+='<tr><td>Diesel'+(f.offSpec>0.2?' ('+fmtB(f.offSpec)+' off-spec)':'')+'</td><td><b>'+fmtB(f.dieselOut)+'</b></td></tr>';
+    h+='<tr><td>Heating oil</td><td><b>'+fmtB(f.heating)+'</b></td></tr>';
+    h+='<tr><td>C3−C4 (LPG)</td><td><b>'+fmtB(f.lpg)+'</b></td></tr>';
+    h+='<tr><td>Sulfur removed (t/d)</td><td><b>'+f.sulfurTons.toFixed(0)+'</b></td></tr>';
+    h+='<tr><td>Revenue / crude cost</td><td><b>'+money(f.rev)+' / '+money(f.crudeCost)+'</b></td></tr>';
+    h+='</table></div>';
+  }
+
+  h+='<div class="sect"><h4>PERFORMANCE</h4>'+
+     '<div class="kv"><span>Cash</span><b>'+money(S.cash)+'</b></div>'+
+     '<div class="kv"><span>Total profit</span><b>'+money(S.totalProfit)+'</b></div>'+
+     '<div class="kv"><span>Weeks operated</span><b>'+S.week+'</b></div>'+
+     '<div class="kv"><span>Breakdowns / explosions</span><b>'+S.breakdowns+' / '+S.explosions+'</b></div>'+
+     (S.scenario==='wreck'?'<div class="kv"><span>Damage caused</span><b>'+money(S.damageTotal)+'</b></div>':'')+
+     '<div class="kv"><span>12-week review grade</span><b>'+grade()+'</b></div>'+
+     (S.event?'<div class="notice">Active: '+S.event.name+' ('+S.event.weeksLeft+' wk left)</div>':'')+
+     (S.contract?'<div class="notice">Contract: '+fmtB(S.contract.bpod)+' BPOD '+S.contract.product+' @ $'+S.contract.price.toFixed(2)+', '+S.contract.weeksLeft+' wk left — this week '+(S.contract.requiredWk?Math.round(100*S.contract.deliveredWk/S.contract.requiredWk):100)+'% delivered</div>':'')+
+     (S.contractOffer?'<div class="notice">A contract offer is waiting (see its window, or it lapses).</div>':'')+
+     (GOALS[S.scenario]?'<div class="goalchip"><b>Objective:</b> '+GOALS[S.scenario].text+' <b>'+
+        (S.goalChecked?(S.goalMet?'— MET':'— NOT MET'):(S.goalMet?'— MET':'— in progress'))+'</b></div>':'')+
+     '</div>';
+
+  $('opsBody').innerHTML=h;
+  $('esdBtn').addEventListener('click',openEsdConfirm);
+  $('maintSlider').addEventListener('input',e=>{
+    S.maint=+e.target.value;
+    $('maintVal').textContent=S.maint+'% — $'+(MAINT_BASE_WEEK*S.maint/100).toFixed(1)+'M/wk';
+  });
+  document.querySelectorAll('#opsBody [data-unit]').forEach(el=>{
+    el.addEventListener('click',()=>openUnit(el.dataset.unit));
+  });
+}
+
+/* ---- generic windows ---- */
+let zTop=1000;
+function makeWindow(id,title,x,y,w){
+  closeWindow(id);
+  const win=document.createElement('div');
+  win.className='win out'; win.id=id;
+  win.style.left=Math.min(x,innerWidth-320)+'px'; win.style.top=y+'px';
+  if(w) win.style.width=w+'px';
+  win.innerHTML='<div class="tbar"><span>'+title+'</span><span class="grow"></span><span class="winbtn out" data-close>✕</span></div><div class="content"></div>';
+  document.body.appendChild(win);
+  win.style.zIndex=++zTop;
+  win.addEventListener('pointerdown',()=>win.style.zIndex=++zTop);
+  win.querySelector('[data-close]').addEventListener('click',()=>win.remove());
+  const tb=win.querySelector('.tbar');
+  tb.addEventListener('pointerdown',e=>{
+    if(e.target.dataset.close!==undefined) return;
+    const sx=e.clientX-win.offsetLeft, sy=e.clientY-win.offsetTop;
+    const mv=ev=>{ win.style.left=(ev.clientX-sx)+'px'; win.style.top=Math.max(28,ev.clientY-sy)+'px'; };
+    const up=()=>{ removeEventListener('pointermove',mv); removeEventListener('pointerup',up); };
+    addEventListener('pointermove',mv); addEventListener('pointerup',up);
+  });
+  return win.querySelector('.content');
+}
+function closeWindow(id){ const w=$(id); if(w) w.remove(); }
+
+/* ---- unit dialogs ---- */
+let openUnitKey=null;
+function openUnit(key){
+  openUnitKey=key;
+  renderUnitWin(true);
+  focusCamera(key);
+}
+function renderUnitWin(create){
+  const key=openUnitKey; if(!key) return;
+  const exists=$('unitWin');
+  if(!exists&&!create) return;
+  const titles={cdu:'Crude Distillation Unit',reformer:'Catalytic Reformer',fcc:'Catalytic Cracker (FCC)',hydro:'Hydrotreater',alky:'Alkylation Unit',
+    tanks:'Crude Tank Farm',ptanks:'Product Tank Farm',flare:'Flare System',sulfur:'Sulfur Recovery',cooling:'Cooling Tower',admin:'Administration'};
+  const c=exists?exists.querySelector('.content'):makeWindow('unitWin',titles[key]||key,260,70,330);
+  if(exists) exists.querySelector('.tbar span').textContent=titles[key]||key;
+  $('unitWin').style.width=(key==='cdu'?436:330)+'px';
+  const f=S.dayOutput?S.dayOutput.flows:null;
+  const u=S.units[key];
+  let h='';
+
+  const unitHeader=(u,cap,ukey)=>{
+    let s='';
+    if(u.destroyed||u.downDays>0)
+      s+='<div class="notice '+(u.planned&&!u.destroyed?'':'danger')+'"><b>'+
+         (u.destroyed?'DESTROYED':(u.planned?'TURNAROUND':'DOWN'))+'</b> — back in service in '+u.downDays+' days'+
+         (u.planned&&!u.destroyed?' at condition 95':'')+'.</div>';
+    s+='<div class="kv"><span>Condition</span><b>'+Math.round(u.condition)+'/100 '+condBar(u.condition)+'</b></div>';
+    s+='<div class="kv"><span>Pressure</span><b>'+Math.round(u.pressure)+'</b></div>';
+    s+='<div class="gauge"><div class="needle" style="left:'+Math.min(99,u.pressure/1.2)+'%"></div></div>';
+    s+='<div style="font-size:10px;color:#333;">Flare relief opens above 85. Explosion risk above 105.</div>';
+    if(cap) s+='<div class="kv"><span>Nameplate capacity</span><b>'+fmtB(cap)+' BPOD</b></div>';
+    if(ukey&&u.downDays===0)
+      s+='<button class="btn out" id="taBtn" data-ta="'+ukey+'">Schedule turnaround — 4 days, $1.5M, returns at condition 95</button>';
+    return s;
+  };
+
+  if(key==='cdu'){
+    h+=unitHeader(u,capOf(S,'cdu'),'cdu');
+    const cr=CRUDES[S.crudeType];
+    h+='<div class="kv" style="margin-top:5px;"><span><button class="btn out" id="nextCrude" style="margin:0;padding:2px 10px;">NEXT CRUDE</button></span>'+
+       '<b>CURRENT → '+cr.name+'</b></div>'+
+       '<div style="font-size:11px;color:#333;">$'+S.crude[S.crudeType].toFixed(2)+'/bbl, '+cr.sulfur.toFixed(1)+'% sulfur</div>';
+    {
+      // indicative netback per crude at current prices and cutpoints
+      const indic=k2=>{
+        const yy={...CRUDES[k2].yields}, c=S.cuts, pr=S.prices;
+        yy.naphtha+=0.004*c.c1; yy.kero+=0.004*(c.c2-c.c1); yy.diesel-=0.004*c.c2;
+        yy.gasoil+=0.004*c.c3; yy.resid-=0.004*c.c3;
+        return yy.naphtha*pr.gasoline*0.93 + yy.kero*pr.jet + yy.diesel*pr.diesel +
+          yy.gasoil*(0.5*pr.gasoline+0.22*pr.diesel+0.08*pr.lpg+0.2*pr.heating) +
+          yy.resid*pr.heating - S.crude[k2];
+      };
+      h+='<div style="font-size:10px;color:#333;margin-top:2px;">Indicative gross margin, $/bbl at current prices, before operating costs: Light '+indic('light').toFixed(2)+
+         ' · Medium '+indic('medium').toFixed(2)+' · Heavy '+indic('heavy').toFixed(2)+
+         '. Ignores treating limits and octane — sour crude earns less than this when the hydrotreater is short.</div>';
+    }
+    h+='<div class="cux"><div class="ctlcol">';
+    h+='<label>crude — <b id="feedVal">'+fmtB(S.feedRate)+'</b> BPOD</label>'+
+       '<input type="range" id="feedSlider" min="0" max="120" step="1" value="'+S.feedRate+'">';
+    if(f) h+='<div class="kv"><span>processed today</span><b>'+fmtB(f.feed)+'</b></div>'+
+             '<div class="kv"><span>effective capacity</span><b>'+fmtB(f.cduMax)+'</b></div>'+
+             '<div class="kv"><span>crude tank (bbl)</span><b>'+fmtB(S.tank.level)+'</b></div>';
+    h+='<div class="cutlist"><b>Cutpoints (°F)</b><br>'+
+       '<span class="fixedcut">175&nbsp; LSR gaso (fixed)</span><br>'+
+       '<span class="fixedcut">268&nbsp; HSR gaso (fixed)</span><br>'+
+       '<span style="color:#2040a0;"><b id="cutv_c1">'+(560+S.cuts.c1*10)+'</b>&nbsp; jet</span>'+
+       '<input type="range" id="cut_c1" min="-5" max="5" step="1" value="'+S.cuts.c1+'">'+
+       '<span style="color:#2040a0;"><b id="cutv_c2">'+(750+S.cuts.c2*10)+'</b>&nbsp; diesel</span>'+
+       '<input type="range" id="cut_c2" min="-5" max="5" step="1" value="'+S.cuts.c2+'">'+
+       '<span style="color:#b06010;"><b id="cutv_c3">'+(977+S.cuts.c3*10)+'</b>&nbsp; VGO</span>'+
+       '<input type="range" id="cut_c3" min="-5" max="5" step="1" value="'+S.cuts.c3+'">'+
+       '</div>';
+    h+='<div style="font-size:10px;color:#333;">Raising a cutpoint pulls more of the barrel into the lighter product above it. Above effective capacity, pushing feed only builds pressure.</div>';
+    h+='</div><div class="colcol"><div class="coltower"></div><div class="drawrows">';
+    const drawRow=(name,kbd,color,dest)=>{
+      const cap=Math.max(10,(f?f.feed:90)*0.34);
+      return '<div class="draw"><span class="tap" style="background:'+color+'"></span>'+name+
+        ' <span class="dchip">'+dest+'</span><br><b>'+fmtB(kbd)+' BPOD</b>'+
+        '<div class="dbar"><i style="width:'+Math.min(100,kbd/cap*100)+'%;background:'+color+'"></i></div></div>';
+    };
+    if(f){
+      h+=drawRow('gas',f.feed*cr.yields.gas,'#c887c8','FUEL')+
+         drawRow('naphtha',f.naphtha,'#d8c46a',f.refFeed>0.5?'REF':'BLEND')+
+         drawRow('jet (kero)',f.kero,'#86b1d8',f.needsTreat?'HT':'JET')+
+         drawRow('diesel',f.diesel,'#9a8e5a',f.needsTreat?'HT':'DSL')+
+         drawRow('VGO',f.gasoil,'#7c5a36','FCC')+
+         drawRow('residuum',f.resid,'#3a3430','RM');
+    } else h+='<p style="font-size:10px;">Numbers appear after the first day.</p>';
+    h+='</div></div>';
+  } else if(key==='alky'){
+    h+=unitHeader(u,capOf(S,'alky'),'alky');
+    if(f) h+='<div class="kv"><span>C3−C4 feed</span><b>'+fmtB(f.alkyFeed)+' BPOD</b></div>'+
+             '<div class="kv"><span>Alkylate to gasoline pool</span><b>'+fmtB(f.alkylate)+' BPOD @ 94 octane</b></div>'+
+             '<div class="kv"><span>Operating cost</span><b>$0.3M/wk</b></div>';
+    h+='<p style="font-size:10px;color:#333;">Feed comes from the cat cracker — higher FCC severity makes more C3−C4 for this unit to upgrade.</p>';
+  } else if(key==='reformer'){
+    h+=unitHeader(u,capOf(S,'reformer'),'reformer');
+    if(f) h+='<div class="kv"><span>Naphtha feed</span><b>'+fmtB(f.refFeed)+' BPOD</b></div>'+
+             '<div class="kv"><span>Reformate out</span><b>'+fmtB(f.reformate)+' BPOD @ '+f.refOctane.toFixed(1)+' octane</b></div>'+
+             '<div class="kv"><span>Bypassing as straight-run</span><b>'+fmtB(f.srNaphtha)+' BPOD @ 71 octane</b></div>';
+    h+='<label>Severity: <b id="refSevVal">'+S.refSeverity+'%</b></label>'+
+       '<input type="range" id="refSevSlider" min="80" max="120" step="1" value="'+S.refSeverity+'">'+
+       '<div style="font-size:10px;color:#333;">Higher severity raises octane but loses yield, adds pressure, and wears the unit faster.</div>'+
+       '<div class="notice">Byproduct hydrogen from this unit supplies the hydrotreater. With the reformer down, the hydrotreater runs at 55% capacity.</div>';
+  } else if(key==='fcc'){
+    h+=unitHeader(u,capOf(S,'fcc'),'fcc');
+    if(f) h+='<div class="kv"><span>Gas oil feed</span><b>'+fmtB(f.fccFeed)+' BPOD</b></div>'+
+             '<div class="kv"><span>FCC gasoline</span><b>'+fmtB(f.fccGas)+' BPOD @ 92 octane</b></div>'+
+             '<div class="kv"><span>Light cycle oil → diesel</span><b>'+fmtB(f.lco)+' BPOD</b></div>'+
+             '<div class="kv"><span>C3−C4 (LPG)</span><b>'+fmtB(f.lpg)+' BPOD'+(f.alkyOn?' → alkylation':'')+'</b></div>'+
+             (f.unconverted>0.2?'<div class="notice">Unconverted gas oil ('+fmtB(f.unconverted)+' BPOD) is selling as heating oil. Lower the VGO cutpoint or accept it.</div>':'');
+    h+='<label>Severity: <b id="fccSevVal">'+S.fccSeverity+'%</b></label>'+
+       '<input type="range" id="fccSevSlider" min="80" max="120" step="1" value="'+S.fccSeverity+'">'+
+       '<div style="font-size:10px;color:#333;">Higher severity makes more gasoline and LPG, less cycle oil — and wears the unit faster.</div>';
+  } else if(key==='hydro'){
+    h+=unitHeader(u,capOf(S,'hydro'),'hydro');
+    if(f){
+      if(f.needsTreat){
+        h+='<div class="kv"><span>Distillate needing treatment</span><b>'+fmtB(f.kero+f.diesel+f.lco)+' BPOD</b></div>'+
+           '<div class="kv"><span>Treated</span><b>'+Math.round(f.treatedFrac*100)+'%</b></div>'+
+           '<div class="kv"><span>Hydrogen from reformer</span><b>'+(f.hydrogenOk?'available':'SHORT — capacity at 55%')+'</b></div>'+
+           '<div class="kv"><span>Sulfur removed</span><b>'+f.sulfurTons.toFixed(0)+' t/day</b></div>';
+        if(f.treatedFrac<0.999)
+          h+='<div class="notice danger">Capacity short: untreated kerosene downgrades to heating oil and untreated diesel sells at a 30% discount. Use lighter crude or cut feed rate.</div>';
+      } else {
+        h+='<div class="notice">Light sweet crude does not need hydrotreating. The unit is idle.</div>';
+      }
+    }
+    h+='<p style="font-size:10px;color:#333;">Capacity is consumed faster by sourer crude: heavy (3.0% S) loads the unit at twice the rate of medium (1.5% S).</p>';
+  } else if(key==='tanks'){
+    const lvl=S.tank.level, cap=S.tank.cap;
+    h+='<div class="kv"><span>Inventory (bbl)</span><b>'+fmtB(lvl)+' / '+fmtB(cap)+'</b></div>'+
+       '<div class="bar" style="width:100%"><i class="'+(lvl<150?'bad':lvl<300?'warn':'ok')+'" style="width:'+Math.round(lvl/cap*100)+'%"></i></div>'+
+       '<div class="kv"><span>Current slate</span><b>'+CRUDES[S.crudeType].name+'</b></div>'+
+       '<div class="kv"><span>Purchase price</span><b>$'+S.crude[S.crudeType].toFixed(2)+'/bbl</b></div>'+
+       (S.lastDelivery?'<div class="kv"><span>Last delivery</span><b>'+fmtB(S.lastDelivery.volume)+' bbl, $'+S.lastDelivery.cost.toFixed(1)+'M</b></div>':'')+
+       (S.skipDelivery>0?'<div class="notice danger">The next delivery is cancelled. Watch the tank level and cut feed if it gets low.</div>':'')+
+       '<p>A tanker delivers once a week; the floating roofs on the tanks ride up and down with inventory. Set rate and slate at the Crude Distillation Unit.</p>';
+  } else if(key==='ptanks'){
+    if(f) h+='<table class="data"><tr><th>Product</th><th>BPOD</th><th>$/bbl</th></tr>'+
+      '<tr><td>Gasoline</td><td>'+fmtB(f.gasVol)+'</td><td>'+S.prices.gasoline.toFixed(2)+'</td></tr>'+
+      '<tr><td>Jet</td><td>'+fmtB(f.jet)+'</td><td>'+S.prices.jet.toFixed(2)+'</td></tr>'+
+      '<tr><td>Diesel</td><td>'+fmtB(f.dieselOut)+'</td><td>'+S.prices.diesel.toFixed(2)+'</td></tr>'+
+      '<tr><td>Heating oil</td><td>'+fmtB(f.heating)+'</td><td>'+S.prices.heating.toFixed(2)+'</td></tr>'+
+      '<tr><td>C3−C4</td><td>'+fmtB(f.lpg)+'</td><td>'+S.prices.lpg.toFixed(2)+'</td></tr></table>';
+    h+='<p>Products sell at market price each day. Gasoline below 87 octane sells at an 18% discount.</p>';
+  } else if(key==='flare'){
+    h+='<p>The flare burns off gas when any unit\'s pressure passes 85. Each day of flaring costs about $80,000 in lost product.</p>'+
+       '<p>A big flame is a warning, not a decoration: reduce feed, severity, or repair worn units.</p>';
+  } else if(key==='sulfur'){
+    h+='<div class="kv"><span>Pile on pad</span><b>'+S.sulfurPile.toFixed(0)+' tons</b></div>'+
+       '<div class="kv"><span>Market</span><b>$'+S.prices.sulfur.toFixed(0)+'/ton</b></div>'+
+       '<p>Sulfur stripped out by the hydrotreater. Sold off automatically each week. The pile is small money — its real job is keeping sulfur out of the products.</p>';
+  } else if(key==='cooling'){
+    h+='<p>Cooling water for the process units. No controls in this model.</p>';
+  } else if(key==='admin'){
+    h+='<div class="kv"><span>Fixed operating cost</span><b>$'+(OPEX_PER_DAY*S.mul.opex).toFixed(2)+'M/day</b></div>'+
+       '<div class="kv"><span>Maintenance budget</span><b>'+S.maint+'%</b></div>'+
+       '<p>Staff, energy, and overhead. Maintenance budget is set in the Operations panel.</p>';
+  }
+  c.innerHTML=h;
+
+  // wire controls
+  const ta=$('taBtn');
+  if(ta) ta.addEventListener('click',()=>{
+    if(scheduleTurnaround(S,ta.dataset.ta)){
+      pushMsg(UNIT_DEFS[ta.dataset.ta].name+': turnaround started. Offline 4 days, $1.5M, returns at condition 95.');
+      renderUnitWin(false); refreshOps();
+    }
+  });
+  const bind=(id,fn)=>{ const el=$(id); if(el) el.addEventListener('input',fn); };
+  const nc=$('nextCrude');
+  if(nc) nc.addEventListener('click',()=>{
+    const order=['light','medium','heavy'];
+    S.crudeType=order[(order.indexOf(S.crudeType)+1)%order.length];
+    refreshOps(); renderUnitWin(false);
+  });
+  bind('feedSlider',e=>{ S.feedRate=+e.target.value; S.feedSetpoint=S.feedRate; $('feedVal').textContent=fmtB(S.feedRate); });
+  bind('refSevSlider',e=>{ S.refSeverity=+e.target.value; $('refSevVal').textContent=S.refSeverity+'%'; });
+  bind('fccSevSlider',e=>{ S.fccSeverity=+e.target.value; $('fccSevVal').textContent=S.fccSeverity+'%'; });
+  document.querySelectorAll('#unitWin input[name=crude]').forEach(r=>{
+    r.addEventListener('change',()=>{ S.crudeType=r.value; refreshOps(); });
+  });
+  const CUT_BASE={c1:560,c2:750,c3:977};
+  for(const ck of ['c1','c2','c3']){
+    const el=$('cut_'+ck);
+    if(el) el.addEventListener('input',e=>{ S.cuts[ck]=+e.target.value; $('cutv_'+ck).textContent=CUT_BASE[ck]+S.cuts[ck]*10; });
+  }
+}
+function fmtCut(v){ return (v>0?'+':'')+(v*0.4).toFixed(1)+'%'; }
+function cutRow(ck,label){
+  return '<label>'+label+': <b id="cutv_'+ck+'">'+fmtCut(S.cuts[ck])+'</b></label>'+
+    '<input type="range" id="cut_'+ck+'" min="-5" max="5" step="1" value="'+S.cuts[ck]+'">';
+}
+function refreshUnitWin(){ if($('unitWin')) renderUnitWin(false); }
+
+/* ---- camera focus ---- */
+let camTween=null;
+function focusCamera(key){
+  const U=UNITS3D[key]; if(!U) return;
+  camTween={ fromT:controls.target.clone(), toT:U.center.clone().setY(2), t:0 };
+}
+
+/* ---- directory / messages / help / history / about ---- */
+function showDirectory(){
+  const c=makeWindow('dirWin','Plant Directory',120,90,300);
+  let h='<p>Components of the plant. Click one to inspect it.</p><table class="data">';
+  const order=['cdu','reformer','fcc','hydro',...(alkyCap(S)>0?['alky']:[]),'tanks','ptanks','flare','sulfur','cooling','admin'];
+  const names={cdu:'Crude Distillation Unit',reformer:'Catalytic Reformer',fcc:'Catalytic Cracker',hydro:'Hydrotreater',alky:'Alkylation Unit',
+    tanks:'Crude Tank Farm',ptanks:'Product Tank Farm',flare:'Flare System',sulfur:'Sulfur Pad',cooling:'Cooling Tower',admin:'Administration'};
+  for(const k of order){
+    const u=S.units[k];
+    h+='<tr class="rowbtn" data-dir="'+k+'"><td>'+names[k]+'</td><td>'+(u?statusDot(u):'')+'</td></tr>';
+  }
+  h+='</table>';
+  c.innerHTML=h;
+  c.querySelectorAll('[data-dir]').forEach(el=>el.addEventListener('click',()=>openUnit(el.dataset.dir)));
+}
+function showMessages(){
+  const c=makeWindow('msgWin','Message Log',160,120,420);
+  c.innerHTML='<div id="msgList" class="well" style="height:220px;overflow-y:auto;padding:4px 6px;font-size:11px;line-height:1.5;"></div>';
+  const lw=$('msgList');
+  for(const m of MSGS){ const d=document.createElement('div'); d.textContent=dateStr(m.day)+' — '+m.text; lw.appendChild(d); }
+  lw.scrollTop=lw.scrollHeight;
+}
+function showHelp(){
+  const c=makeWindow('helpWin','How to Operate',140,70,440);
+  c.innerHTML=
+  '<p><b>The flow.</b> Crude enters the distillation tower and splits into naphtha, kerosene, diesel, gas oil, and residuum. Naphtha is reformed into high-octane gasoline blendstock. Gas oil is cracked in the FCC into more gasoline. Kerosene becomes jet fuel and diesel becomes diesel — if the hydrotreater can strip their sulfur. Residuum sells as cheap heating oil.</p>'+
+  '<p><b>Your levers.</b> Crude slate and feed rate (at the distillation unit), three cutpoints, reformer and FCC severity, and the maintenance budget (Operations panel). Every unit dialog shows live numbers, and each process unit can take a planned 4-day turnaround that restores it to condition 95.</p>'+
+  '<p><b>Building.</b> The BUILD button opens the build palette: pick a tool and click the map — additional process units that add real capacity (crude, cracking, reforming, treating, alkylation), crude tanks that add real storage, a second flare that halves flaring losses, and civic items (roads, trees, offices, light masts) with no process effect. The rules: industrial structures need road access within 16 (lay ROAD tiles to open new ground), they pay a pipe tie-in priced by distance — the pipe is drawn when construction finishes — and the fence and concrete grow to enclose what you build. R rotates; Esc or right-click puts the tool down; the bulldozer demolishes placed items with no refund. Separately, Refinery > Capital Projects upgrades the existing units in place.</p>'+
+  '<p><b>The supply chain.</b> A tanker delivers crude once a week; the tank farm carries the plant between ships. The floating roofs show the level. A missed delivery is survivable if you cut feed before the tank runs dry.</p>'+
+  '<p><b>The tradeoffs.</b> Heavy crude is cheap but sour and bottom-heavy. Cutting deeper toward gas oil makes more gasoline and less heating oil. Severity buys yield or octane at the price of wear. Skimp on maintenance and a unit goes down for a week — the repair bill then eats the budget that would have prevented the next one. And the units depend on each other: the reformer\'s byproduct hydrogen feeds the hydrotreater, so losing one unit quietly cripples another.</p>'+
+  '<p><b>Danger.</b> Pressure above 85 opens the flare (burning money). Above 105 a unit can explode. Worn units have less effective capacity — if you keep the feed rate where it was, the over-push pressurizes the unit. When pressure runs away, the EMERGENCY SHUTDOWN button in the Operations panel trips the whole plant for 3 days; it is expensive and it is the right call. One explosion is a disaster; two and you are fired. You are also fired at −$20M cash.</p>'+
+  '<p><b>Contracts.</b> Marketing brings fixed-price supply offers now and then. Committed barrels sell at the contract price whether the market moves or not, and delivering under 90% in a week costs the penalty — a breakdown mid-contract is your problem. The Operations panel tracks delivery.</p>'+
+  '<p><b>Keys.</b> Space pauses. 1, 2, 3 set the speed. In build mode, R rotates the tool and Esc (or right-click) puts it down.</p>'+
+  '<p><b>The objective</b>, in the words of the original: maximize the refinery\'s long-term profitability, or whatever you want it to be. The game does not come to a conclusion; you just keep trying to get better from period to period.</p>';
+}
+function showHistory(){
+  const c=makeWindow('histWin','The History',170,60,460);
+  c.innerHTML=
+  '<p>In 1992, Chevron paid Maxis $75,000 for a prototype refinery simulator to teach employees at the Richmond, California refinery how the plant worked as a system — not to train operators, but to show how the pieces fit together, the way SimCity did for cities.</p>'+
+  '<p>Maxis Business Simulations (the former Delta Logic — John Hiles, Bruce Skidmore, Greg Rossi, Bruce Montague) built it on a heavily modified SimFarm codebase. Chevron engineer Terrell Touchstone supplied the mass and energy balances. Operators could set crude rates, product mixes, and maintenance spending; skimping on maintenance sent plants down for a week, and a badly mismanaged chemical balance could blow part of the refinery up. Some instructors opened training by asking students to wreck the plant and get fired — breaking the refinery taught how its parts depended on each other.</p>'+
+  '<p>SimRefinery was delivered to Chevron on October 26, 1992. Chevron reported communication from marketing and finance staff "improved dramatically." The original software is lost; Fable Refinery follows the historical record, primarily Phil Salvador\'s 2020 history at The Obscuritory and Esther Dyson\'s 1993 Forbes account of play.</p>';
+}
+function showAbout(){
+  const c=makeWindow('aboutWin','About Fable Refinery',200,110,380);
+  c.innerHTML='<div style="font-family:\'Arial Black\',Arial,sans-serif;font-size:28px;">Fable <span style="color:#b01818;">Refinery</span></div>'+
+  '<p>A reconstruction inspired by SimRefinery, the lost Maxis Business Simulations training game built for Chevron, 1992. Not the original program; not affiliated with Maxis or Chevron.</p>'+
+  '<p>Simulation model tuned against the historical descriptions. Rendered with three.js.</p>'+
+  '<p style="font-size:10px;color:#333;">Sources: P. Salvador, "When SimCity got serious," The Obscuritory (2020); E. Dyson, Forbes (1993).</p>';
+}
+function showScenarios(){
+  const c=makeWindow('scenWin','Scenarios',180,90,360);
+  let h='<p>Starting a scenario resets the game.</p>';
+  const defs=[['steady','Steady State','Light crude, healthy plant.'],
+    ['heavy','Heavy Crude','Heavy sour at a deep discount; hydrotreater is the bottleneck.'],
+    ['winter','Winter Demand','Heating oil prices spiking for ten weeks.'],
+    ['failure','Run to Failure','All units at condition 45, cash $8M.'],
+    ['wreck','Wreck the Refinery','Destroy the plant. Get fired. Watch what breaks what.']];
+  for(const [k,n,d] of defs) h+='<button class="scn out" data-scn="'+k+'"><b>'+n+'</b><small>'+d+'</small></button>';
+  c.innerHTML=h;
+  c.querySelectorAll('[data-scn]').forEach(b=>b.addEventListener('click',()=>{ startGame(b.dataset.scn); closeWindow('scenWin'); }));
+}
+function showFired(){
+  const c=makeWindow('firedWin','Performance Review',innerWidth/2-210,140,420);
+  const reason=S.firedReason==='safety'
+    ?'Two explosions on your watch. The investigation board has terminated your employment.'
+    :'Cumulative losses passed $20 million. The company has terminated your employment.';
+  let h='<p><b>'+reason+'</b></p><table class="data">'+
+    '<tr><td>Weeks operated</td><td><b>'+S.week+'</b></td></tr>'+
+    '<tr><td>Total profit</td><td><b>'+money(S.totalProfit)+'</b></td></tr>'+
+    '<tr><td>Breakdowns</td><td><b>'+S.breakdowns+'</b></td></tr>'+
+    '<tr><td>Explosions</td><td><b>'+S.explosions+'</b></td></tr>'+
+    '<tr><td>Damage total</td><td><b>'+money(S.damageTotal)+'</b></td></tr></table>';
+  if(S.scenario==='wreck')
+    h+='<p>That was the assignment. The lesson is the chain: over-pushed units pressure up, the flare warns, capacity falls, and failures spread to the units downstream.</p>';
+  h+='<button class="btn out" id="fAgain">New Game</button><button class="btn out" id="fScen">Scenarios...</button>';
+  c.innerHTML=h;
+  $('fAgain').addEventListener('click',()=>{ closeWindow('firedWin'); startGame('steady'); });
+  $('fScen').addEventListener('click',()=>{ closeWindow('firedWin'); showScenarios(); });
+}
+function showIncident(inc){
+  if(!inc) return;
+  const c=makeWindow('incWin','Incident Report',innerWidth/2-230,120,460);
+  c.innerHTML='<p><b>INCIDENT REPORT — '+dateStr(inc.day)+'</b></p>'+
+    '<table class="data">'+
+    '<tr><td>Unit</td><td><b>'+UNIT_DEFS[inc.unit].name+'</b></td></tr>'+
+    '<tr><td>Event</td><td><b>Vessel rupture and fire</b></td></tr>'+
+    '<tr><td>Pressure at failure</td><td><b>'+inc.pressure+'</b></td></tr>'+
+    '<tr><td>Condition at failure</td><td><b>'+inc.condition+'/100</b></td></tr>'+
+    '<tr><td>Casualties</td><td><b>None. The area was evacuated.</b></td></tr>'+
+    '<tr><td>Direct damage</td><td><b>$'+UNIT_DEFS[inc.unit].explodeCost+'M, 28 days offline</b></td></tr></table>'+
+    '<p><b>Contributing factors:</b> '+inc.factors.join('; ')+'.</p>'+
+    '<p><b>Board note:</b> a second explosion will end your employment. The simulation is paused.</p>'+
+    '<button class="btn out" id="incOk">Acknowledge</button>';
+  $('incOk').addEventListener('click',()=>{ closeWindow('incWin'); if(!S.fired){ speed=1; refreshHud(); } });
+}
+function showGoalResult(G){
+  const c=makeWindow('goalWin','Scenario Objective',innerWidth/2-200,150,400);
+  c.innerHTML='<p><b>'+(S.goalMet?'Objective met.':'Objective not met.')+'</b></p>'+
+    '<p>'+G.text+'</p>'+
+    '<p>Average so far: $'+avg(S.profitHistory).toFixed(2)+'M/wk. Cash: '+money(S.cash)+'. The run continues — the game does not come to a conclusion.</p>'+
+    '<button class="btn out" onclick="this.closest(\'.win\').remove()">Continue</button>';
+}
+function showQuarterly(){
+  const q=Math.floor(S.week/13);
+  const h13=S.profitHistory.slice(-13);
+  const uptime=S.unitDays?Math.round(100*S.upDays/S.unitDays):100;
+  const c=makeWindow('qWin','Quarterly Review — Q'+q,innerWidth/2-210,130,420);
+  let comment;
+  const a=avg(h13);
+  if(S.explosions>0) comment='The board remains focused on the explosion. Profitability is secondary to not doing that again.';
+  else if(a>=4.5) comment='Strong quarter. The crude slate and cutpoints are earning their keep.';
+  else if(a>=2.5) comment='Acceptable. There is margin left on the table — review the crude slate, cutpoints, and blend octane.';
+  else if(a>=0) comment='Thin. Check whether maintenance, downtime, or product mix is the drag.';
+  else comment='The refinery lost money this quarter. The board wants a plan.';
+  c.innerHTML='<table class="data">'+
+    '<tr><td>Quarter profit</td><td><b>'+money(h13.reduce((x,y)=>x+y,0))+'</b></td></tr>'+
+    '<tr><td>Average per week</td><td><b>'+money(a)+'</b></td></tr>'+
+    '<tr><td>Unit uptime</td><td><b>'+uptime+'%</b></td></tr>'+
+    '<tr><td>Breakdowns / explosions</td><td><b>'+S.breakdowns+' / '+S.explosions+'</b></td></tr>'+
+    '<tr><td>Grade</td><td><b>'+grade()+'</b></td></tr></table>'+
+    '<p>'+comment+'</p>'+
+    '<button class="btn out" onclick="this.closest(\'.win\').remove()">Close</button>';
+}
+function showGraphs(){
+  const c=makeWindow('graphWin','Graphs',150,80,420);
+  c.innerHTML='<b>Weekly profit ($M, last 26 weeks)</b><canvas class="graph" id="gProfit" width="390" height="120"></canvas>'+
+    '<b>Product prices ($/bbl, last 52 weeks)</b><canvas class="graph" id="gPrice" width="390" height="130"></canvas>'+
+    '<div style="font-size:10px;">— gasoline&nbsp;&nbsp;— jet&nbsp;&nbsp;— diesel&nbsp;&nbsp;— heating oil (colors in order: black, blue, brown, red)</div>';
+  drawGraphs();
+}
+function drawGraphs(){
+  const cp=$('gProfit'); if(!cp) return;
+  const x=cp.getContext('2d');
+  x.clearRect(0,0,390,120);
+  const h=S.profitHistory.slice(-26);
+  const max=Math.max(4,...h.map(v=>Math.abs(v)));
+  x.strokeStyle='#888'; x.beginPath(); x.moveTo(0,60); x.lineTo(390,60); x.stroke();
+  h.forEach((v,i)=>{
+    const bh=v/max*52;
+    x.fillStyle=v>=0?'#0a7a2f':'#b01818';
+    x.fillRect(8+i*14.5,60-Math.max(0,bh),11,Math.abs(bh));
+  });
+  x.fillStyle='#000'; x.font='10px Tahoma'; x.fillText('±$'+max.toFixed(0)+'M', 344, 12);
+  const cq=$('gPrice'); const y=cq.getContext('2d');
+  y.clearRect(0,0,390,130);
+  const ph=S.priceHist;
+  if(ph.length>1){
+    const all=ph.flatMap(p=>[p.g,p.j,p.d,p.h]);
+    const lo=Math.min(...all)-5, hi=Math.max(...all)+5;
+    const sx=i=>8+i*(374/(ph.length-1)), sy=v=>122-(v-lo)/(hi-lo)*114;
+    const series=[['g','#000'],['j','#2040a0'],['d','#7a5a28'],['h','#b01818']];
+    for(const [k,col] of series){
+      y.strokeStyle=col; y.lineWidth=1.5; y.beginPath();
+      ph.forEach((p,i)=>{ i?y.lineTo(sx(i),sy(p[k])):y.moveTo(sx(0),sy(p[k])); });
+      y.stroke();
+    }
+    y.fillStyle='#000'; y.font='10px Tahoma';
+    y.fillText('$'+hi.toFixed(0),352,12); y.fillText('$'+lo.toFixed(0),352,126);
+  } else { y.fillStyle='#000'; y.font='11px Tahoma'; y.fillText('Data appears after the first settled week.',12,60); }
+}
+function showLedger(){
+  const c=makeWindow('ledgerWin','Weekly Ledger',130,70,470);
+  const w=S.lastWeek;
+  if(!w){ c.innerHTML='<p>No settled week yet. The ledger fills in after the first Sunday.</p>'; return; }
+  const d=w.detail;
+  const row=(n,v,neg)=>'<tr><td>'+n+'</td><td style="text-align:right"><b>'+(neg?'−':'')+'$'+Math.abs(v).toFixed(2)+'M</b></td></tr>';
+  c.innerHTML='<p><b>Week '+S.week+' settlement</b></p><table class="data ledger" style="width:100%">'+
+    row('Gasoline sales',d.revGasoline)+row('Jet fuel sales',d.revJet)+row('Diesel sales',d.revDiesel)+
+    row('Heating oil sales',d.revHeating)+row('LPG sales',d.revLpg)+row('Sulfur sales',d.revSulfur)+
+    ((d.contractAdj||0)!==0?row('Contract adjustment',d.contractAdj,(d.contractAdj||0)<0):'')+
+    '<tr><td colspan="2"><hr></td></tr>'+
+    row('Crude purchases',d.crude,true)+row('Fixed operating cost',d.opex,true)+row('Maintenance budget',d.maint,true)+
+    row('Flaring losses',d.flare,true)+row('Repairs and turnarounds',d.repairs,true)+row('Capital projects',d.capex||0,true)+row('Fines',d.fines,true)+
+    '<tr><td colspan="2"><hr></td></tr>'+
+    row('Profit',w.profit)+'</table>'+
+    '<p style="font-size:10px;color:#333;">Crude is billed on delivery, so a big tanker week books its cost up front.</p>';
+}
+
+/* ---- save / continue ---- */
+function saveGame(){
+  try{
+    localStorage.setItem('sr3.save', JSON.stringify({ver:2, S, msgs:MSGS.slice(-40)}, (k,v)=>k==='rng'?undefined:v));
+  }catch(e){}
+}
+function loadSave(){
+  try{ const j=JSON.parse(localStorage.getItem('sr3.save')); return (j&&j.ver===2)?j:null; }catch(e){ return null; }
+}
+function resumeGame(){
+  const j=loadSave(); if(!j) return false;
+  resetWorld();
+  S=j.S; bindRng(S);
+  // migrate saves from before capital projects / free building existed
+  if(!S.builds) S.builds=Object.fromEntries(Object.keys(PROJECTS).map(k=>[k,{started:0,weeksLeft:0,done:0}]));
+  if(S.wk&&S.wk.capex===undefined) S.wk.capex=0;
+  if(!S.units.alky) S.units.alky={condition:90,pressure:20,downDays:0,destroyed:0,online:true,planned:0,enabled:true};
+  if(!S.placed){ S.placed=[]; S.placedSeq=1; }
+  clearPlaced3D();
+  setBuildTool(null);
+  MSGS.length=0;
+  for(const m of j.msgs||[]) MSGS.push(m);
+  for(const k of Object.keys(S.units)){
+    if(S.units[k].destroyed){ charUnit(k,true); addScorch(k); }
+  }
+  applyBuilds3D();
+  pushMsg('Saved game resumed: week '+S.week+', cash '+money(S.cash)+'.');
+  trainIdx=-1; closeWindow('trainWin');
+  if(S.contractOffer) showContractOffer();
+  speed=1; simAcc=0;
+  if(S.fired){ speed=0; showFired(); }
+  refreshHud(); refreshOps();
+  showMap();
+  return true;
+}
+
+/* ================================================================
+   INPUT — menus, raycast, keyboard
+   ================================================================ */
+document.querySelectorAll('[data-menu]').forEach(m=>{
+  m.addEventListener('click',e=>{
+    const was=m.classList.contains('open');
+    document.querySelectorAll('[data-menu]').forEach(x=>x.classList.remove('open'));
+    if(!was) m.classList.add('open');
+    e.stopPropagation();
+  });
+});
+addEventListener('click',()=>document.querySelectorAll('[data-menu]').forEach(x=>x.classList.remove('open')));
+document.querySelectorAll('#speedMenu .item').forEach(el=>{
+  el.addEventListener('click',()=>{ speed=+el.dataset.speed; refreshHud(); });
+});
+$('mNew').addEventListener('click',()=>startGame(S.scenario));
+$('mScen').addEventListener('click',showScenarios);
+$('mTrain').addEventListener('click',startTraining);
+$('mAbout').addEventListener('click',showAbout);
+
+/* Quick-scenario toggles in menubar */
+function highlightScenarioBtn(){
+  document.querySelectorAll('#scenarioBar [data-scn]').forEach(b=>b.className='scn out');
+  const active=document.querySelector('#scenarioBar [data-scn="'+S.scenario+'"]');
+  if(active) active.className='scn in';
+}
+document.querySelectorAll('#scenarioBar [data-scn]').forEach(btn=>{
+  btn.addEventListener('click',()=>{ startGame(btn.dataset.scn); });
+});
+highlightScenarioBtn();
+$('mFlow').addEventListener('click',function(){ flowOverlay=!flowOverlay; this.querySelector('.tick').textContent=flowOverlay?'✓':''; });
+$('mLabels').addEventListener('click',function(){ labelsOn=!labelsOn; this.querySelector('.tick').textContent=labelsOn?'✓':''; });
+$('mDir').addEventListener('click',showDirectory);
+$('mGraphs').addEventListener('click',showGraphs);
+$('mLedger').addEventListener('click',showLedger);
+$('mSound').addEventListener('click',function(){
+  soundOn=!soundOn;
+  localStorage.setItem('sr3.sound',soundOn?'1':'0');
+  if(master) master.gain.value=soundOn?1:0;
+  this.querySelector('.tick').textContent=soundOn?'✓':'';
+});
+$('mMsgs').addEventListener('click',showMessages);
+$('mCam').addEventListener('click',()=>{ camera.position.copy(HOME_POS); controls.target.copy(HOME_TGT); camera.zoom=1; camera.updateProjectionMatrix(); });
+$('mHow').addEventListener('click',showHelp);
+$('mHist').addEventListener('click',showHistory);
+$('mCrude').addEventListener('click',()=>openUnit('cdu'));
+$('mRef').addEventListener('click',()=>openUnit('reformer'));
+$('mFcc').addEventListener('click',()=>openUnit('fcc'));
+$('mHydro').addEventListener('click',()=>openUnit('hydro'));
+$('mAuto').addEventListener('click',()=>setAutoCtl(!autoCtl));
+$('mShut').addEventListener('click',orderlyShutdown);
+$('mStart').addEventListener('click',startUp);
+$('mEsd').addEventListener('click',openEsdConfirm);
+$('mOps').addEventListener('click',function(){
+  opsVisible=!opsVisible;
+  $('ops').style.display=opsVisible?'block':'none';
+  this.querySelector('.tick').textContent=opsVisible?'✓':'';
+});
+$('mMap').addEventListener('click',showMap);
+$('mOverhead').addEventListener('click',()=>setOverhead(!overheadMap));
+$('mReport').addEventListener('click',showReport);
+$('mProjects').addEventListener('click',showProjects);
+$('mBuild').addEventListener('click',showBuild);
+$('pBuild').addEventListener('click',showBuild);
+$('mPause').addEventListener('click',()=>{ speed=speed===0?1:0; refreshHud(); });
+$('pAuto').addEventListener('click',()=>setAutoCtl(true));
+$('pManual').addEventListener('click',()=>setAutoCtl(false));
+$('pShut').addEventListener('click',orderlyShutdown);
+$('pStart').addEventListener('click',startUp);
+$('pBudget').addEventListener('click',showLedger);
+$('pReport').addEventListener('click',showReport);
+document.querySelectorAll('#palette [data-stream]').forEach(b=>{
+  b.addEventListener('click',()=>selectStream(b.dataset.stream));
+});
+
+const ray=new THREE.Raycaster(), ndc=new THREE.Vector2();
+let downXY=null;
+renderer.domElement.addEventListener('pointerdown',e=>{ downXY=[e.clientX,e.clientY]; });
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(!downXY) return;
+  const moved=Math.hypot(e.clientX-downXY[0],e.clientY-downXY[1]);
+  downXY=null;
+  if(moved>6) return;
+  if(buildTool){ if(buildTool==='dozer') tryDoze(e); else tryPlace(); return; }
+  ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+  ray.setFromCamera(ndc,camera);
+  const targets=Object.values(UNITS3D).filter(u=>u.group.visible).map(u=>u.hit).concat(placedHits);
+  const hits=ray.intersectObjects(targets);
+  if(hits.length){
+    const ud=hits[0].object.userData;
+    if(ud.unitKey) openUnit(ud.unitKey);
+  }
+});
+renderer.domElement.addEventListener('contextmenu',e=>{
+  if(buildTool){ e.preventDefault(); setBuildTool(null); }
+});
+const TIP_TITLES={cdu:'Crude Distillation Unit',reformer:'Catalytic Reformer',fcc:'Catalytic Cracker (FCC)',hydro:'Hydrotreater',alky:'Alkylation Unit',
+  tanks:'Crude Tank Farm',ptanks:'Product Tank Farm',flare:'Flare System',sulfur:'Sulfur Pad',cooling:'Cooling Tower',admin:'Administration'};
+// selection box that frames whatever the cursor is over
+const hoverBox=new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1,1,1)),
+  new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.8,depthTest:false}));
+hoverBox.visible=false; hoverBox.renderOrder=6; scene.add(hoverBox);
+function setHoverBox(hit){
+  if(!hit){ hoverBox.visible=false; return; }
+  const p=hit.geometry.parameters;
+  hoverBox.scale.set(p.width*hit.scale.x+0.8, p.height*hit.scale.y+0.8, p.depth*hit.scale.z+0.8);
+  hit.getWorldPosition(hoverBox.position);
+  hoverBox.visible=true;
+}
+renderer.domElement.addEventListener('pointermove',e=>{
+  lastPointer=[e.clientX,e.clientY];
+  const tip=$('tip');
+  if(buildTool==='dozer'){
+    setHoverBox(null);
+    tip.textContent='Bulldozer: click a placed structure to demolish it. No refund.';
+    tip.style.display='block';
+    tip.style.left=Math.min(e.clientX+14,innerWidth-260)+'px';
+    tip.style.top=(e.clientY+18)+'px';
+    return;
+  }
+  if(buildTool){ setHoverBox(null); updateGhost(e); return; }
+  ndc.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);
+  ray.setFromCamera(ndc,camera);
+  const targets=Object.values(UNITS3D).filter(u=>u.group.visible).map(u=>u.hit).concat(placedHits);
+  const hits=ray.intersectObjects(targets);
+  renderer.domElement.style.cursor=hits.length?'pointer':'default';
+  setHoverBox(hits.length?hits[0].object:null);
+  if(hits.length){
+    const ud=hits[0].object.userData;
+    let label;
+    if(ud.placedId!==undefined&&!ud.unitKey){
+      const p=S.placed.find(q=>q.id===ud.placedId);
+      label=PLACEABLE[ud.placedType].name+(p&&!p.done?' — under construction, '+p.weeksLeft+' wk left':'')+'.';
+    } else {
+      const k=ud.unitKey, u=S.units[k];
+      let stat='';
+      if(ud.placedId!==undefined){
+        const p=S.placed.find(q=>q.id===ud.placedId);
+        stat=p&&!p.done?' train — under construction, '+p.weeksLeft+' wk left':' train — adds capacity';
+      }
+      else if(u) stat=u.downDays>0?(u.destroyed?' — destroyed, '+u.downDays+'d':' — down, '+u.downDays+'d')
+                :' — cond '+Math.round(u.condition)+', press '+Math.round(u.pressure);
+      else if(k==='tanks') stat=' — '+fmtB(S.tank.level)+' bbl';
+      else if(k==='sulfur') stat=' — '+S.sulfurPile.toFixed(0)+' t';
+      label=(TIP_TITLES[k]||PLACEABLE[ud.placedType]&&PLACEABLE[ud.placedType].name||k)+stat+'. Click to inspect.';
+    }
+    tip.textContent=label;
+    tip.style.display='block';
+    tip.style.left=Math.min(e.clientX+14,innerWidth-240)+'px';
+    tip.style.top=(e.clientY+16)+'px';
+  } else tip.style.display='none';
+});
+renderer.domElement.addEventListener('pointerleave',()=>{ $('tip').style.display='none'; setHoverBox(null); });
+// period UI click sound
+addEventListener('click',e=>{ if(e.target.closest&&e.target.closest('.item,.btn,.scn,.rowbtn,.winbtn,.esd')) sfxClick(); },true);
+$('mSound').querySelector('.tick').textContent=soundOn?'✓':'';
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(e.code==='Space'){ speed=speed===0?1:0; refreshHud(); e.preventDefault(); }
+  if(e.key==='1') speed=1; if(e.key==='2') speed=2; if(e.key==='3') speed=3;
+  if(e.key==='Escape'&&buildTool) setBuildTool(null);
+  if((e.key==='r'||e.key==='R')&&buildTool&&ghost){ ghostRot=(ghostRot+1)%4; updateGhost({clientX:lastPointer[0],clientY:lastPointer[1]}); }
+  refreshHud();
+});
+addEventListener('resize',()=>{ renderer.setSize(innerWidth,innerHeight); setFrustum(); });
+
+/* ================================================================
+   START / LOOP
+   ================================================================ */
+function resetWorld(){
+  for(const d of FX.debris) scene.remove(d.m);
+  for(const q of FX.puffs) scene.remove(q.sp);
+  for(const fl of FX.flashes){ scene.remove(fl.light); scene.remove(fl.ball); if(fl.ring) scene.remove(fl.ring); }
+  FX.debris.length=FX.puffs.length=FX.flashes.length=0;
+  for(const k of Object.keys(UNIT_DEFS)){ charUnit(k,false); removeScorch(k); }
+  for(const id of ['unitWin','firedWin','incWin','qWin','goalWin']) closeWindow(id);
+  openUnitKey=null;
+  MSGS.length=0;
+}
+function startGame(scn){
+  resetWorld();
+  clearPlaced3D();
+  setBuildTool(null);
+  trainIdx=-1; closeWindow('trainWin'); closeWindow('contractWin');
+  S=newGame(scn,(Math.random()*1e9)|0);
+  S.feedSetpoint=S.feedRate;
+  selectedStream=null;
+  for(const rk of Object.keys(ROUTES)){ const R=ROUTES[rk]; R.mat.opacity=1; R.mat.emissiveIntensity=0; R.mat.needsUpdate=true; }
+  document.querySelectorAll('#palette [data-stream]').forEach(b=>b.classList.remove('on'));
+  applyBuilds3D();
+  if(scn==='wreck') pushMsg('Exercise: wreck the refinery. Push rates and severity, starve maintenance, and watch how failures propagate. Termination is the expected outcome.');
+  else if(scn==='failure') pushMsg('Every unit is worn and cash is thin. Cut feed to match reduced capacity, raise maintenance above 115%, and recover.');
+  else if(scn==='winter') pushMsg('Cold winter: heating oil is paying well. Consider cutting c3 negative to leave more residuum, or run heavier crude.');
+  else if(scn==='heavy') pushMsg('Heavy sour is at a deep discount. Watch the hydrotreater: at 3% sulfur it covers only half the distillate it would on medium crude.');
+  else pushMsg('Plant online. Click any unit to inspect it. Speed is in the menu bar (or keys 1, 2, 3; space pauses).');
+  speed=1; simAcc=0;
+  // settle one day so dialogs have numbers
+  doTick();
+  speed=1;
+  refreshHud(); refreshOps();
+  highlightScenarioBtn();
+  showMap();
+}
+document.querySelectorAll('#splash [data-scn]').forEach(b=>{
+  b.addEventListener('click',()=>{ $('splash').remove(); startGame(b.dataset.scn); });
+});
+$('splashTrain').addEventListener('click',()=>{ $('splash').remove(); startTraining(); });
+// offer Continue if a save exists
+{
+  const j=loadSave();
+  if(j&&j.S&&!j.S.fired){
+    const well=document.querySelector('#splash .well');
+    const btn=document.createElement('button');
+    btn.className='scn out';
+    btn.innerHTML='<b>Continue saved game</b><small>Week '+j.S.week+', cash '+(j.S.cash<0?'-$':'$')+Math.abs(j.S.cash).toFixed(1)+'M, '+
+      (j.S.scenario||'steady')+' scenario.</small>';
+    btn.addEventListener('click',()=>{ $('splash').remove(); resumeGame(); });
+    well.insertBefore(btn,well.children[1]);
+  }
+}
+
+// idle preview behind splash
+S.feedRate=90; for(let i=0;i<3;i++) tickDay(S);
+
+function frame(){
+  requestAnimationFrame(frame);
+  const now=performance.now();
+  const dt=Math.min(0.1,(now-lastT)/1000); lastT=now;
+  if(speed>0&&!S.fired){
+    simAcc+=dt*1000;
+    const interval=SPEED_MS[speed];
+    let safety=8;
+    while(simAcc>=interval&&safety-->0){ simAcc-=interval; doTick(); }
+  }
+  if(camTween){
+    camTween.t+=dt*2.2;
+    const k=Math.min(1,camTween.t), e=1-Math.pow(1-k,3);
+    controls.target.copy(camTween.fromT).lerp(camTween.toT,e);
+    if(camTween.fromP){
+      camera.position.copy(camTween.fromP).lerp(camTween.toP,e);
+      camera.zoom=camTween.fromZ+(camTween.toZ-camTween.fromZ)*e;
+      camera.updateProjectionMatrix();
+    }
+    if(k>=1) camTween=null;
+  }
+  if(speed>0) $('chipDate').innerHTML=dateStr(S.day)+'&nbsp;&nbsp;'+timeStr();
+  syncVisuals(dt);
+  updateFX(dt,S);
+  updateDayNight(dt);
+  updateTanker(dt);
+  updateTrain(dt);
+  if(flareGain) flareGain.gain.value=soundOn?0.12*flareHeat:0;
+  if(performance.now()>nextAmbient){
+    if(speed>0&&!S.fired) sfxAmbientOneShot();
+    nextAmbient=performance.now()+25000+Math.random()*32000;
+  }
+  if(performance.now()>mmNext){ drawMinimap(); mmNext=performance.now()+180; }
+  controls.update();
+  renderer.render(scene,camera);
+}
+refreshHud(); refreshOps(); refreshPalette(); applyBuilds3D();
+frame();
+
+/* debug/verification handle (harmless in play) */
+window.SIM={ get S(){return S;}, doTick, startGame, openUnit, boomTest:k=>boom(k),
+  setSpeed:v=>{speed=v;refreshHud();}, get speed(){return speed;},
+  syncVisuals, updateFX:dt=>updateFX(dt,S), updateDayNight, updateTanker,
+  esd:()=>emergencyShutdown(S), turnaround:k=>scheduleTurnaround(S,k),
+  saveGame, resumeGame, loadSave, showGraphs, showLedger, showQuarterly, showReport, showProjects,
+  startProject:k=>startProject(S,k), applyBuilds3D, PROJECTS, get builds(){return S.builds;},
+  startTraining, get trainIdx(){return trainIdx;}, showContractOffer,
+  showBuild, setBuildTool, placeItem:(t,x,z,r,tie)=>placeItem(S,t,x,z,r,tie), removeItem:id=>removeItem(S,id),
+  placementValid, computeTieIn, nearRoad, updateTrain, get buildReason(){return buildReason;},
+  get fenceBounds(){return FENCE_BOUNDS;}, get fence(){return FENCE;}, productTrain,
+  PLACEABLE, placed3d:PLACED3D, get placed(){return S.placed;},
+  selectStream, setOverhead, setAutoCtl, orderlyShutdown, startUp, refreshPalette,
+  get autoCtl(){return autoCtl;}, get selectedStream(){return selectedStream;}, get overheadMap(){return overheadMap;},
+  setDayPhase:v=>{dayPhase=v;}, get dayPhase(){return dayPhase;},
+  fx:FX, routes:ROUTES, units3d:UNITS3D, scorches:SCORCHES, scene, camera, renderer,
+  snap:(q)=>{ renderer.render(scene,camera); return renderer.domElement.toDataURL('image/jpeg',q||0.72); } };
+</script>
 </body>
 </html>
