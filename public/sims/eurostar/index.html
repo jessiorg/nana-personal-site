@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eurostar Simulation</title>
+<meta name="description" content="Eurostar cross-channel high-speed rail Monte Carlo simulator. 10 scenarios, 60-seed simulation, 52-week runs.">
+<style>
+/* ================================================================
+   1992 WIN 3.1 SYSTEM CHROME
+   ================================================================ */
+* { margin:0; padding:0; box-sizing:border-box; }
+:root{
+  --face:#c6c6c6; --face-hi:#ffffff; --face-lo:#5a5a5a; --face-mid:#9a9a9a;
+  --title:#000080; --title-text:#ffffff; --ink:#000000; --paper:#ffffff;
+  --green:#0a7a2f; --amber:#b07400; --red:#b01818;
+}
+html,body{ height:100%; }
+body{
+  font-family:Tahoma,'MS Sans Serif',Geneva,sans-serif; font-size:12px; color:var(--ink);
+  background:#000080; overflow:hidden; user-select:none;
+}
+#scene{ position:fixed; inset:0; }
+canvas{ display:block; }
+
+/* bevels */
+.out{ border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); background:var(--face); }
+.in { border:2px solid; border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); background:var(--face); }
+.well{ border:2px solid; border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); background:var(--paper); }
+
+/* menu bar */
+#menubar{ position:fixed; top:0; left:0; right:0; height:26px; display:flex; align-items:stretch; z-index:600;
+  background:var(--face); border-bottom:2px solid var(--face-lo); box-shadow:inset 0 2px 0 var(--face-hi); }
+.menu{ position:relative; display:flex; align-items:center; padding:0 12px; cursor:default; }
+.menu:hover, .menu.open{ background:var(--title); color:var(--title-text); }
+.drop{ display:none; position:absolute; top:100%; left:0; min-width:210px; z-index:700; padding:2px; color:var(--ink); }
+.menu.open .drop{ display:block; }
+.item{ padding:4px 18px 4px 24px; position:relative; white-space:nowrap; }
+.item:hover{ background:var(--title); color:var(--title-text); }
+.item .tick{ position:absolute; left:8px; }
+.sep{ height:0; border-top:1px solid var(--face-lo); border-bottom:1px solid var(--face-hi); margin:3px 2px; }
+#menubar .grow{ flex:1; }
+.statchip{ display:flex; align-items:center; padding:0 10px; font-weight:bold; border-left:2px solid var(--face-lo); box-shadow:inset 2px 0 0 var(--face-hi); }
+.statchip.neg{ color:var(--red); }
+.statchip.pos{ color:var(--green); }
+
+/* operations panel */
+#ops{ position:fixed; top:34px; right:8px; width:260px; z-index:500; }
+#ops .body{ padding:5px; max-height:calc(100vh - 110px); overflow-y:auto; }
+.sect{ margin-bottom:7px; }
+.sect h4{ font-size:11px; padding:2px 5px; background:var(--face-mid); color:#fff; text-shadow:1px 1px 0 #00000055; margin-bottom:3px; }
+table.data{ width:100%; border-collapse:collapse; }
+table.data td, table.data th{ padding:1px 4px; font-size:11px; text-align:right; }
+table.data td:first-child, table.data th:first-child{ text-align:left; }
+table.data th{ border-bottom:1px solid var(--face-lo); font-weight:bold; }
+.bar{ height:8px; background:var(--paper); border:1px solid var(--face-lo); position:relative; width:54px; display:inline-block; vertical-align:middle; }
+.bar i{ position:absolute; left:0; top:0; bottom:0; }
+.dot{ display:inline-block; width:9px; height:9px; border:1px solid #00000088; border-radius:50%; vertical-align:middle; }
+.ok{ background:#19a93f; } .warn{ background:#e2a51b; } .bad{ background:#d22; } .off{ background:#777; }
+
+/* windows */
+.win{ position:fixed; min-width:280px; z-index:900; box-shadow:3px 3px 0 rgba(0,0,0,.35); }
+.win .tbar{ height:22px; background:var(--title); color:var(--title-text); display:flex; align-items:center;
+  padding:0 4px 0 8px; font-weight:bold; cursor:move; }
+.win .tbar .grow{ flex:1; }
+.winbtn{ width:18px; height:16px; margin-left:3px; font-size:10px; line-height:12px; text-align:center; cursor:pointer; color:var(--ink); }
+.win .content{ padding:8px; }
+.win h3{ font-size:12px; margin:6px 0 3px; }
+.win p{ margin:4px 0; line-height:1.45; user-select:text; }
+.win label{ display:block; margin-top:6px; }
+.btn{ display:inline-block; padding:4px 14px; cursor:pointer; font-weight:bold; margin:4px 6px 0 0; }
+.btn:active{ border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); }
+input[type=range]{ -webkit-appearance:none; width:100%; height:20px; background:transparent; margin:2px 0; }
+input[type=range]::-webkit-slider-runnable-track{ height:6px; background:var(--paper); border:1px solid var(--face-lo); }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:12px; height:18px; margin-top:-7px;
+  background:var(--face); border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); }
+.kv{ display:flex; justify-content:space-between; padding:1px 0; }
+.kv b{ font-variant-numeric:tabular-nums; }
+.gauge{ height:12px; border:1px solid var(--face-lo); background:linear-gradient(90deg,#19a93f 0 70%,#e2a51b 70% 87%,#d22 87% 100%); position:relative; }
+.gauge .needle{ position:absolute; top:-3px; bottom:-3px; width:3px; background:#000; }
+
+/* ticker */
+#ticker{ position:fixed; left:128px; right:272px; bottom:8px; height:42px; z-index:500; display:flex; flex-direction:column; justify-content:center; padding:2px 8px; overflow:hidden; }
+#ticker div{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:11px; line-height:1.5; }
+#ticker .t0{ font-weight:bold; }
+
+/* scenario palette (left sidebar) */
+#palette{ position:fixed; top:34px; left:8px; width:130px; z-index:500; padding:4px; max-height:calc(100vh - 96px); overflow-y:auto; }
+.pbtn{ display:block; width:100%; margin:3px 0; padding:3px 2px 2px; font-size:10px; font-weight:bold; text-align:center;
+  cursor:pointer; letter-spacing:0.4px; background:var(--face); font-family:inherit;
+  border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); }
+.pbtn:active{ border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); }
+.pbtn.on{ border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); background:#aeb4ae; }
+.pbtn small{ display:block; font-weight:normal; font-size:9px; color:#222; font-variant-numeric:tabular-nums; }
+
+/* view title */
+#viewTitle{ position:fixed; top:30px; left:50%; transform:translateX(-50%); z-index:400; padding:1px 36px;
+  font-weight:bold; font-size:12px; background:var(--face);
+  border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); }
+
+/* speed controls */
+#speed{ position:fixed; bottom:58px; left:8px; z-index:500; padding:4px; display:flex; gap:4px; }
+.spd{ padding:2px 8px; font-size:10px; font-weight:bold; cursor:pointer; background:var(--face); border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); }
+.spd:active{ border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); }
+.spd.active{ background:var(--title); color:#fff; }
+
+/* splash */
+#splash{ position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center;
+  background:repeating-conic-gradient(#000080 0 25%, #000060 0 50%) 0 0/4px 4px; }
+#splash .panel{ width:560px; max-width:94vw; }
+.scn{ display:block; width:100%; text-align:left; padding:7px 10px; margin-top:6px; cursor:pointer; }
+.scn:hover{ background:#d6d6d6; }
+.scn b{ display:block; }
+.scn small{ color:#333; }
+.fine{ font-size:10px; color:#333; margin-top:10px; line-height:1.5; }
+
+/* minimap */
+#minimap{ position:fixed; bottom:58px; right:8px; width:200px; height:120px; z-index:500; }
+#minimap canvas{ width:100%; height:100%; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="scene"></div>
+
+<!-- menu bar -->
+<div id="menubar">
+  <div class="menu" data-menu><span>File</span>
+    <div class="drop out">
+      <div class="item" id="mNew">New Facility</div>
+      <div class="item" id="mScen">Scenarios...</div>
+      <div class="sep"></div>
+      <div class="item" id="mAbout">About Eurostar Sim</div>
+    </div>
+  </div>
+  <div class="menu" data-menu><span>Facility</span>
+    <div class="drop out">
+      <div class="item" id="mLondonParis">London–Paris Route</div>
+      <div class="item" id="mLondonBrussels">London–Brussels Route</div>
+      <div class="item" id="mLondonAmsterdam">London–Amsterdam Route</div>
+    </div>
+  </div>
+  <div class="menu" data-menu><span>View</span>
+    <div class="drop out">
+      <div class="item" id="mCam">Reset Camera</div>
+      <div class="item" id="mTop">Top Down View</div>
+      <div class="item" id="mIso">Isometric View</div>
+    </div>
+  </div>
+  <div class="grow"></div>
+  <div class="statchip" id="chipWeek">WK 0</div>
+  <div class="statchip" id="chipCash">€25.0M</div>
+  <div class="statchip" id="chipProfit">€0</div>
+</div>
+<div id="viewTitle">Eurostar Simulation</div>
+
+<!-- scenario palette -->
+<div id="palette" class="out">
+  <div style="font-size:10px;font-weight:bold;padding:2px 0 4px;text-align:center;border-bottom:1px solid var(--face-lo);margin-bottom:4px;">SCENARIOS</div>
+  <button class="pbtn" id="sT1" data-scen="T1">T1 Baseline<small>Normal ops</small></button>
+  <button class="pbtn" id="sT2" data-scen="T2">T2 Peak<small>Summer peak</small></button>
+  <button class="pbtn" id="sT3" data-scen="T3">T3 Winter<small>Strikes+weather</small></button>
+  <button class="pbtn" id="sT4" data-scen="T4">T4 Closure<small>Tunnel shutdown</small></button>
+  <button class="pbtn" id="sT5" data-scen="T5">T5 Price War<small>Airline response</small></button>
+  <button class="pbtn" id="sT6" data-scen="T6">T6 Turnaround<small>Planned outage</small></button>
+  <button class="pbtn" id="sT7" data-scen="T7">T7 Delivery<small>Demand shock</small></button>
+  <button class="pbtn" id="sT8" data-scen="T8">T8 Expand<small>New routes</small></button>
+  <button class="pbtn" id="sT9" data-scen="T9">T9 H₂ Fuel<small>Hydrogen refuel</small></button>
+  <button class="pbtn" id="sT10" data-scen="T10">T10 Contract<small>Jet obligation</small></button>
+  <button class="pbtn" id="sT11" data-scen="T11">T11 PE Buy<small>Leveraged</small></button>
+</div>
+
+<!-- operations panel -->
+<div id="ops" class="out">
+  <div class="tbar" style="height:22px;background:var(--title);color:#fff;display:flex;align-items:center;padding:0 8px;font-weight:bold;">Eurostar Operations</div>
+  <div class="body" id="opsBody"></div>
+</div>
+
+<!-- ticker -->
+<div id="ticker" class="in">
+  <div class="t0" id="tick0">Eurostar — Select a scenario to begin</div>
+  <div id="tick1"></div>
+</div>
+
+<!-- speed controls -->
+<div id="speed">
+  <div class="spd active" id="spPause" data-speed="0">PAUSE</div>
+  <div class="spd" id="sp1x" data-speed="1">1×</div>
+  <div class="spd" id="sp3x" data-speed="3">3×</div>
+  <div class="spd" id="sp10x" data-speed="10">10×</div>
+</div>
+
+<!-- minimap -->
+<div id="minimap" class="out">
+  <canvas id="mmCanvas" width="200" height="120"></canvas>
+</div>
+
+<!-- splash screen -->
+<div id="splash">
+  <div class="panel out">
+    <div class="content" style="padding:14px 18px 16px;">
+      <div style="font-family:'Arial Black',Arial,sans-serif;font-size:36px;letter-spacing:-1px;line-height:1;color:#101010;text-shadow:3px 4px 0 #000080;">EUROSTAR <span style="color:#000080;text-shadow:3px 4px 0 #101010;">SIM</span></div>
+      <div style="font-size:11px;margin-bottom:8px;">Cross-channel high-speed rail Monte Carlo simulator. Model cash flows, breakdowns, delays, and catastrophic risks across 52-week scenarios.</div>
+      <div class="well" style="padding:6px 8px;">
+        <b>Select a scenario to begin.</b>
+        <button class="scn out" id="splashT1"><b>T1 Baseline</b><small>Normal operations — ~€4-5M/week</small></button>
+        <button class="scn out" id="splashT3"><b>T3 Winter Crisis</b><small>Strikes + weather — marginal profitability</small></button>
+        <button class="scn out" id="splashT4"><b>T4 Tunnel Closure</b><small>14-day shutdown — catastrophic loss</small></button>
+        <button class="scn out" id="splashT8"><b>T8 Fleet Expansion</b><small>New routes — ~€6-7M/week</small></button>
+        <button class="scn out" id="splashT11"><b>T11 PE Acquisition</b><small>Leveraged buyout — high risk</small></button>
+      </div>
+      <div class="fine">Eurostar e320 fleet · Channel Tunnel · 3 routes · 52-week Monte Carlo simulation</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ================================================================
+   SIM CORE — from src/sim-core.js
+   ================================================================ */
+const EUROSTAR_CONSTANTS = {
+  ACTIVE_SETS: 29, FLEET_AVAILABILITY: 0.88,
+  E320_SEATS: 894, E300_SEATS: 766, CREW_PER_TRAIN: 6,
+  ENERGY_KWH_PER_TRAIN_KM: 4.30, TUNNEL_RESISTANCE_MULT: 1.15, REGEN_EFFICIENCY: 0.85,
+  ENERGY_OFFPEAK_PER_KWH: 0.08, ENERGY_PEAK_PER_KWH: 0.14, ENERGY_MIX_OFFPEAK_PCT: 0.50,
+  TRACK_HS1_PER_KM: 10.50, TRACK_LGV_PER_KM: 7.20, TRACK_BELGIAN_PER_KM: 5.80, TRACK_DUTCH_PER_KM: 8.40,
+  TUNNEL_SLOT_FEE: 2800, CREW_COST_PER_TRAIN_KM: 5.20,
+  MAINT_NEW_PER_KM: 1.40, MAINT_MID_PER_KM: 2.10, MAINT_OLD_PER_KM: 3.80,
+  STATION_COST_PER_STOP: 1800, OVERHEAD_WEEKLY: 850000,
+  E320_LEASE_PER_WEEK: 95000, E300_LEASE_PER_WEEK: 45000,
+  YIELD_PER_PKM: 0.185, ANCILLARY_PER_PAX: 18,
+  BREAKDOWN_RATE_E320: 0.008, BREAKDOWN_RATE_E300: 0.021,
+  REPAIR_COST_MINOR: 15000, REPAIR_COST_MAJOR: 85000, REPAIR_COST_CRITICAL: 350000,
+  DELAY_MINOR_PCT: 0.70, DELAY_MINOR_RANGE: [5, 15],
+  DELAY_MAJOR_PCT: 0.25, DELAY_MAJOR_RANGE: [20, 60],
+  DELAY_CRITICAL_PCT: 0.05, DELAY_CRITICAL_RANGE: [90, 300],
+  TUNNEL_CLOSURE_PROB_PER_YEAR: 0.02, TUNNEL_CLOSURE_DAYS: 7, TUNNEL_CLOSURE_COST_PER_DAY: 8500000,
+  STRIKE_PROB_UK: 0.08, STRIKE_PROB_FRANCE: 0.12, STRIKE_PROB_BELGIUM: 0.06,
+  STRIKE_DAYS_PER_EVENT: 2, STRIKE_REVENUE_LOSS_PER_DAY: 4200000,
+  SEASONAL: { 'christmas': 1.25, 'january': 0.68, 'easter': 1.15, 'summer': 1.35, 'half-term': 1.20, 'default': 1.00 },
+};
+
+const ROUTES = {
+  'london-paris': { name:'London–Paris', distance_km:493, tunnel_km:50.45, base_price:115, premium_mult:1.91, seats:894, trains_per_week:120,
+    segments:[{country:'UK',distance:108,track_per_km:10.50},{country:'TUNNEL',distance:50,track_per_km:0},{country:'FR',distance:335,track_per_km:7.20}] },
+  'london-brussels': { name:'London–Brussels', distance_km:599, tunnel_km:50.45, base_price:99, premium_mult:1.85, seats:894, trains_per_week:40,
+    segments:[{country:'UK',distance:108,track_per_km:10.50},{country:'TUNNEL',distance:50,track_per_km:0},{country:'FR',distance:280,track_per_km:7.20},{country:'BE',distance:71,track_per_km:5.80}] },
+  'london-amsterdam': { name:'London–Amsterdam', distance_km:907, tunnel_km:50.45, base_price:149, premium_mult:1.88, seats:894, trains_per_week:20,
+    segments:[{country:'UK',distance:108,track_per_km:10.50},{country:'TUNNEL',distance:50,track_per_km:0},{country:'FR',distance:280,track_per_km:7.20},{country:'BE',distance:71,track_per_km:5.80},{country:'NL',distance:211,track_per_km:8.40}] },
+};
+
+function bindRng(S){ S.rng=function(){ let a=S.rngState>>>0; a=(a+0x6D2B79F5)>>>0; S.rngState=a; let t=Math.imul(a^(a>>>15),1|a); t=(t+Math.imul(t^(t>>>7),61|t))^t; return((t^(t>>>14))>>>0)/4294967296; }; return S; }
+
+function newEurostarGame(scenario='T1'){
+  const S={ rngState:(Math.random()*0xFFFFFFFF)>>>0, scenario, week:0, ticks:0, routes:{}, fleet_available:29, fleet_condition:[],
+    cash:25000000, min_cash:25000000, weekly_revenue:0, weekly_cost:0, weekly_profit:0, weekly_delay_events:0, weekly_breakdowns:0, weekly_cancellations:0,
+    total_revenue:0, total_cost:0, total_profit:0, total_breakdowns:0, total_explosions:0, total_cancellations:0, total_delay_events:0,
+    total_pax:0,
+    event_log:[], incidents:[], cash_history:[], revenue_history:[], profit_history:[], fired:false, fired_reason:'',
+    tunnel_open:true, strike_days_remaining:0, delay_minutes_this_week:0,
+    demand_mult:1.0, load_factor:0.82, maint_quality:1.0, severity:'normal', new_routes:[], extra_sets:0, debt_per_week:0,
+  };
+  bindRng(S);
+  for(let i=0;i<29;i++) S.fleet_condition.push(90+S.rng()*10);
+  loadScenario(S,scenario); recalc(S); return S;
+}
+
+function loadScenario(S,scenario){
+  switch(scenario){
+    case 'T1': S.demand_mult=1.0; S.load_factor=0.82; S.maint_quality=1.0; S.severity='normal'; S.debt_per_week=0; break;
+    case 'T2': S.demand_mult=1.35; S.load_factor=0.95; S.maint_quality=1.0; S.severity='stress'; S.debt_per_week=0; break;
+    case 'T3': S.demand_mult=0.70; S.load_factor=0.60; S.maint_quality=0.80; S.severity='crisis'; S.debt_per_week=0; break;
+    case 'T4': S.demand_mult=0.15; S.load_factor=0.50; S.maint_quality=1.0; S.severity='crisis'; S.debt_per_week=0; break;
+    case 'T5': S.demand_mult=0.88; S.load_factor=0.72; S.maint_quality=1.0; S.severity='stress'; S.debt_per_week=0; break;
+    case 'T6': S.demand_mult=1.0; S.load_factor=0.82; S.maint_quality=1.0; S.severity='normal'; S.debt_per_week=0; break;
+    case 'T7': S.demand_mult=0.80; S.load_factor=0.70; S.maint_quality=1.0; S.severity='normal'; S.debt_per_week=0; break;
+    case 'T8': S.demand_mult=1.20; S.load_factor=0.85; S.maint_quality=1.0; S.severity='stress'; S.debt_per_week=0; S.extra_sets=3; break;
+    case 'T9': S.demand_mult=1.15; S.load_factor=0.88; S.maint_quality=1.0; S.severity='normal'; S.debt_per_week=0; break;
+    case 'T10': S.demand_mult=1.05; S.load_factor=0.84; S.maint_quality=1.0; S.severity='normal'; S.debt_per_week=0; break;
+    case 'T11': S.demand_mult=1.0; S.load_factor=0.82; S.maint_quality=0.75; S.severity='normal'; S.debt_per_week=1200000; break;
+  }
+}
+
+function getSeasonalMultiplier(week){
+  const C=EUROSTAR_CONSTANTS;
+  if(week>=51||week<=2) return C.SEASONAL['christmas'];
+  if(week>=3&&week<=5) return C.SEASONAL['easter'];
+  if(week>=28&&week<=34) return C.SEASONAL['summer'];
+  if(week===8||week===40) return C.SEASONAL['half-term'];
+  if(week>=1&&week<=2) return C.SEASONAL['january'];
+  return C.SEASONAL['default'];
+}
+
+function tickWeek(S){
+  const C=EUROSTAR_CONSTANTS;
+  const out={ events:[], week:S.week };
+  if(S.fired) return out;
+  S.ticks++; S.week++;
+  S.weekly_revenue=0; S.weekly_cost=0; S.weekly_profit=0; S.weekly_delay_events=0; S.weekly_breakdowns=0; S.weekly_cancellations=0;
+  S.delay_minutes_this_week=0;
+
+  if(S.rng()<C.TUNNEL_CLOSURE_PROB_PER_YEAR/52){ S.tunnel_open=false; out.events.push(`TUNNEL CLOSURE — ${C.TUNNEL_CLOSURE_DAYS} days`); }
+  if(!S.tunnel_open) S.tunnel_open=true;
+  if(S.rng()<C.STRIKE_PROB_FRANCE/52){ S.strike_days_remaining=C.STRIKE_DAYS_PER_EVENT; S.weekly_revenue-=C.STRIKE_REVENUE_LOSS_PER_DAY*S.strike_days_remaining; out.events.push(`FRENCH STRIKE`); }
+  if(S.rng()<0.20){ S.delay_minutes_this_week+=Math.floor(S.rng()*30)+10; if(S.delay_minutes_this_week>60) S.weekly_cancellations++; }
+
+  let weekly_total_trains=0, weekly_total_pax=0, weekly_total_delay_min=0;
+  for(const routeKey of Object.keys(ROUTES)){
+    const route=ROUTES[routeKey];
+    const trains=Math.min(route.trains_per_week, Math.floor(S.fleet_available));
+    for(let t=0;t<trains;t++){
+      const seasonal_mult=getSeasonalMultiplier(S.week);
+      const demand_noise=1+(S.rng()-0.5)*0.12;
+      const effective_demand=S.demand_mult*seasonal_mult*demand_noise;
+      const effective_load=Math.min(0.99, S.load_factor*effective_demand);
+      const passengers=Math.floor(route.seats*effective_load);
+      const class_blend=0.15*route.base_price*route.premium_mult+0.25*route.base_price*1.5+0.45*route.base_price+0.15*route.base_price*0.5;
+      const route_revenue=passengers*class_blend+passengers*C.ANCILLARY_PER_PAX;
+      let route_cost=0;
+      for(const seg of route.segments) route_cost+=seg.distance*(seg.country==='TUNNEL'?0:seg.track_per_km);
+      route_cost+=C.TUNNEL_SLOT_FEE;
+      const total_km=route.segments.reduce((s,seg)=>s+seg.distance,0);
+      const tunnel_pct=route.tunnel_km/total_km;
+      const energy_per_km=C.ENERGY_KWH_PER_TRAIN_KM*(1+tunnel_pct*(C.TUNNEL_RESISTANCE_MULT-1));
+      const energy_cost=total_km*energy_per_km*(C.ENERGY_OFFPEAK_PER_KWH*C.ENERGY_MIX_OFFPEAK_PCT+C.ENERGY_PEAK_PER_KWH*(1-C.ENERGY_MIX_OFFPEAK_PCT));
+      const crew_cost=total_km*C.CREW_COST_PER_TRAIN_KM;
+      const maint_rate=10<5?C.MAINT_NEW_PER_KM:10<15?C.MAINT_MID_PER_KM:C.MAINT_OLD_PER_KM;
+      const maint_cost=total_km*maint_rate*S.maint_quality;
+      route_cost+=energy_cost+crew_cost+maint_cost+C.STATION_COST_PER_STOP;
+      const breakdown_prob=(C.BREAKDOWN_RATE_E320*total_km/100000)*(S.severity==='crisis'?1.5:S.severity==='stress'?1.2:1.0)*(1/S.maint_quality);
+      if(S.rng()<breakdown_prob){
+        S.weekly_breakdowns++;
+        const sr=S.rng();
+        let repair_cost,delay_min;
+        if(sr<0.70){ repair_cost=C.REPAIR_COST_MINOR; delay_min=15+Math.floor(S.rng()*30); }
+        else if(sr<0.95){ repair_cost=C.REPAIR_COST_MAJOR; delay_min=60+Math.floor(S.rng()*90); }
+        else{ repair_cost=C.REPAIR_COST_CRITICAL; delay_min=180+Math.floor(S.rng()*180); S.weekly_cancellations++; }
+        route_cost+=repair_cost;
+        weekly_total_delay_min+=delay_min;
+        S.weekly_delay_events++;
+        const ci=Math.floor(S.rng()*S.fleet_condition.length);
+        S.fleet_condition[ci]=Math.max(40, S.fleet_condition[ci]-2-S.rng()*5);
+      }
+      if(S.delay_minutes_this_week>0) weekly_total_delay_min+=S.delay_minutes_this_week;
+      S.weekly_revenue+=route_revenue;
+      S.weekly_cost+=route_cost;
+      weekly_total_trains++;
+      weekly_total_pax+=passengers;
+    }
+  }
+
+  S.weekly_cost+=C.OVERHEAD_WEEKLY;
+  if(S.extra_sets>0) S.weekly_cost+=S.extra_sets*C.E320_LEASE_PER_WEEK;
+  S.weekly_cost+=S.debt_per_week;
+  S.weekly_profit=S.weekly_revenue-S.weekly_cost;
+  S.cash+=S.weekly_profit;
+  S.min_cash=Math.min(S.min_cash,S.cash);
+  S.total_revenue+=S.weekly_revenue;
+  S.total_cost+=S.weekly_cost;
+  S.total_profit+=S.weekly_profit;
+  S.total_breakdowns+=S.weekly_breakdowns;
+  S.total_cancellations+=S.weekly_cancellations;
+  S.total_delay_events+=S.weekly_delay_events;
+  S.total_pax+=weekly_total_pax;
+  S.cash_history.push(S.cash);
+  S.revenue_history.push(S.weekly_revenue);
+  S.profit_history.push(S.weekly_profit);
+  if(S.cash_history.length>52) S.cash_history.shift();
+  if(S.revenue_history.length>52) S.revenue_history.shift();
+  if(S.profit_history.length>52) S.profit_history.shift();
+  if(S.cash<-20000000){ S.fired=true; S.fired_reason='Cash below -€20M'; out.events.push('FIRED'); }
+  if(S.maint_quality>=1.0) for(let i=0;i<S.fleet_condition.length;i++) S.fleet_condition[i]=Math.min(100,S.fleet_condition[i]+0.1);
+
+  out.revenue=S.weekly_revenue; out.cost=S.weekly_cost; out.profit=S.weekly_profit; out.cash=S.cash;
+  out.breakdowns=S.weekly_breakdowns; out.cancellations=S.weekly_cancellations;
+  out.delay_minutes=weekly_total_delay_min; out.pax=weekly_total_pax; out.trains=weekly_total_trains;
+  S.weekOutput=out; return out;
+}
+
+function recalc(S){
+  const C=EUROSTAR_CONSTANTS;
+  const avg_cond=S.fleet_condition.reduce((a,b)=>a+b,0)/S.fleet_condition.length;
+  S.fleet_available=Math.floor((C.ACTIVE_SETS+S.extra_sets)*(avg_cond/100)*C.FLEET_AVAILABILITY);
+}
+
+/* ================================================================
+   THREE.JS SCENE
+   ================================================================ */
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const container = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB); // sky blue
+scene.fog = new THREE.Fog(0x87CEEB, 200, 500);
+
+let viewSize = 140;
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -200, 600);
+function setFrustum(){
+  const a = innerWidth / innerHeight;
+  camera.left = -viewSize * a / 2; camera.right = viewSize * a / 2;
+  camera.top = viewSize / 2; camera.bottom = -viewSize / 2;
+  camera.updateProjectionMatrix();
+}
+setFrustum();
+const HOME_POS = new THREE.Vector3(0, 120, 120), HOME_TGT = new THREE.Vector3(0, 0, 0);
+camera.position.copy(HOME_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TGT);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.maxPolarAngle = 1.32; controls.minZoom = 0.3; controls.maxZoom = 5;
+controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+controls.update();
+
+const hemi = new THREE.HemisphereLight(0xdfeaf2, 0x6e6a5c, 0.8);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff2dc, 1.5);
+sun.position.set(80, 150, 60);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -200; sun.shadow.camera.right = 200;
+sun.shadow.camera.top = 200; sun.shadow.camera.bottom = -200;
+sun.shadow.camera.far = 600; sun.shadow.bias = -0.0005;
+scene.add(sun);
+
+// Materials
+const M = {
+  steel: new THREE.MeshStandardMaterial({ color:0x97a0a8, roughness:0.55, metalness:0.35 }),
+  lightSteel: new THREE.MeshStandardMaterial({ color:0xc9ced3, roughness:0.5, metalness:0.3 }),
+  darkSteel: new THREE.MeshStandardMaterial({ color:0x5f6a72, roughness:0.6, metalness:0.4 }),
+  building: new THREE.MeshStandardMaterial({ color:0x888888, roughness:0.7 }),
+  glass: new THREE.MeshStandardMaterial({ color:0x4488cc, roughness:0.2, metalness:0.3, transparent:true, opacity:0.7 }),
+  track: new THREE.MeshStandardMaterial({ color:0x444444, roughness:0.9 }),
+  tunnel: new THREE.MeshStandardMaterial({ color:0x333333, roughness:0.8 }),
+  water: new THREE.MeshStandardMaterial({ color:0x2e4d63, roughness:0.25, metalness:0.5 }),
+  grass: new THREE.MeshStandardMaterial({ color:0x76815c, roughness:1 }),
+  road: new THREE.MeshStandardMaterial({ color:0x6b6a66, roughness:0.95 }),
+  rail: new THREE.MeshStandardMaterial({ color:0x333333, roughness:0.8 }),
+  eurostarRed: new THREE.MeshStandardMaterial({ color:0xCC0000, roughness:0.4, metalness:0.2 }),
+  tunnelBlue: new THREE.MeshStandardMaterial({ color:0x1a3a5c, roughness:0.9 }),
+  warning: new THREE.MeshStandardMaterial({ color:0xff6600, emissive:0xff4400, emissiveIntensity:0.3 }),
+};
+
+function box(w,h,d,m){ const g=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); g.castShadow=true; g.receiveShadow=true; return g; }
+function cyl(r,h,m,seg=18){ const g=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,seg),m); g.castShadow=true; g.receiveShadow=true; return g; }
+function sphere(r,m){ return new THREE.Mesh(new THREE.SphereGeometry(r,12,10),m); }
+
+// ================================================================
+// GROUND
+// ================================================================
+const groundGeo = new THREE.PlaneGeometry(600, 600);
+const c = document.createElement('canvas'); c.width=c.height=512;
+const cx = c.getContext('2d');
+cx.fillStyle='#76815c'; cx.fillRect(0,0,512,512);
+for(let i=0;i<800;i++){ cx.fillStyle=Math.random()<0.5?'rgba(90,100,68,0.3)':'rgba(126,134,98,0.3)'; cx.beginPath(); cx.arc(Math.random()*512,Math.random()*512,2+Math.random()*9,0,7); cx.fill(); }
+const gtex = new THREE.CanvasTexture(c); gtex.colorSpace=THREE.SRGBColorSpace; gtex.wrapS=gtex.wrapT=THREE.RepeatWrapping; gtex.repeat.set(30,30);
+M.grass.map=gtex; M.grass.color.set(0xffffff); M.grass.needsUpdate=true;
+const ground = new THREE.Mesh(groundGeo, M.grass); ground.rotation.x=-Math.PI/2; ground.position.y=-0.05; ground.receiveShadow=true; scene.add(ground);
+
+// ================================================================
+// CHANNEL TUNNEL
+// ================================================================
+{
+  // Tunnel entrance UK (south coast)
+  const ukPortal = box(20, 10, 8, M.tunnelBlue);
+  ukPortal.position.set(-75, 5, 0);
+  scene.add(ukPortal);
+
+  // Tunnel bore (straight line under channel)
+  const tunnelGeo = new THREE.CylinderGeometry(5, 5, 120, 16);
+  tunnelGeo.rotateX(Math.PI / 2);
+  const tunnel1 = new THREE.Mesh(tunnelGeo, M.tunnelBlue);
+  tunnel1.position.set(-10, -5, 0);
+  tunnel1.castShadow = true;
+  scene.add(tunnel1);
+
+  // Tunnel entrance France
+  const frPortal = box(20, 10, 8, M.tunnelBlue);
+  frPortal.position.set(55, 5, 0);
+  scene.add(frPortal);
+
+  // Water (English Channel)
+  const channel = new THREE.Mesh(new THREE.PlaneGeometry(120, 30), M.water);
+  channel.rotation.x = -Math.PI / 2;
+  channel.position.set(-10, -0.5, 0);
+  scene.add(channel);
+}
+
+// ================================================================
+// STATIONS
+// ================================================================
+const STATIONS = {};
+function makeStation(key, x, z, color, label){
+  const g = new THREE.Group();
+  // Main building
+  const bld = box(24, 8, 16, M.building);
+  bld.position.set(0, 4, 0);
+  g.add(bld);
+  // Roof
+  const roof = box(26, 1, 18, M.darkSteel);
+  roof.position.set(0, 8.5, 0);
+  g.add(roof);
+  // Glass front
+  const glassFront = box(20, 5, 0.2, M.glass);
+  glassFront.position.set(0, 4, 8.1);
+  g.add(glassFront);
+  // Platforms (lengthwise)
+  const plat1 = box(30, 0.5, 4, M.road);
+  plat1.position.set(0, 0.25, 12);
+  g.add(plat1);
+  const plat2 = box(30, 0.5, 4, M.road);
+  plat2.position.set(0, 0.25, 18);
+  g.add(plat2);
+  // Lamp post
+  const pole = cyl(0.15, 6, M.darkSteel);
+  pole.position.set(10, 3, 10);
+  g.add(pole);
+  const lamp = sphere(0.5, new THREE.MeshStandardMaterial({ color:0x19a93f, emissive:0x19a93f, emissiveIntensity:1.0 }));
+  lamp.position.set(10, 6.5, 10);
+  g.add(lamp);
+  // Status lamp
+  const statusLamp = sphere(0.6, new THREE.MeshStandardMaterial({ color:0x19a93f, emissive:0x19a93f, emissiveIntensity:0.9 }));
+  statusLamp.position.set(0, 10, 0);
+  g.add(statusLamp);
+
+  // H2 Fuel Dispenser (green hydrogen station)
+  const h2Base = box(4, 0.4, 3, M.darkSteel);
+  h2Base.position.set(-14, 0.2, 0);
+  g.add(h2Base);
+  const h2Col = box(0.4, 4, 0.4, new THREE.MeshStandardMaterial({ color:0x00aa44, roughness:0.4, metalness:0.5 }));
+  h2Col.position.set(-14, 2.4, 0);
+  g.add(h2Col);
+  const h2Top = box(4.5, 0.3, 3.5, new THREE.MeshStandardMaterial({ color:0x00cc55, roughness:0.5 }));
+  h2Top.position.set(-14, 4.6, 0);
+  g.add(h2Top);
+  // H2 label
+  const h2Canvas = document.createElement('canvas'); h2Canvas.width=128; h2Canvas.height=48;
+  const h2Ctx = h2Canvas.getContext('2d');
+  h2Ctx.fillStyle='#003311'; h2Ctx.fillRect(0,0,128,48);
+  h2Ctx.fillStyle='#00ff66'; h2Ctx.font='bold 22px Tahoma'; h2Ctx.textAlign='center'; h2Ctx.textBaseline='middle';
+  h2Ctx.fillText('H₂', 40, 24);
+  h2Ctx.fillStyle='#00cc55'; h2Ctx.font='bold 12px Tahoma';
+  h2Ctx.fillText('FUEL', 88, 18);
+  h2Ctx.fillText('DISPENSER', 88, 34);
+  const h2Tex = new THREE.CanvasTexture(h2Canvas); h2Tex.colorSpace=THREE.SRGBColorSpace;
+  const h2Sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:h2Tex, depthTest:false }));
+  h2Sp.scale.set(5, 2, 1); h2Sp.position.set(-14, 6.5, 0); h2Sp.renderOrder=5;
+  g.add(h2Sp);
+  // Nozzle hose
+  const hoseMat = new THREE.MeshStandardMaterial({ color:0x222222, roughness:0.8 });
+  const hose = cyl(0.12, 3, hoseMat, 8);
+  hose.position.set(-12, 2.5, 0);
+  g.add(hose);
+
+  // Label sprite
+  const lc = document.createElement('canvas'); lc.width=256; lc.height=64;
+  const lx = lc.getContext('2d');
+  lx.fillStyle='#c6c6c6'; lx.fillRect(0,0,256,64);
+  lx.strokeStyle='#5a5a5a'; lx.lineWidth=4; lx.strokeRect(0,0,256,64);
+  lx.fillStyle='#000'; lx.font='bold 28px Tahoma,sans-serif'; lx.textAlign='center'; lx.textBaseline='middle';
+  lx.fillText(label.toUpperCase(), 128, 34);
+  const lt = new THREE.CanvasTexture(lc); lt.colorSpace=THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:lt, depthTest:false }));
+  sp.scale.set(18, 4.5, 1); sp.position.set(0, 14, 0); sp.renderOrder=5;
+  g.add(sp);
+
+  g.position.set(x, 0, z);
+  g.traverse(o => { if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } });
+  scene.add(g);
+  STATIONS[key] = { group:g, statusLamp, x, z };
+}
+
+makeStation('london', -95, 0, 0x000080, 'London St Pancras');
+makeStation('paris', 160, 0, 0xCC0000, 'Paris Gare du Nord');
+makeStation('brussels', 115, 30, 0xFFCC00, 'Brussels Midi');
+makeStation('amsterdam', 160, 55, 0xFF6600, 'Amsterdam Centraal');
+
+// ================================================================
+// TRACKS
+// ================================================================
+function makeTrack(pts, color=0x444444){
+  const mat = new THREE.MeshStandardMaterial({ color, roughness:0.8 });
+  const g = new THREE.Group();
+  for(let i=0;i<pts.length-1;i++){
+    const a = new THREE.Vector3(...pts[i]), b = new THREE.Vector3(...pts[i+1]);
+    const len = a.distanceTo(b);
+    const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,len,6), mat);
+    rail.castShadow = true;
+    rail.position.copy(a).add(b).multiplyScalar(0.5);
+    rail.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0), b.clone().sub(a).normalize());
+    g.add(rail);
+    // Second rail
+    const rail2 = rail.clone();
+    rail2.position.x += 1.5;
+    g.add(rail2);
+  }
+  scene.add(g);
+  return g;
+}
+
+// London -> Tunnel entrance
+makeTrack([[-95,0,0],[-75,0,0]]);
+// Tunnel
+makeTrack([[-75,0,0],[55,0,0]], 0x333333);
+// Paris branch (from tunnel exit)
+makeTrack([[55,0,0],[160,0,0]]);
+// Brussels branch (from tunnel exit via z=30 corridor)
+makeTrack([[55,0,0],[115,0,30]]);
+// Brussels to Amsterdam
+makeTrack([[115,0,30],[160,0,55]]);
+
+// ================================================================
+// TRAIN (e320 simplified)
+// ================================================================
+const TRAIN_GROUPS = {};
+function makeTrain(key, routeKey, startT){
+  const g = new THREE.Group();
+  // 16-coach e320 formation
+  for(let i=0;i<4;i++){
+    const car = box(5, 2.5, 2, M.eurostarRed);
+    car.position.set(i*5.2 - 6, 1.5, 0);
+    g.add(car);
+  }
+  // Cab
+  const cab = box(3, 2.5, 2.2, M.eurostarRed);
+  cab.position.set(16, 1.5, 0);
+  g.add(cab);
+  // Windows
+  const winMat = new THREE.MeshStandardMaterial({ color:0xaaddff, roughness:0.1, metalness:0.3, transparent:true, opacity:0.8 });
+  for(let i=0;i<4;i++){
+    const win = box(3, 1, 0.1, winMat);
+    win.position.set(i*5.2 - 6, 2.2, 1.05);
+    g.add(win);
+  }
+  // Wheels
+  const wheelMat = M.darkSteel;
+  for(let i=0;i<5;i++){
+    const w = cyl(0.4, 0.3, wheelMat, 10);
+    w.rotation.z = Math.PI/2;
+    w.position.set(-8 + i*6, 0.4, 0.9);
+    g.add(w);
+    const w2 = w.clone(); w2.position.z = -0.9; g.add(w2);
+  }
+  // Headlights
+  const hl = new THREE.MeshStandardMaterial({ color:0xffffaa, emissive:0xffff88, emissiveIntensity:1.0 });
+  const h1 = sphere(0.3, new THREE.MeshStandardMaterial({ color:0xffffcc, emissive:0xffff88, emissiveIntensity:1.0 }));
+  h1.position.set(17.5, 1.5, 0.6);
+  g.add(h1);
+  const h2 = h1.clone(); h2.position.z = -0.6; g.add(h2);
+
+  g.traverse(o => { if(o.isMesh){ o.castShadow=true; } });
+
+  // Route positions
+  const routeDefs = {
+    'london-paris': [
+      [-95,0,0],[-75,0,0],[55,0,0],[160,0,0]
+    ],
+    'london-brussels': [
+      [-95,0,0],[-75,0,0],[55,0,0],[115,0,30]
+    ],
+    'london-amsterdam': [
+      [-95,0,0],[-75,0,0],[55,0,0],[115,0,30],[160,0,55]
+    ],
+  };
+
+  const pts = routeDefs[routeKey] || routeDefs['london-paris'];
+  scene.add(g);
+  TRAIN_GROUPS[key] = { group:g, pts, t:startT, routeKey, refueling:false, refuelTimer:0, refuelDone:false };
+}
+
+makeTrain('train1', 'london-paris', 0.0);
+makeTrain('train2', 'london-paris', 0.5);
+makeTrain('train3', 'london-brussels', 0.2);
+makeTrain('train4', 'london-amsterdam', 0.8);
+
+// ================================================================
+// TICKER UPDATE
+// ================================================================
+function updateTicker(S, out){
+  const profit = out ? out.profit : 0;
+  const cashM = (S.cash/1e6).toFixed(1);
+  const profitM = (profit/1e6).toFixed(1);
+  const pax = out ? out.pax.toLocaleString() : '—';
+  const bd = out ? out.breakdowns : 0;
+  const delay = out ? out.delay_minutes : 0;
+
+  // Check for H2 refueling in T9
+  let refuelMsg = '';
+  for(const key of Object.keys(TRAIN_GROUPS)){
+    const T = TRAIN_GROUPS[key];
+    if(T.refueling && T.refuelTimer > 0){
+      refuelMsg = ` · H₂ REFUELING @ BRUSSELS (${Math.ceil(T.refuelTimer)}s)`;
+      break;
+    }
+  }
+
+  document.getElementById('tick0').textContent =
+    `WEEK ${String(S.week).padStart(2,'0')} | CASH €${cashM}M | PROFIT €${profitM}M/wk | PAX ${pax}${refuelMsg}`;
+  document.getElementById('tick1').textContent =
+    out && out.events.length > 0 ? out.events.join(' · ') : `TUNNEL ${S.tunnel_open?'OPEN':'CLOSED'} | FLEET ${S.fleet_available} sets`;
+}
+
+// ================================================================
+// OPS PANEL UPDATE
+// ================================================================
+function updateOps(S, out){
+  const body = document.getElementById('opsBody');
+  const cashM = (S.cash/1e6).toFixed(2);
+  const profitM = out ? (out.profit/1e6).toFixed(2) : '0.00';
+  const revM = out ? (out.revenue/1e6).toFixed(2) : '0.00';
+  const costM = out ? (out.cost/1e6).toFixed(2) : '0.00';
+  const load = S.load_factor;
+  const fleetCond = S.fleet_condition.length > 0
+    ? Math.round(S.fleet_condition.reduce((a,b)=>a+b,0)/S.fleet_condition.length)
+    : 90;
+  const tunnelStatus = S.tunnel_open ? 'OPEN' : 'CLOSED';
+  const tunnelColor = S.tunnel_open ? 'ok' : 'bad';
+
+  body.innerHTML = `
+    <div class="sect">
+      <h4>Financials</h4>
+      <table class="data">
+        <tr><td>Cash</td><td><b>€${cashM}M</b></td></tr>
+        <tr><td>Weekly Profit</td><td><b>€${profitM}M</b></td></tr>
+        <tr><td>Revenue</td><td>€${revM}M</td></tr>
+        <tr><td>Costs</td><td>€${costM}M</td></tr>
+      </table>
+    </div>
+    <div class="sect">
+      <h4>Operations</h4>
+      <table class="data">
+        <tr><td>Load Factor</td><td>${(load*100).toFixed(0)}%</td></tr>
+        <tr><td>Fleet Avail.</td><td>${S.fleet_available} sets</td></tr>
+        <tr><td>Fleet Cond.</td><td>${fleetCond}%</td></tr>
+        <tr><td>Tunnel</td><td><span class="dot ${tunnelColor}"></span> ${tunnelStatus}</td></tr>
+      </table>
+    </div>
+    <div class="sect">
+      <h4>This Week</h4>
+      <table class="data">
+        <tr><td>Passengers</td><td>${out ? out.pax.toLocaleString() : '—'}</td></tr>
+        <tr><td>Trains</td><td>${out ? out.trains : '—'}</td></tr>
+        <tr><td>Breakdowns</td><td>${out ? out.breakdowns : 0}</td></tr>
+        <tr><td>Delays (min)</td><td>${out ? out.delay_minutes : 0}</td></tr>
+      </table>
+    </div>
+    <div class="sect">
+      <h4>Totals (YTD)</h4>
+      <table class="data">
+        <tr><td>Total Profit</td><td>€${(S.total_profit/1e6).toFixed(1)}M</td></tr>
+        <tr><td>Total Pax</td><td>${(S.total_pax||0).toLocaleString()}</td></tr>
+        <tr><td>Breakdowns</td><td>${S.total_breakdowns}</td></tr>
+        <tr><td>Cancellations</td><td>${S.total_cancellations}</td></tr>
+      </table>
+    </div>
+  `;
+}
+
+// ================================================================
+// MENU BAR
+// ================================================================
+document.querySelectorAll('.menu').forEach(m => {
+  m.addEventListener('click', () => {
+    document.querySelectorAll('.menu').forEach(x => x.classList.remove('open'));
+    m.classList.add('open');
+  });
+});
+document.addEventListener('click', e => {
+  if(!e.target.closest('.menu')) document.querySelectorAll('.menu').forEach(x => x.classList.remove('open'));
+});
+document.getElementById('mNew').addEventListener('click', () => { document.getElementById('splash').style.display='flex'; });
+document.getElementById('mAbout').addEventListener('click', () => alert('Eurostar Simulation\nCross-channel high-speed rail Monte Carlo simulator\n\n10 scenarios · 52 weeks · 60 seeds\n\nBased on Eurostar e320 fleet operations'));
+document.getElementById('mCam').addEventListener('click', () => { camera.position.copy(HOME_POS); controls.target.copy(HOME_TGT); controls.update(); });
+
+// ================================================================
+// SCENARIO SELECTION
+// ================================================================
+let G = newEurostarGame('T1');
+let speed = 0;
+let lastTick = 0;
+let menuOpen = false;
+
+function selectScenario(name){
+  G = newEurostarGame(name);
+  // Reset train refueling state
+  for(const key of Object.keys(TRAIN_GROUPS)){
+    TRAIN_GROUPS[key].refueling = false;
+    TRAIN_GROUPS[key].refuelTimer = 0;
+    TRAIN_GROUPS[key].refuelDone = false;
+  }
+  document.querySelectorAll('.pbtn').forEach(b => b.classList.remove('on'));
+  document.querySelector(`[data-scen="${name}"]`)?.classList.add('on');
+  document.getElementById('splash').style.display='none';
+  updateTicker(G, null);
+  updateOps(G, null);
+}
+
+document.querySelectorAll('[id^="sT"], .scn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const scen = btn.dataset.scen || btn.id.replace('splash','').replace('sT','') || 'T1';
+    const match = scen.match(/T\d+/);
+    if(match) selectScenario(match[0]);
+  });
+});
+
+// ================================================================
+// SPEED CONTROLS
+// ================================================================
+function setSpeed(s){
+  speed = s;
+  document.querySelectorAll('.spd').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-speed="${s}"]`)?.classList.add('active');
+}
+document.querySelectorAll('.spd').forEach(b => {
+  b.addEventListener('click', () => setSpeed(parseInt(b.dataset.speed)));
+});
+
+// ================================================================
+// TRAIN POSITION UPDATE
+// ================================================================
+function getPositionOnRoute(pts, t){
+  const totalSegs = pts.length - 1;
+  const segT = t * totalSegs;
+  const segIdx = Math.min(Math.floor(segT), totalSegs - 1);
+  const localT = segT - segIdx;
+  const a = new THREE.Vector3(...pts[segIdx]);
+  const b = new THREE.Vector3(...pts[segIdx + 1]);
+  return a.clone().lerp(b, localT);
+}
+
+// H2 refueling waypoint for T9 (Brussels is index 3 of 5 for london-amsterdam)
+const H2_REFUEL_ROUTE = 'london-amsterdam';
+const H2_REFUEL_WAYPOINT = 3; // 4th waypoint (0-indexed) = Brussels
+const H2_REFUEL_DURATION = 3; // seconds
+
+function updateTrains(dt){
+  for(const key of Object.keys(TRAIN_GROUPS)){
+    const T = TRAIN_GROUPS[key];
+    if(!G.tunnel_open && T.routeKey === 'london-paris'){
+      continue;
+    }
+
+    // T9 H2 refueling stop at Brussels
+    if(G.scenario === 'T9' && T.routeKey === H2_REFUEL_ROUTE && !T.refueling){
+      // Calculate if we're approaching Brussels waypoint
+      const brusselsT = H2_REFUEL_WAYPOINT / (T.pts.length - 1);
+      if(Math.abs(T.t - brusselsT) < 0.02 && !T.refuelDone){
+        T.refueling = true;
+        T.refuelTimer = H2_REFUEL_DURATION;
+        T.t = brusselsT; // snap to station
+      }
+    }
+
+    if(T.refueling){
+      T.refuelTimer -= dt;
+      if(T.refuelTimer <= 0){
+        T.refueling = false;
+        T.refuelDone = true;
+        T.t += 0.001; // move past station
+      }
+      // Keep train at station position
+      const pos = getPositionOnRoute(T.pts, T.t);
+      T.group.position.copy(pos);
+      continue;
+    }
+
+    T.t += dt * 0.015; // speed factor
+    if(T.t > 1) T.t = 0;
+    const pos = getPositionOnRoute(T.pts, T.t);
+    T.group.position.copy(pos);
+    // Face direction of travel
+    const nextT = Math.min(T.t + 0.01, 1);
+    const nextPos = getPositionOnRoute(T.pts, nextT);
+    const dir = nextPos.clone().sub(pos);
+    if(dir.length() > 0.01){
+      T.group.rotation.y = -Math.atan2(dir.z, dir.x);
+    }
+  }
+}
+
+// ================================================================
+// MINIMAP
+// ================================================================
+const mmCanvas = document.getElementById('mmCanvas');
+const mmCtx = mmCanvas.getContext('2d');
+
+function drawMinimap(){
+  mmCtx.fillStyle = '#1a1a2e';
+  mmCtx.fillRect(0, 0, 200, 120);
+
+  // Routes (new positions: London=-95, Paris=160, Brussels=115, Amsterdam=160,55)
+  const mapPts = {
+    'london-paris': [[20,100],[100,100],[170,100]],
+    'london-brussels': [[20,100],[100,100],[135,57]],
+    'london-amsterdam': [[20,100],[100,100],[135,57],[170,20]],
+  };
+
+  mmCtx.strokeStyle = '#444';
+  mmCtx.lineWidth = 2;
+  for(const pts of Object.values(mapPts)){
+    mmCtx.beginPath();
+    for(let i=0;i<pts.length;i++) i===0 ? mmCtx.moveTo(...pts[i]) : mmCtx.lineTo(...pts[i]);
+    mmCtx.stroke();
+  }
+
+  // Stations
+  const stations = { london:[20,100], paris:[170,100], brussels:[135,57], amsterdam:[170,20] };
+  mmCtx.fillStyle = '#000080';
+  for(const [name, [x,y]] of Object.entries(stations)){
+    mmCtx.beginPath(); mmCtx.arc(x,y,4,0,7); mmCtx.fill();
+    mmCtx.fillStyle='#fff'; mmCtx.font='8px Tahoma'; mmCtx.fillText(name,x+6,y+3); mmCtx.fillStyle='#000080';
+  }
+
+  // Trains
+  mmCtx.fillStyle = '#CC0000';
+  for(const key of Object.keys(TRAIN_GROUPS)){
+    const T = TRAIN_GROUPS[key];
+    const pos = getPositionOnRoute(T.pts, T.t);
+    const sx = 20 + (pos.x + 95) * 0.588;
+    const sy = 100 - pos.z * 1.455;
+    mmCtx.beginPath(); mmCtx.arc(sx, sy, 3, 0, 7); mmCtx.fill();
+  }
+}
+
+// ================================================================
+// ANIMATION LOOP
+// ================================================================
+let lastTime = 0;
+function animate(time){
+  requestAnimationFrame(animate);
+  const dt = (time - lastTime) / 1000;
+  lastTime = time;
+
+  if(speed > 0 && !G.fired){
+    const ticksPerSec = speed;
+    const targetInterval = 1000 / ticksPerSec;
+    if(time - lastTick >= targetInterval){
+      tickWeek(G);
+      updateTicker(G, G.weekOutput);
+      updateOps(G, G.weekOutput);
+      lastTick = time;
+    }
+  }
+
+  // Update train positions
+  updateTrains(dt);
+
+  // Update status lamps
+  for(const key of Object.keys(STATIONS)){
+    const S = STATIONS[key];
+    const lamp = S.statusLamp;
+    if(!G.tunnel_open){
+      lamp.material.color.set(0xCC0000);
+      lamp.material.emissive.set(0xCC0000);
+      lamp.material.emissiveIntensity = 0.9;
+    } else if(G.weekly_breakdowns > 0){
+      lamp.material.color.set(0xFFCC00);
+      lamp.material.emissive.set(0xFFCC00);
+      lamp.material.emissiveIntensity = 0.9;
+    } else {
+      lamp.material.color.set(0x19a93f);
+      lamp.material.emissive.set(0x19a93f);
+      lamp.material.emissiveIntensity = 0.9;
+    }
+  }
+
+  // Chip updates
+  document.getElementById('chipWeek').textContent = `WK ${G.week}`;
+  const cashM = (G.cash/1e6).toFixed(1);
+  document.getElementById('chipCash').textContent = `€${cashM}M`;
+  document.getElementById('chipCash').className = 'statchip ' + (G.cash < 0 ? 'neg' : 'pos');
+  const profitM = G.weekly_profit >= 0 ? `+€${(G.weekly_profit/1e6).toFixed(1)}M` : `-€${(Math.abs(G.weekly_profit)/1e6).toFixed(1)}M`;
+  document.getElementById('chipProfit').textContent = profitM;
+  document.getElementById('chipProfit').className = 'statchip ' + (G.weekly_profit >= 0 ? 'pos' : 'neg');
+
+  drawMinimap();
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ================================================================
+// RESIZE
+// ================================================================
+window.addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+  setFrustum();
+});
+
+animate(0);
+</script>
+</body>
+</html>
