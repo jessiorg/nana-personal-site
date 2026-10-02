@@ -19,6 +19,8 @@ const navLinks = [
 <nav class="nav">
   <div class="nav-inner">
     <a href={base} class="brand">Nana <em>Gyasi</em></a>
+
+    <!-- Desktop links -->
     <ul class="nav-links">
       {navLinks.map(link => (
         <li>
@@ -31,7 +33,35 @@ const navLinks = [
         </li>
       ))}
     </ul>
+
     <a href={`${base}/contact`} class="cta">Let's talk</a>
+
+    <!-- Mobile hamburger -->
+    <label class="hamburger" for="nav-toggle" aria-label="Toggle navigation">
+      <span class="hamburger-line" />
+      <span class="hamburger-line" />
+      <span class="hamburger-line" />
+    </label>
+  </div>
+
+  <!-- Mobile dropdown — controlled by hidden checkbox -->
+  <input type="checkbox" id="nav-toggle" class="nav-toggle-check" hidden />
+  <div class="nav-mobile">
+    <ul class="nav-mobile-links">
+      {navLinks.map(link => (
+        <li>
+          <a
+            href={link.href}
+            class:list={["nav-mobile-link", { active: currentPath === link.href }]}
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+      <li>
+        <a href={`${base}/contact`} class="nav-mobile-cta">Let's talk →</a>
+      </li>
+    </ul>
   </div>
 </nav>
 
@@ -62,6 +92,7 @@ const navLinks = [
     letter-spacing: -0.01em;
     color: var(--ink);
     border-bottom: none;
+    flex-shrink: 0;
   }
   .brand em {
     font-style: italic;
@@ -69,6 +100,7 @@ const navLinks = [
     font-weight: 400;
   }
 
+  /* Desktop links */
   .nav-links {
     display: flex;
     gap: 22px;
@@ -87,6 +119,7 @@ const navLinks = [
     color: var(--muted);
   }
 
+  /* CTA */
   .cta {
     font-size: 13px;
     font-weight: 500;
@@ -96,6 +129,7 @@ const navLinks = [
     color: var(--canvas);
     border-bottom: none;
     transition: transform var(--duration-fast) var(--ease-out);
+    flex-shrink: 0;
   }
   .cta:hover {
     color: var(--canvas);
@@ -105,8 +139,120 @@ const navLinks = [
     transform: scale(0.98);
   }
 
+  /* Hamburger */
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    padding: 4px;
+    flex-shrink: 0;
+  }
+  .hamburger-line {
+    display: block;
+    width: 100%;
+    height: 1.5px;
+    background: var(--ink);
+    border-radius: 1px;
+    transition: background var(--duration-fast) var(--ease-out);
+  }
+  .hamburger:hover .hamburger-line {
+    background: var(--muted);
+  }
+
+  /* Mobile toggle — hidden checkbox */
+  .nav-toggle-check {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Mobile dropdown */
+  .nav-mobile {
+    display: none;
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    margin-top: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+  }
+
+  .nav-mobile-links {
+    list-style: none;
+    padding: 8px 0;
+  }
+
+  .nav-mobile-link {
+    display: block;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    border-bottom: none;
+    transition: background var(--duration-fast) var(--ease-out),
+                color var(--duration-fast) var(--ease-out);
+  }
+  .nav-mobile-link:hover,
+  .nav-mobile-link.active {
+    background: var(--surface);
+    color: var(--muted);
+  }
+
+  .nav-mobile-cta {
+    display: block;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    border-bottom: none;
+    margin-top: 4px;
+  }
+  .nav-mobile-cta:hover {
+    color: var(--muted);
+  }
+
+  /* ======== RESPONSIVE ======== */
   @media (max-width: 640px) {
-    .nav-links { display: none; }
-    .nav { top: 8px; margin: 8px auto 0; }
+    .nav {
+      top: 8px;
+      margin: 8px auto 0;
+    }
+    .nav-links,
+    .cta {
+      display: none;
+    }
+    .hamburger {
+      display: flex;
+    }
+    .nav-mobile {
+      display: block;
+    }
+    /* Open when checked */
+    .nav-toggle-check:checked ~ .nav-mobile {
+      display: block;
+    }
+    /* Animate hamburger → X */
+    .nav-toggle-check:checked ~ .nav-inner .hamburger .hamburger-line:nth-child(1) {
+      transform: translateY(6.5px) rotate(45deg);
+    }
+    .nav-toggle-check:checked ~ .nav-inner .hamburger .hamburger-line:nth-child(2) {
+      opacity: 0;
+    }
+    .nav-toggle-check:checked ~ .nav-inner .hamburger .hamburger-line:nth-child(3) {
+      transform: translateY(-6.5px) rotate(-45deg);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .nav-inner {
+      padding: 8px 12px 8px 16px;
+    }
+    .brand {
+      font-size: 18px;
+    }
   }
 </style>
