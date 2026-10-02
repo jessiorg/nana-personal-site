@@ -6,10 +6,12 @@ const { currentPath = "/" } = Astro.props;
 
 const navLinks = [
   { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
-  { href: "/work", label: "Work" },
-  { href: "/writing", label: "Writing" },
-  { href: "/contact", label: "Contact" },
+  { href: "/#now", label: "Now" },
+  { href: "/#simulations", label: "Simulations" },
+  { href: "/#work", label: "Work" },
+  { href: "/#ventures", label: "Ventures" },
+  { href: "/#writing", label: "Writing" },
+  { href: "/#contact", label: "Contact" },
 ];
 ---
 
@@ -38,7 +40,7 @@ const navLinks = [
     top: 16px;
     z-index: 50;
     margin: 16px auto 0;
-    max-width: 920px;
+    max-width: 1080px;
   }
 
   .nav-inner {
