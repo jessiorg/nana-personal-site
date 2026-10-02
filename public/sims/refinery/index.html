@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Crude Refinery Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; background: #111; color: #eee; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #ui { position: absolute; top: 20px; right: 20px; width: 300px; background: rgba(20,20,20,0.9); padding: 20px; border: 1px solid #444; }
+        .metric { margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 5px; }
+        .val { color: #f90; font-family: monospace; font-size: 1.2em; }
+        button { background: #f90; border: none; padding: 10px; width: 100%; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h2>Refinery Economics</h2>
+        <div class="metric">Gross Revenue: <br><span id="rev" class="val">$0</span></div>
+        <div class="metric">Net Margin: <br><span id="margin" class="val">$0</span></div>
+        <div class="metric">Margin/bbl: <br><span id="perbbl" class="val">$0</span></div>
+        <hr>
+        <label>Throughput (bpd):</label>
+        <input type="range" id="throughput" min="50000" max="250000" value="200000" style="width:100%">
+        <br><br>
+        <button onclick="runSimulation()">Run Physics Engine</button>
+    </div>
+    <script>
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // Distillation Column
+        const columnGeo = new THREE.CylinderGeometry(2, 2, 10, 32);
+        const columnMat = new THREE.MeshPhongMaterial({ color: 0x888888, shininess: 100 });
+        const column = new THREE.Mesh(columnGeo, columnMat);
+        scene.add(column);
+
+        // Fractional flows
+        const fractions = [];
+        const colors = [0xff0000, 0xffff00, 0x00ff00, 0x0000ff]; // Gaso, Dist, Naph, Resid
+        for(let i=0; i<4; i++) {
+            const pipeGeo = new THREE.CylinderGeometry(0.2, 0.2, 5, 16);
+            const pipeMat = new THREE.MeshBasicMaterial({ color: colors[i] });
+            const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+            pipe.rotation.z = Math.PI / 2;
+            pipe.position.set(3.5, i * 2 - 3, 0);
+            scene.add(pipe);
+            fractions.push(pipe);
+        }
+
+        const light = new THREE.PointLight(0xffffff, 1, 100);
+        light.position.set(10, 10, 10);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        camera.position.z = 15;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            column.rotation.y += 0.005;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        async function runSimulation() {
+            const tp = document.getElementById('throughput').value;
+            const res = await fetch(`http://localhost:8000/simulate/refinery?throughput=${tp}`);
+            const data = await res.json();
+            
+            document.getElementById('rev').innerText = '$' + data.economics.gross_revenue.toLocaleString();
+            document.getElementById('margin').innerText = '$' + data.economics.net_margin.toLocaleString();
+            document.getElementById('perbbl').innerText = '$' + data.economics.margin_per_bbl;
+
+            // Animate flows based on results
+            fractions.forEach((f, i) => {
+                f.scale.x = 0.5 + Math.random(); // dynamic effect
+            });
+        }
+    </script>
+</body>
+</html>
