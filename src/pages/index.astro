@@ -1,0 +1,303 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import NavBar from '../components/NavBar.astro';
+import Footer from '../components/Footer.astro';
+import SimLaes from '../components/sims/SimLaes.astro';
+---
+
+<BaseLayout title="Nana Gyasi — Founder, Kanay">
+  <NavBar currentPath="/" />
+
+  <main>
+    <section class="hero">
+      <div class="hero-inner wrap">
+        <div class="hero-content">
+          <div class="eyebrow">
+            <span class="dot"></span>
+            Founder & CEO, Kanay
+          </div>
+          <h1>
+            Building the<br />
+            <em>trading house</em><br />
+            <span class="pale">that runs on</span><br />
+            its own intelligence.
+          </h1>
+          <p class="lede">
+            Twenty years inside the energy industry, now building Kanay —
+            the AI-native commodity trading house for sustainable feedstocks.
+          </p>
+          <div class="hero-actions">
+            <a href="/work" class="btn-primary">View my work</a>
+            <a href="/contact" class="btn-ghost">Get in touch</a>
+          </div>
+        </div>
+        <div class="hero-meta">
+          <div class="meta-block">
+            <div class="meta-label">Based in</div>
+            <div class="meta-value">London, UK</div>
+          </div>
+          <div class="meta-block">
+            <div class="meta-label">Focus</div>
+            <div class="meta-value">Energy & Commodities</div>
+          </div>
+          <div class="meta-block">
+            <div class="meta-label">Stack</div>
+            <div class="meta-value">AI, Trading, Sustainability</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sims-section" id="simulations">
+      <div class="wrap">
+        <div class="section-header">
+          <span class="eyebrow-mono">Interactive</span>
+          <h2>Simulations</h2>
+          <p class="section-sub">
+            Energy system models and trading simulations built with Three.js.
+            Real physics, real market logic.
+          </p>
+        </div>
+        <div class="sims-grid">
+          <SimLaes />
+          <!-- Additional sims drop in here -->
+        </div>
+      </div>
+    </section>
+
+    <section class="about-teaser" id="about">
+      <div class="wrap-narrow">
+        <h2>About</h2>
+        <p>
+          Nana Gyasi is the founder and CEO of Kanay, a sustainable feedstock
+          trading house operating at the intersection of energy markets, commodity
+          trading, and AI.
+        </p>
+        <p>
+          Before Kanay, twenty years across bp, Shell, and commodity trading desks —
+          building and running physical and financial energy positions across European
+          power, gas, and environmental markets.
+        </p>
+        <a href="/about" class="read-more">Read more &rarr;</a>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  /* ---- Hero ---- */
+  .hero {
+    padding: 120px 0 96px;
+  }
+
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 64px;
+    align-items: end;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 5px 11px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-full);
+    background: var(--surface);
+    margin-bottom: 26px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pale-green-fg);
+  }
+
+  .hero-content h1 {
+    font-family: var(--display);
+    font-size: clamp(56px, 8.5vw, 124px);
+    line-height: 0.96;
+    letter-spacing: -0.03em;
+    font-weight: 400;
+    color: var(--ink);
+    margin-bottom: 28px;
+  }
+
+  .hero-content h1 em {
+    font-style: italic;
+    color: var(--ink);
+  }
+
+  .hero-content h1 .pale {
+    color: var(--muted);
+  }
+
+  .lede {
+    font-size: 20px;
+    color: var(--muted);
+    max-width: 36ch;
+    line-height: 1.5;
+    margin-bottom: 36px;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 24px;
+    background: var(--ink);
+    color: var(--canvas);
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: none;
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+  .btn-primary:hover {
+    color: var(--canvas);
+    transform: translateY(-2px);
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 24px;
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-full);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink);
+    background: var(--surface);
+    border-bottom: none;
+    transition: border-color var(--duration-fast) var(--ease-out);
+  }
+  .btn-ghost:hover {
+    border-color: var(--muted);
+    color: var(--ink);
+  }
+
+  .hero-meta {
+    padding-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .meta-block {
+    border-top: 1px solid var(--hairline);
+    padding-top: 16px;
+  }
+
+  .meta-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .meta-value {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  /* ---- Sim section ---- */
+  .sims-section {
+    padding: var(--space-24) 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .section-header {
+    margin-bottom: var(--space-12);
+  }
+
+  .eyebrow-mono {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: var(--space-3);
+  }
+
+  .section-header h2 {
+    font-family: var(--display);
+    font-size: clamp(36px, 5vw, 64px);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: var(--space-4);
+  }
+
+  .section-sub {
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 48ch;
+  }
+
+  .sims-grid {
+    display: grid;
+    gap: var(--space-8);
+  }
+
+  /* ---- About teaser ---- */
+  .about-teaser {
+    padding: var(--space-24) 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .about-teaser h2 {
+    font-family: var(--display);
+    font-size: clamp(32px, 4vw, 56px);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: var(--space-6);
+  }
+
+  .about-teaser p {
+    font-size: 18px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: var(--space-4);
+  }
+
+  .read-more {
+    display: inline-block;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-top: var(--space-4);
+    border-bottom: 1px solid var(--hairline);
+    transition: border-color var(--duration-fast) var(--ease-out);
+  }
+  .read-more:hover {
+    border-color: var(--ink);
+  }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 768px) {
+    .hero-inner {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+    .hero { padding: 80px 0 64px; }
+  }
+</style>

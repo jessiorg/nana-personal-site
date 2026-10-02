@@ -1,0 +1,109 @@
+---
+interface Props {
+  currentPath?: string;
+}
+const { currentPath = "/" } = Astro.props;
+
+const navLinks = [
+  { href: "/", label: "Home" },
+  { href: "/about", label: "About" },
+  { href: "/work", label: "Work" },
+  { href: "/writing", label: "Writing" },
+  { href: "/contact", label: "Contact" },
+];
+---
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">Nana <em>Gyasi</em></a>
+    <ul class="nav-links">
+      {navLinks.map(link => (
+        <li>
+          <a
+            href={link.href}
+            class:list={["nav-link", { active: currentPath === link.href }]}
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+    <a href="/contact" class="cta">Let's talk</a>
+  </div>
+</nav>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 16px;
+    z-index: 50;
+    margin: 16px auto 0;
+    max-width: 920px;
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 10px 20px;
+    background: rgba(251, 251, 250, 0.78);
+    backdrop-filter: saturate(140%) blur(16px);
+    -webkit-backdrop-filter: saturate(140%) blur(16px);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-full);
+  }
+
+  .brand {
+    font-family: var(--display);
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    border-bottom: none;
+  }
+  .brand em {
+    font-style: italic;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 22px;
+    list-style: none;
+  }
+
+  .nav-link {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink);
+    border-bottom: none;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+  .nav-link:hover,
+  .nav-link.active {
+    color: var(--muted);
+  }
+
+  .cta {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 14px;
+    border-radius: var(--radius-full);
+    background: var(--ink);
+    color: var(--canvas);
+    border-bottom: none;
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+  .cta:hover {
+    color: var(--canvas);
+    transform: translateY(-1px);
+  }
+  .cta:active {
+    transform: scale(0.98);
+  }
+
+  @media (max-width: 640px) {
+    .nav-links { display: none; }
+    .nav { top: 8px; margin: 8px auto 0; }
+  }
+</style>

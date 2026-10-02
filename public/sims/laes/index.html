@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LAES Energy Storage</title>
+<meta name="description" content="Liquid Air Energy Storage — grid-scale long-duration energy storage facility simulation. Charge: compress and liquefy air. Discharge: expand through turbine to generate power.">
+<meta name="theme-color" content="#000080">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23c6c6c6'/%3E%3Crect x='13' y='4' width='6' height='24' fill='%235f6a72'/%3E%3Crect x='13' y='4' width='6' height='6' fill='%2388ccee'/%3E%3Ccircle cx='16' cy='20' r='5' fill='%23e2e4e5' stroke='%235f6a72'/%3E%3C/svg%3E">
+<style>
+/* ============ 1992 system chrome ============ */
+* { margin:0; padding:0; box-sizing:border-box; }
+:root{
+  --face:#c6c6c6; --face-hi:#ffffff; --face-lo:#5a5a5a; --face-mid:#9a9a9a;
+  --title:#000080; --title-text:#ffffff; --ink:#000; --paper:#fff;
+  --green:#0a7a2f; --amber:#b07400; --red:#b01818;
+}
+html,body{ height:100%; }
+body{
+  font-family:Tahoma,'MS Sans Serif',Geneva,sans-serif; font-size:12px; color:var(--ink);
+  background:#3a6ea5; overflow:hidden; user-select:none;
+}
+#scene{ position:fixed; inset:0; }
+canvas{ display:block; }
+
+/* bevels */
+.out{ border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); background:var(--face); }
+.in { border:2px solid; border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); background:var(--face); }
+.well{ border:2px solid; border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); background:var(--paper); }
+
+/* menu bar */
+#menubar{ position:fixed; top:0; left:0; right:0; height:26px; display:flex; align-items:stretch; z-index:600;
+  background:var(--face); border-bottom:2px solid var(--face-lo); box-shadow:inset 0 2px 0 var(--face-hi); }
+.menu{ position:relative; display:flex; align-items:center; padding:0 12px; cursor:default; }
+.menu:hover, .menu.open{ background:var(--title); color:var(--title-text); }
+.drop{ display:none; position:absolute; top:100%; left:0; min-width:210px; z-index:700; padding:2px; color:var(--ink); }
+.menu.open .drop{ display:block; }
+.item{ padding:4px 18px 4px 24px; position:relative; white-space:nowrap; }
+.item:hover{ background:var(--title); color:var(--title-text); }
+.item .tick{ position:absolute; left:8px; }
+.sep{ height:0; border-top:1px solid var(--face-lo); border-bottom:1px solid var(--face-hi); margin:3px 2px; }
+#menubar .grow{ flex:1; }
+.statchip{ display:flex; align-items:center; padding:0 10px; font-weight:bold; border-left:2px solid var(--face-lo); box-shadow:inset 2px 0 0 var(--face-hi); }
+.statchip.neg{ color:var(--red); }
+.statchip.pos{ color:var(--green); }
+
+/* operations panel */
+#ops{ position:fixed; top:34px; right:8px; width:248px; z-index:500; }
+#ops .body{ padding:5px; max-height:calc(100vh - 110px); overflow-y:auto; }
+.sect{ margin-bottom:7px; }
+.sect h4{ font-size:11px; padding:2px 5px; background:var(--face-mid); color:#fff; text-shadow:1px 1px 0 #00000055; margin-bottom:3px; }
+table.data{ width:100%; border-collapse:collapse; }
+table.data td, table.data th{ padding:1px 4px; font-size:11px; text-align:right; }
+table.data td:first-child, table.data th:first-child{ text-align:left; }
+table.data th{ border-bottom:1px solid var(--face-lo); font-weight:bold; }
+.rowbtn{ cursor:pointer; }
+.rowbtn:hover{ background:#000080; color:#fff; }
+.bar{ height:8px; background:var(--paper); border:1px solid var(--face-lo); position:relative; width:54px; display:inline-block; vertical-align:middle; }
+.bar i{ position:absolute; left:0; top:0; bottom:0; }
+.dot{ display:inline-block; width:9px; height:9px; border:1px solid #00000088; border-radius:50%; vertical-align:middle; }
+.ok{ background:#19a93f; } .warn{ background:#e2a51b; } .bad{ background:#d22; } .off{ background:#777; }
+
+/* windows */
+.win{ position:fixed; min-width:280px; z-index:900; box-shadow:3px 3px 0 rgba(0,0,0,.35); }
+.win .tbar{ height:22px; background:var(--title); color:var(--title-text); display:flex; align-items:center;
+  padding:0 4px 0 8px; font-weight:bold; cursor:move; }
+.win .tbar .grow{ flex:1; }
+.winbtn{ width:18px; height:16px; margin-left:3px; font-size:10px; line-height:12px; text-align:center; cursor:pointer; color:var(--ink); }
+.win .content{ padding:8px; }
+.win h3{ font-size:12px; margin:6px 0 3px; }
+.win p{ margin:4px 0; line-height:1.45; user-select:text; }
+.win label{ display:block; margin-top:6px; }
+.btn{ display:inline-block; padding:4px 14px; cursor:pointer; font-weight:bold; margin:4px 6px 0 0; }
+.btn:active{ border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); }
+input[type=range]{ -webkit-appearance:none; width:100%; height:20px; background:transparent; margin:2px 0; }
+input[type=range]::-webkit-slider-runnable-track{ height:6px; background:var(--paper); border:1px solid var(--face-lo); }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:12px; height:18px; margin-top:-7px;
+  background:var(--face); border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); }
+.kv{ display:flex; justify-content:space-between; padding:1px 0; }
+.kv b{ font-variant-numeric:tabular-nums; }
+.gauge{ height:12px; border:1px solid var(--face-lo); background:linear-gradient(90deg,#19a93f 0 70%,#e2a51b 70% 87%,#d22 87% 100%); position:relative; }
+.gauge .needle{ position:absolute; top:-3px; bottom:-3px; width:3px; background:#000; }
+.notice{ background:#ffffd0; border:1px solid #b0a000; padding:4px 6px; margin:5px 0; }
+.danger{ background:#ffd9d9; border:1px solid #b01818; }
+fieldset{ border:1px solid var(--face-lo); padding:4px 8px 6px; margin-top:6px; }
+legend{ padding:0 4px; font-weight:bold; }
+
+/* ticker */
+#ticker{ position:fixed; left:128px; right:264px; bottom:8px; height:42px; z-index:500; display:flex; flex-direction:column; justify-content:center; padding:2px 8px; overflow:hidden; }
+#ticker div{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:11px; line-height:1.5; }
+#ticker .t0{ font-weight:bold; }
+
+/* stream palette (left sidebar) */
+#palette{ position:fixed; top:34px; left:8px; width:112px; z-index:500; padding:4px; max-height:calc(100vh - 96px); overflow-y:auto; }
+.pbtn{ display:block; width:100%; margin:3px 0; padding:3px 2px 2px; font-size:10px; font-weight:bold; text-align:center;
+  cursor:pointer; letter-spacing:0.4px; background:var(--face); font-family:inherit;
+  border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); }
+.pbtn:active{ border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); }
+.pbtn.on{ border-color:var(--face-lo) var(--face-hi) var(--face-hi) var(--face-lo); background:#aeb4ae; }
+.pbtn small{ display:block; font-weight:normal; font-size:9px; color:#222; font-variant-numeric:tabular-nums; }
+.pbtn .sw{ display:inline-block; width:8px; height:8px; border:1px solid #00000088; vertical-align:middle; margin-right:3px; }
+.pdiv{ height:0; border-top:1px solid var(--face-lo); border-bottom:1px solid var(--face-hi); margin:5px 2px; }
+#viewTitle{ position:fixed; top:30px; left:50%; transform:translateX(-50%); z-index:400; padding:1px 36px;
+  font-weight:bold; font-size:12px; background:var(--face);
+  border:2px solid; border-color:var(--face-hi) var(--face-lo) var(--face-lo) var(--face-hi); }
+
+/* splash */
+#splash{ position:fixed; inset:0; z-index:2000; display:flex; align-items:center; justify-content:center;
+  background:repeating-conic-gradient(#3a6ea5 0 25%, #38689c 0 50%) 0 0/4px 4px; }
+#splash .panel{ width:560px; max-width:94vw; }
+.scn{ display:block; width:100%; text-align:left; padding:7px 10px; margin-top:6px; cursor:pointer; }
+.scn:hover{ background:#d6d6d6; }
+.scn b{ display:block; }
+.scn small{ color:#333; }
+.fine{ font-size:10px; color:#333; margin-top:10px; line-height:1.5; }
+
+/* tank fill bar in unit dialog */
+.tankbar{ height:14px; border:1px solid #444; background:#fff; margin-top:2px; width:100%; position:relative; }
+.tankbar i{ display:block; position:absolute; left:0; top:0; bottom:0; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.172.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="scene"></div>
+
+<!-- menu bar -->
+<div id="menubar">
+  <div class="menu" data-menu><span>File</span>
+    <div class="drop out">
+      <div class="item" id="mNew">New Facility</div>
+      <div class="item" id="mScen">Scenarios...</div>
+      <div class="sep"></div>
+      <div class="item" id="mAbout">About LAES</div>
+    </div>
+  </div>
+  <div class="menu" data-menu><span>Facility</span>
+    <div class="drop out">
+      <div class="item" id="mCharge">Start Charging</div>
+      <div class="item" id="mDischarge">Start Discharging</div>
+      <div class="item" id="mIdle">Stop / Idle</div>
+    </div>
+  </div>
+  <div class="menu" data-menu><span>View</span>
+    <div class="drop out">
+      <div class="item" id="mCam">Reset Camera</div>
+    </div>
+  </div>
+  <div class="menu" id="mPortal"><a href="index.html" style="color:var(--title-text);text-decoration:none;display:block;padding:0 10px;font-size:11px;font-weight:bold;">← Portal</a></div>
+  <div class="grow"></div>
+  <div id="scenarioBar" style="display:flex;align-items:center;gap:4px;padding:0 8px;">
+    <span style="font-size:10px;color:var(--title-text);opacity:0.7;">SCEN:</span>
+    <button class="scn out" data-scn="balanced" id="qsBalanced" style="padding:1px 6px;font-size:10px;cursor:pointer;color:var(--title-text);">Balanced</button>
+    <button class="scn out" data-scn="charge" id="qsCharge" style="padding:1px 6px;font-size:10px;cursor:pointer;color:var(--title-text);">Charge</button>
+    <button class="scn out" data-scn="discharge" id="qsDischarge" style="padding:1px 6px;font-size:10px;cursor:pointer;color:var(--title-text);">Discharge</button>
+    <button class="scn out" data-scn="week" id="qsWeek" style="padding:1px 6px;font-size:10px;cursor:pointer;color:var(--title-text);">Week</button>
+  </div>
+  <div class="statchip" id="chipHours">0 hrs</div>
+  <div class="statchip" id="chipMode">IDLE</div>
+  <div class="statchip" id="chipPower">— MW</div>
+</div>
+<div id="portalBar" style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--face);border-bottom:1px solid var(--face-lo);">
+  <a href="index.html" style="text-decoration:none;">
+    <button class="out" style="padding:4px 14px;font-size:11px;font-family:inherit;color:var(--ink);cursor:pointer;">&#8592; Portal</button>
+  </a>
+</div>
+<div id="viewTitle">LAES Energy Storage</div>
+
+<!-- stream palette (left sidebar) -->
+<div id="palette" class="out">
+  <button class="pbtn" id="pCharge">CHARGING</button>
+  <button class="pbtn" id="pDischarge">DISCHARGING</button>
+  <button class="pbtn" id="pIdle">IDLE</button>
+  <div class="pdiv"></div>
+  <button class="pbtn" data-stream="air"><span class="sw" style="background:#888888"></span>AIR<small>—</small></button>
+  <button class="pbtn" data-stream="lair"><span class="sw" style="background:#88ccee"></span>LIQ. AIR<small>—</small></button>
+  <button class="pbtn" data-stream="hot"><span class="sw" style="background:#dd4400"></span>HOT FLOW<small>—</small></button>
+  <button class="pbtn" data-stream="cold"><span class="sw" style="background:#4488cc"></span>COLD FLOW<small>—</small></button>
+  <button class="pbtn" data-stream="grid"><span class="sw" style="background:#44aa44"></span>GRID<small>—</small></button>
+</div>
+
+<!-- operations panel (right sidebar) -->
+<div id="ops" class="out">
+  <div class="tbar" style="height:22px;background:var(--title);color:#fff;display:flex;align-items:center;padding:0 8px;font-weight:bold;">LAES Facility</div>
+  <div class="body" id="opsBody"></div>
+</div>
+
+<!-- ticker -->
+<div id="ticker" class="in"><div class="t0" id="tick0"></div><div id="tick1"></div></div>
+
+<!-- splash screen -->
+<div id="splash">
+  <div class="panel out">
+    <div class="content" style="padding:14px 18px 16px;">
+      <div style="font-family:'Arial Black',Arial,sans-serif;font-size:36px;letter-spacing:-1px;line-height:1;color:#101010;text-shadow:3px 3px 0 #1a4a8a;">LAES <span style="color:#1a4a8a;text-shadow:3px 3px 0 #101010;">Energy Storage</span></div>
+      <div style="font-size:11px;margin-bottom:8px;">Liquid Air Energy Storage — grid-scale long-duration energy storage facility. Charge: compress and liquefy air. Discharge: expand through turbine to generate power.</div>
+      <div class="well" style="padding:6px 8px;">
+        <b>Select a scenario.</b>
+        <button class="scn out" data-scn="balanced" id="splashBalanced"><b>Balanced Cycle</b><small>10h charge, 10h discharge. The standard operating cycle.</small></button>
+        <button class="scn out" data-scn="charge" id="splashCharge"><b>Charge Only</b><small>Fill the tank. Watch the thermal stores charge up.</small></button>
+        <button class="scn out" data-scn="discharge" id="splashDischarge"><b>Discharge Only</b><small>Empty the tank. See power generation from stored liquid air.</small></button>
+        <button class="scn out" data-scn="week" id="splashWeek"><b>One Week</b><small>Continuous cycling for a week. Watch efficiency trends.</small></button>
+      </div>
+      <div class="fine">Based on: MathWorks Liquid Air Energy Storage model. Charge: 10 MW / 1.8 MW discharge / 150-ton tank / ~15% round-trip efficiency.</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+/* ================================================================
+   SIM CORE — from sim-core.js
+   ================================================================ */
+const LAES_CONSTANTS = {
+  TANK_KG: 150000,
+  TANK_KWH: 15,
+  CHARGE_MW: 10,
+  CHARGE_RATE_KGH: 23400,
+  CHARGE_EFF: 0.26,
+  DISCHARGE_MW: 1.8,
+  DISCHARGE_RATE_KGH: 27000,
+  DISCHARGE_EFF: 0.56,
+  EXPANDER_OFFSET: 0.24,
+  HOT_STORE_MWH: 3.5,
+  HOT_STORE_RELEASE: 2.2,
+  COLD_STORE_A_MWH: 5.1,
+  COLD_STORE_A_RELEASE: 3.8,
+  COLD_STORE_B_MWH: 2.3,
+  COLD_STORE_B_RELEASE: 1.7,
+  NET_CHARGE_MW: 10 * (1 - 0.24),
+  CYCLE_HOURS: 20,
+  ENERGY_PER_CYCLE_MWH: 15,
+  TANK_FULL_KG: 150000,
+  TANK_EMPTY_KG: 0,
+};
+
+function bindRng(S) {
+  S.rng = function () {
+    let a = S.rngState >>> 0;
+    a = (a + 0x6D2B79F5) >>> 0;
+    S.rngState = a;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return S;
+}
+
+function newLAESGame(scenario = 'balanced') {
+  const S = {
+    rngState: (Math.random() * 0xFFFFFFFF) >>> 0,
+    scenario,
+    hours: 0,
+    cycles: 0,
+    mode: 'idle',
+    tankLevel: 0,
+    tankPct: 0,
+    hotStore: 0,
+    coldStoreA: 0,
+    coldStoreB: 0,
+    powerIn: 0,
+    powerOut: 0,
+    netPower: 0,
+    chargeEfficiency: LAES_CONSTANTS.CHARGE_EFF,
+    dischargeEfficiency: LAES_CONSTANTS.DISCHARGE_EFF,
+    roundTripEfficiency: 0,
+    thermalBonus: 1.0,
+    totalEnergyIn: 0,
+    totalEnergyOut: 0,
+    cycleEnergy: 0,
+    state: 'empty',
+    eventLog: [],
+    socHistory: [],
+    powerHistory: [],
+    hourOutput: null,
+    autoCycle: false,
+  };
+  bindRng(S);
+  recalc(S);
+  return S;
+}
+
+function tickHour(S) {
+  const C = LAES_CONSTANTS;
+  const out = { events: [], modeChanged: false };
+  S.hours++;
+  let powerIn = 0, powerOut = 0, tankDelta = 0, hotStoreDelta = 0, coldStoreDeltaA = 0, coldStoreDeltaB = 0;
+
+  if (S.mode === 'charging') {
+    powerIn = C.CHARGE_MW;
+    const actualChargeRate = C.TANK_KG / 10;
+    tankDelta = Math.min(actualChargeRate, C.TANK_KG - S.tankLevel);
+    const heatCaptured = powerIn * 0.08;
+    hotStoreDelta = Math.min(heatCaptured * 0.5, C.HOT_STORE_MWH - S.hotStore);
+    const coldCaptured = powerIn * 0.12;
+    coldStoreDeltaA = Math.min(coldCaptured * 0.6, C.COLD_STORE_A_MWH - S.coldStoreA);
+    coldStoreDeltaB = Math.min(coldCaptured * 0.4, C.COLD_STORE_B_MWH - S.coldStoreB);
+    powerIn = C.CHARGE_MW * (1 - C.EXPANDER_OFFSET);
+    if (S.tankLevel + tankDelta >= C.TANK_KG - 1) {
+      S.tankLevel = C.TANK_KG;
+      S.state = 'full';
+      out.events.push('Tank full. Switch to discharging or idle.');
+    } else {
+      S.tankLevel += tankDelta;
+      S.state = 'charging';
+    }
+  } else if (S.mode === 'discharging') {
+    const availableAir = S.tankLevel;
+    const actualDischargeRate = C.TANK_KG / 10;
+    tankDelta = -Math.min(actualDischargeRate, availableAir);
+    const hotBoost = S.hotStore > 0 ? 0.15 : 0;
+    const coldBoost = (S.coldStoreA + S.coldStoreB) > 0 ? 0.05 : 0;
+    const efficiencyMultiplier = 1 + hotBoost + coldBoost;
+    powerOut = C.DISCHARGE_MW * efficiencyMultiplier;
+    if (S.hotStore > 0) {
+      const hotRelease = Math.min(C.HOT_STORE_RELEASE / 10, S.hotStore);
+      S.hotStore = Math.max(0, S.hotStore - hotRelease);
+    }
+    if (S.coldStoreA > 0) {
+      const coldReleaseA = Math.min(C.COLD_STORE_A_RELEASE / 10, S.coldStoreA);
+      S.coldStoreA = Math.max(0, S.coldStoreA - coldReleaseA);
+    }
+    if (S.coldStoreB > 0) {
+      const coldReleaseB = Math.min(C.COLD_STORE_B_RELEASE / 10, S.coldStoreB);
+      S.coldStoreB = Math.max(0, S.coldStoreB - coldReleaseB);
+    }
+    S.tankLevel = Math.max(0, S.tankLevel + tankDelta);
+    if (S.tankLevel <= 0) {
+      S.state = 'empty';
+      out.events.push('Tank empty. Switch to charging or idle.');
+    } else {
+      S.state = 'discharging';
+    }
+  } else {
+    powerIn = 0; powerOut = 0;
+    S.state = S.tankLevel > 0 ? 'discharging' : 'empty';
+  }
+
+  S.powerIn = powerIn;
+  S.powerOut = powerOut;
+  S.netPower = powerIn - powerOut;
+  S.totalEnergyIn += powerIn;
+  S.totalEnergyOut += powerOut;
+  S.hotStore = Math.max(0, Math.min(C.HOT_STORE_MWH, S.hotStore + hotStoreDelta));
+  S.coldStoreA = Math.max(0, Math.min(C.COLD_STORE_A_MWH, S.coldStoreA + coldStoreDeltaA));
+  S.coldStoreB = Math.max(0, Math.min(C.COLD_STORE_B_MWH, S.coldStoreB + coldStoreDeltaB));
+  recalc(S);
+
+  // Auto-cycling: switch modes automatically when tank full/empty
+  if (S.autoCycle) {
+    if (S.mode === 'charging' && S.tankLevel >= C.TANK_KG - 1) {
+      S.mode = 'discharging'; out.events.push('Tank full — switching to discharging.'); out.modeChanged = true;
+    } else if (S.mode === 'discharging' && S.tankLevel <= 0) {
+      S.mode = 'charging'; S.cycles++; out.events.push('Tank empty — switching to charging. Cycle ' + S.cycles + ' complete.'); out.modeChanged = true;
+    }
+  }
+  S.socHistory.push(S.tankPct);
+  if (S.socHistory.length > 200) S.socHistory.shift();
+  S.powerHistory.push({ in: powerIn, out: powerOut, net: S.netPower });
+  if (S.powerHistory.length > 200) S.powerHistory.shift();
+  S.hourOutput = out;
+  return out;
+}
+
+function recalc(S) {
+  const C = LAES_CONSTANTS;
+  S.tankPct = Math.round((S.tankLevel / C.TANK_KG) * 100);
+  const hotContribution = S.hotStore > 0 ? 1.12 : 1.0;
+  const coldContribution = (S.coldStoreA + S.coldStoreB) > 0 ? 1.05 : 1.0;
+  S.thermalBonus = hotContribution * coldContribution;
+  S.roundTripEfficiency = C.CHARGE_EFF * C.DISCHARGE_EFF * S.thermalBonus;
+  if (S.mode === 'charging') {
+    S.cycleEnergy += S.powerIn;
+  } else if (S.mode === 'discharging') {
+    S.cycleEnergy -= S.powerOut;
+  }
+  if (S.tankLevel >= C.TANK_KG - 1) {
+    S.state = 'full';
+  } else if (S.tankLevel <= 0) {
+    S.state = 'empty';
+  } else if (S.mode === 'charging') {
+    S.state = 'charging';
+  } else if (S.mode === 'discharging') {
+    S.state = 'discharging';
+  } else {
+    S.state = S.tankLevel > 0 ? 'discharging' : 'empty';
+  }
+}
+
+function setMode(S, mode) {
+  const prev = S.mode;
+  S.mode = mode;
+  if (mode !== 'idle') {
+    S.hourOutput = S.hourOutput || {};
+    S.hourOutput.modeChanged = true;
+    S.hourOutput.events = S.hourOutput.events || [];
+    S.hourOutput.events.push(`Mode: ${mode.toUpperCase()}`);
+  }
+  recalc(S);
+  return S;
+}
+
+/* ================================================================
+   THREE.JS SCENE
+   ================================================================ */
+const container = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.15;
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x9fb8c8);
+scene.fog = new THREE.Fog(0x9fb8c8, 160, 420);
+
+let viewSize = 120;
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, -200, 600);
+function setFrustum() {
+  const a = innerWidth / innerHeight;
+  camera.left = -viewSize * a / 2; camera.right = viewSize * a / 2;
+  camera.top = viewSize / 2; camera.bottom = -viewSize / 2;
+  camera.updateProjectionMatrix();
+}
+setFrustum();
+const HOME_POS = new THREE.Vector3(95, 85, 95), HOME_TGT = new THREE.Vector3(5, 0, -5);
+camera.position.copy(HOME_POS);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.copy(HOME_TGT);
+controls.enableDamping = true; controls.dampingFactor = 0.08;
+controls.maxPolarAngle = 1.32; controls.minZoom = 0.45; controls.maxZoom = 4;
+controls.mouseButtons = { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
+
+const hemi = new THREE.HemisphereLight(0xdfeaf2, 0x6e6a5c, 0.95);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff2dc, 1.5);
+sun.position.set(70, 110, 40);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -110; sun.shadow.camera.right = 110;
+sun.shadow.camera.top = 110; sun.shadow.camera.bottom = -110;
+sun.shadow.camera.far = 400; sun.shadow.bias = -0.0005;
+scene.add(sun);
+
+const M = {
+  steel: new THREE.MeshStandardMaterial({ color: 0x97a0a8, roughness: 0.55, metalness: 0.35 }),
+  lightSteel: new THREE.MeshStandardMaterial({ color: 0xc9ced3, roughness: 0.5, metalness: 0.3 }),
+  darkSteel: new THREE.MeshStandardMaterial({ color: 0x5f6a72, roughness: 0.6, metalness: 0.4 }),
+  tank: new THREE.MeshStandardMaterial({ color: 0xe2e4e5, roughness: 0.6, metalness: 0.15 }),
+  rust: new THREE.MeshStandardMaterial({ color: 0x9c6242, roughness: 0.85, metalness: 0.1 }),
+  yellow: new THREE.MeshStandardMaterial({ color: 0xd9a514, roughness: 0.7 }),
+  concrete: new THREE.MeshStandardMaterial({ color: 0xb8b4aa, roughness: 0.95 }),
+  pad: new THREE.MeshStandardMaterial({ color: 0x8f8c84, roughness: 0.95 }),
+  road: new THREE.MeshStandardMaterial({ color: 0x6b6a66, roughness: 0.95 }),
+  water: new THREE.MeshStandardMaterial({ color: 0x2e4d63, roughness: 0.25, metalness: 0.5 }),
+  grass: new THREE.MeshStandardMaterial({ color: 0x76815c, roughness: 1 }),
+  white: new THREE.MeshStandardMaterial({ color: 0xeceff0, roughness: 0.6 }),
+  lairBlue: new THREE.MeshStandardMaterial({ color: 0xaaddff, roughness: 0.4, metalness: 0.2, transparent: true, opacity: 0.85 }),
+  hotRed: new THREE.MeshStandardMaterial({ color: 0xdd4400, roughness: 0.6, metalness: 0.2 }),
+  coldBlue: new THREE.MeshStandardMaterial({ color: 0x4488cc, roughness: 0.5, metalness: 0.2 }),
+  green: new THREE.MeshStandardMaterial({ color: 0x44aa44, roughness: 0.6 }),
+};
+function box(w, h, d, m, cs = true) { const g = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); g.castShadow = cs; g.receiveShadow = true; return g; }
+function cyl(r, h, m, seg = 18, rt = r) { const g = new THREE.Mesh(new THREE.CylinderGeometry(rt, r, h, seg), m); g.castShadow = true; g.receiveShadow = true; return g; }
+
+/* ---- ground ---- */
+{
+  const c = document.createElement('canvas'); c.width = c.height = 256;
+  const x = c.getContext('2d');
+  x.fillStyle = '#76815c'; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 700; i++) {
+    x.fillStyle = Math.random() < 0.5 ? 'rgba(90,100,68,0.35)' : 'rgba(126,134,98,0.3)';
+    const px = Math.random() * 256, py = Math.random() * 256, rr = 2 + Math.random() * 9;
+    x.beginPath(); x.arc(px, py, rr, 0, 7); x.fill();
+  }
+  for (let i = 0; i < 60; i++) {
+    x.fillStyle = 'rgba(140,124,90,0.18)';
+    x.beginPath(); x.arc(Math.random() * 256, Math.random() * 256, 8 + Math.random() * 20, 0, 7); x.fill();
+  }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(22, 22);
+  M.grass.map = tex; M.grass.color.set(0xffffff); M.grass.needsUpdate = true;
+}
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), M.grass);
+ground.rotation.x = -Math.PI / 2; ground.position.y = -0.05; ground.receiveShadow = true; scene.add(ground);
+const plantPad = new THREE.Mesh(new THREE.PlaneGeometry(160, 120), M.concrete);
+plantPad.rotation.x = -Math.PI / 2; plantPad.position.set(5, 0, 2); plantPad.receiveShadow = true; scene.add(plantPad);
+
+/* ---- unit builders ---- */
+const UNITS3D = {};
+function registerUnit(key, group, center, lampPos, hitSize) {
+  group.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  const lampPole = cyl(0.12, 2.2, M.darkSteel); lampPole.position.copy(lampPos); group.add(lampPole);
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.55, 10, 8),
+    new THREE.MeshStandardMaterial({ color: 0x19a93f, emissive: 0x19a93f, emissiveIntensity: 0.9 }));
+  lamp.position.copy(lampPos).y += 1.4; group.add(lamp);
+  const hit = new THREE.Mesh(new THREE.BoxGeometry(...hitSize), new THREE.MeshBasicMaterial({ visible: false }));
+  hit.position.copy(center); hit.userData.unitKey = key; group.add(hit);
+  scene.add(group);
+  const meshes = []; group.traverse(o => { if (o.isMesh && o !== hit && o !== lamp) meshes.push(o); });
+  UNITS3D[key] = { group, center: center.clone(), statusLamp: lamp, hit, meshes, origMats: meshes.map(m => m.material) };
+}
+
+/* ---- COMPRESSOR SECTION (left side, x: -50 to -10) ---- */
+{
+  const g = new THREE.Group();
+  // Compressor building - wide flat box
+  const building = box(28, 8, 16, M.darkSteel); building.position.set(-30, 4, -10); g.add(building);
+  // 4 compressor cylinders arranged horizontally
+  for (let i = 0; i < 4; i++) {
+    const cyl4 = cyl(1.2, 8, M.rust, 12); cyl4.position.set(-42 + i * 5, 4, -10); g.add(cyl4);
+    // cylinder head
+    const head = cyl(0.8, 1.5, M.darkSteel, 10); head.position.set(-42 + i * 5, 8.5, -10); g.add(head);
+  }
+  // 3 intercoolers between cylinders
+  for (let i = 0; i < 3; i++) {
+    const cooler = box(1.5, 3, 5, M.lightSteel); cooler.position.set(-39.5 + i * 5, 1.5, -10); g.add(cooler);
+    const coolerFins = box(1.3, 2.8, 4.6, M.steel); coolerFins.position.set(-39.5 + i * 5, 1.4, -10); g.add(coolerFins);
+  }
+  // Chiller (left-center)
+  const chillerBuilding = box(10, 7, 10, new THREE.MeshStandardMaterial({ color: 0x88aacc, roughness: 0.5, metalness: 0.3 }));
+  chillerBuilding.position.set(-15, 3.5, -10); g.add(chillerBuilding);
+  // Chiller internal coils
+  for (let i = 0; i < 4; i++) {
+    const coil = cyl(0.4, 5, M.steel, 8); coil.position.set(-17 + i * 2, 3.5, -10); g.add(coil);
+  }
+  // Concrete pad
+  const pad = box(50, 0.5, 20, M.pad); pad.position.set(-30, 0.25, -10); g.add(pad);
+  registerUnit('compressor', g, new THREE.Vector3(-30, 5, -10), new THREE.Vector3(-52, 1.1, -18), [32, 14, 24]);
+}
+
+/* ---- STORAGE SECTION (center, x: -5 to 25) ---- */
+{
+  const g = new THREE.Group();
+  // Concrete pad for storage
+  const pad = box(40, 0.5, 25, M.pad); pad.position.set(10, 0.25, 0); g.add(pad);
+  // Liquid Air Tank - TALL cylinder (the main visual element)
+  const lairTank = cyl(6, 30, M.tank, 24); lairTank.position.set(5, 15, -5); g.add(lairTank);
+  const lairRim = cyl(6.15, 0.6, M.steel, 24); lairRim.position.set(5, 30.3, -5); g.add(lairRim);
+  // Tank inner fill (visible when filled)
+  const lairFill = cyl(5.5, 28, M.lairBlue, 20); lairFill.position.set(5, 14, -5); lairFill.scale.y = 0; g.add(lairFill);
+  lairFill.userData.isFill = true;
+  // Ladder on tank
+  const ladder = box(0.4, 28, 0.8, M.darkSteel); ladder.position.set(11, 14, -5); g.add(ladder);
+  // Hot thermal store - medium cylinder (rust/red)
+  const hotStore = cyl(3.5, 10, M.hotRed, 16); hotStore.position.set(18, 5, 0); g.add(hotStore);
+  const hotRim = cyl(3.6, 0.5, M.darkSteel, 16); hotRim.position.set(18, 10.2, 0); g.add(hotRim);
+  // Cold thermal store A - medium cylinder (blue)
+  const coldStoreA = cyl(3, 8, M.coldBlue, 16); coldStoreA.position.set(10, 4, 0); g.add(coldStoreA);
+  const coldRimA = cyl(3.1, 0.5, M.steel, 16); coldRimA.position.set(10, 8.2, 0); g.add(coldRimA);
+  // Cold thermal store B - smaller cylinder (dark blue)
+  const coldStoreB = cyl(2, 6, new THREE.MeshStandardMaterial({ color: 0x3366aa, roughness: 0.5, metalness: 0.2 }), 14);
+  coldStoreB.position.set(10, 3, 8); g.add(coldStoreB);
+  const coldRimB = cyl(2.1, 0.4, M.steel, 14); coldRimB.position.set(10, 6.2, 8); g.add(coldRimB);
+  registerUnit('lair_tank', g, new THREE.Vector3(5, 15, -5), new THREE.Vector3(-5, 1.1, -12), [20, 34, 20]);
+}
+
+/* ---- POWER SECTION (right side, x: 35 to 65) ---- */
+{
+  const g = new THREE.Group();
+  // Turbine building
+  const building = box(24, 9, 14, M.darkSteel); building.position.set(48, 4.5, -5); g.add(building);
+  // 3 turbine stages
+  for (let i = 0; i < 3; i++) {
+    const turbine = cyl(1.5, 4, M.steel, 14); turbine.position.set(40 + i * 5, 4, -5); g.add(turbine);
+    const turbineHousing = cyl(2, 3.5, M.lightSteel, 12); turbineHousing.position.set(40 + i * 5, 4, -5); g.add(turbineHousing);
+  }
+  // Generator - box with yellow accent
+  const generator = box(8, 5, 6, M.yellow); generator.position.set(58, 2.5, -5); g.add(generator);
+  const generatorDetail = box(7, 4, 5, M.darkSteel); generatorDetail.position.set(58, 2.5, -5); g.add(generatorDetail);
+  // Cooling system
+  const cooling = box(10, 6, 8, M.lightSteel); cooling.position.set(58, 3, 5); g.add(cooling);
+  for (let i = 0; i < 3; i++) {
+    const fan = cyl(1.2, 0.5, M.darkSteel, 14); fan.position.set(55 + i * 2.5, 6.3, 5); g.add(fan);
+  }
+  // Condenser
+  const condenser = box(8, 5, 5, new THREE.MeshStandardMaterial({ color: 0x88aacc, roughness: 0.5, metalness: 0.3 }));
+  condenser.position.set(48, 2.5, 5); g.add(condenser);
+  // Concrete pad
+  const pad = box(36, 0.5, 20, M.pad); pad.position.set(48, 0.25, 0); g.add(pad);
+  registerUnit('turbine', g, new THREE.Vector3(48, 5, -5), new THREE.Vector3(38, 1.1, -12), [28, 14, 18]);
+}
+
+/* ---- pipe rack ---- */
+function makePipeRack(x1, x2, z, h) {
+  const g = new THREE.Group();
+  for (let x = x1; x <= x2; x += 8) {
+    const p = box(0.5, h, 0.5, M.darkSteel); p.position.set(x, h / 2, z); g.add(p);
+    const cross = box(0.4, 0.4, 3.2, M.darkSteel); cross.position.set(x, h, z); g.add(cross);
+  }
+  scene.add(g);
+}
+makePipeRack(-45, 55, 3, 3.6);
+
+/* ---- pipes ---- */
+const ROUTES = {};
+function makePipe(key, pts, r, color) {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.4 });
+  const segs = []; let total = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const a = new THREE.Vector3(...pts[i]), b = new THREE.Vector3(...pts[i + 1]);
+    const len = a.distanceTo(b); total += len; segs.push({ a, b, len });
+    const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), mat);
+    c.castShadow = true;
+    c.position.copy(a).add(b).multiplyScalar(0.5);
+    c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+    g.add(c);
+    const elbow = new THREE.Mesh(new THREE.SphereGeometry(r * 1.25, 8, 8), mat); elbow.position.copy(b); g.add(elbow);
+  }
+  scene.add(g);
+  const sample = t => { let d = t * total;
+    for (const s of segs) { if (d <= s.len) return s.a.clone().lerp(s.b, d / s.len); d -= s.len; }
+    return segs[segs.length - 1].b.clone();
+  };
+  ROUTES[key] = { group: g, total, sample, flow: 0, cap: 1, slugs: [], color, mat };
+}
+
+makePipe('ambient', [[-50, 3, -10], [-42, 3, -10]], 0.5, 0x888888);
+makePipe('compressed', [[-30, 4, -10], [-20, 4, -10], [-15, 5, -10]], 0.45, 0xd07020);
+makePipe('liquefied', [[-10, 5, -10], [-5, 5, -10], [0, 5, -10]], 0.4, 0x88ccee);
+makePipe('lair_in', [[0, 8, -10], [5, 12, -5]], 0.35, 0xaaddff);
+makePipe('hot_flow', [[10, 5, 0], [25, 5, 0], [35, 6, 0]], 0.3, 0xdd4400);
+makePipe('discharge', [[5, 8, -10], [15, 5, -5], [30, 5, -5]], 0.35, 0x88ccee);
+makePipe('exhaust', [[50, 5, -5], [60, 5, -5]], 0.4, 0x888888);
+makePipe('grid_out', [[65, 6, -5], [75, 6, -5]], 0.5, 0x44aa44);
+
+/* flow slugs */
+const slugGeo = new THREE.SphereGeometry(0.42, 8, 8);
+for (const key of Object.keys(ROUTES)) {
+  const R = ROUTES[key];
+  const n = Math.max(3, Math.round(R.total / 7));
+  const mat = new THREE.MeshBasicMaterial({ color: R.color });
+  for (let i = 0; i < n; i++) {
+    const s = new THREE.Mesh(slugGeo, mat);
+    s.userData.t = i / n; s.visible = false; scene.add(s); R.slugs.push(s);
+  }
+}
+
+/* unit labels */
+const LABELS = [];
+function makeLabel(text, pos, scale = 1) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 56;
+  const x = c.getContext('2d');
+  x.fillStyle = '#c6c6c6'; x.fillRect(0, 0, 256, 56);
+  x.strokeStyle = '#5a5a5a'; x.lineWidth = 4; x.strokeRect(0, 0, 256, 56);
+  x.fillStyle = '#000'; x.font = 'bold 26px Tahoma,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(text.toUpperCase(), 128, 30);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false }));
+  sp.scale.set(11 * scale, 2.4 * scale, 1); sp.position.copy(pos); sp.renderOrder = 5;
+  scene.add(sp); LABELS.push(sp); return sp;
+}
+makeLabel('Compressor', new THREE.Vector3(-30, 15, -10));
+makeLabel('Liquefaction', new THREE.Vector3(-15, 12, -10));
+makeLabel('Liquid Air Tank', new THREE.Vector3(5, 32, -5));
+makeLabel('Hot Store', new THREE.Vector3(18, 12, 0));
+makeLabel('Cold Store', new THREE.Vector3(10, 12, 0));
+makeLabel('Turbine Hall', new THREE.Vector3(48, 15, -5));
+makeLabel('Generator', new THREE.Vector3(60, 12, -5));
+
+/* ---- perimeter fence ---- */
+{
+  const postGeo = new THREE.BoxGeometry(0.22, 2.2, 0.22), railGeo = new THREE.BoxGeometry(6, 0.12, 0.12);
+  const FENCE = new THREE.Group();
+  const fm = M.darkSteel;
+  const edges = [
+    [-72, -52, 76, -52, true], [-72, 52, 76, 52, true],
+    [-72, -52, -72, 52, false], [76, -52, 76, 52, false]
+  ];
+  for (const [x1, z1, x2, z2, horiz] of edges) {
+    const len = horiz ? x2 - x1 : z2 - z1, n = Math.ceil(Math.abs(len) / 6);
+    for (let i = 0; i <= n; i++) {
+      const t = i / n, px = x1 + (x2 - x1) * t, pz = z1 + (z2 - z1) * t;
+      const p = new THREE.Mesh(postGeo, fm); p.position.set(px, 1.1, pz); p.castShadow = true; FENCE.add(p);
+      if (i < n) {
+        const r = new THREE.Mesh(railGeo, fm); r.position.set(px + (horiz ? 3 : 0), 1.9, pz + (horiz ? 0 : 3));
+        if (!horiz) r.rotation.y = Math.PI / 2; FENCE.add(r);
+      }
+    }
+  }
+  scene.add(FENCE);
+}
+
+/* ---- sky: clouds ---- */
+{
+  const cc = document.createElement('canvas'); cc.width = 128; cc.height = 64;
+  const cx = cc.getContext('2d');
+  for (const [bx, by, br] of [[40, 36, 26], [64, 28, 30], [90, 38, 24], [52, 42, 20], [78, 44, 18]]) {
+    const g = cx.createRadialGradient(bx, by, 2, bx, by, br);
+    g.addColorStop(0, 'rgba(255,255,255,0.85)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    cx.fillStyle = g; cx.fillRect(0, 0, 128, 64);
+  }
+  const ctex = new THREE.CanvasTexture(cc); ctex.colorSpace = THREE.SRGBColorSpace;
+  for (let i = 0; i < 8; i++) {
+    const m = new THREE.SpriteMaterial({ map: ctex, transparent: true, opacity: 0.45, depthWrite: false, fog: false });
+    const sp = new THREE.Sprite(m);
+    const s = 42 + Math.random() * 48;
+    sp.scale.set(s, s * 0.42, 1);
+    sp.position.set(-220 + Math.random() * 440, 68 + Math.random() * 45, -160 + Math.random() * 320);
+    sp.userData.drift = 0.8 + Math.random() * 1.2;
+    scene.add(sp);
+  }
+}
+
+/* ================================================================
+   SOUND — synthesized
+   ================================================================ */
+let AC = null, master = null, ambientGain = null;
+let soundOn = (localStorage.getItem('laes.sound') ?? '1') === '1';
+function noiseBuf() {
+  const b = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate), d = b.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+  return b;
+}
+function initAudio() {
+  if (AC) return;
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+  master = AC.createGain(); master.gain.value = soundOn ? 1 : 0; master.connect(AC.destination);
+  const nb = noiseBuf();
+  const hum = AC.createOscillator(); hum.type = 'sine'; hum.frequency.value = 55;
+  const hg = AC.createGain(); hg.gain.value = 0.012; hum.connect(hg); hg.connect(master); hum.start();
+  const ns = AC.createBufferSource(); ns.buffer = nb; ns.loop = true;
+  const nf = AC.createBiquadFilter(); nf.type = 'lowpass'; nf.frequency.value = 300;
+  const ng = AC.createGain(); ng.gain.value = 0.014; ns.connect(nf); nf.connect(ng); ng.connect(master); ns.start();
+  ambientGain = AC.createGain(); ambientGain.gain.value = 0;
+  const as = AC.createBufferSource(); as.buffer = nb; as.loop = true;
+  const af = AC.createBiquadFilter(); af.type = 'bandpass'; af.frequency.value = 400; af.Q.value = 0.6;
+  as.connect(af); af.connect(ambientGain); ambientGain.connect(master); as.start();
+}
+function sfxClick() {
+  if (!AC || !soundOn) return; const t = AC.currentTime;
+  const o = AC.createOscillator(); o.type = 'square'; o.frequency.value = 1350;
+  const g = AC.createGain(); g.gain.setValueAtTime(0.035, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.05);
+}
+addEventListener('pointerdown', () => { initAudio(); if (AC && AC.state === 'suspended') AC.resume(); }, { once: false });
+
+/* ================================================================
+   GAME STATE + LOOP
+   ================================================================ */
+let S = newLAESGame('balanced');
+let speed = 0;
+const SPEED_MS = [0, 2000, 700, 250];
+let simAcc = 0, lastT = performance.now();
+let labelsOn = true;
+let selectedStream = null;
+
+const STREAMS = {
+  air: ['ambient'], lair: ['liquefied', 'lair_in'], hot: ['hot_flow'], cold: ['compressed'], grid: ['grid_out']
+};
+
+function selectStream(key) {
+  selectedStream = (selectedStream === key) ? null : key;
+  for (const rk of Object.keys(ROUTES)) {
+    const R = ROUTES[rk];
+    const sel = !selectedStream || STREAMS[selectedStream].includes(rk);
+    R.mat.transparent = true;
+    R.mat.opacity = sel ? 1 : 0.13;
+    R.mat.emissive.setHex(sel && selectedStream ? R.color : 0x000000);
+    R.mat.emissiveIntensity = sel && selectedStream ? 0.45 : 0;
+    R.mat.needsUpdate = true;
+  }
+  document.querySelectorAll('#palette [data-stream]').forEach(b => b.classList.toggle('on', b.dataset.stream === selectedStream));
+}
+
+function refreshPalette() {
+  const vals = {
+    air: S.mode === 'charging' ? '10 MW' : '—',
+    lair: S.tankPct > 0 ? S.tankPct + '%' : '—',
+    hot: S.hotStore > 0 ? S.hotStore.toFixed(1) + ' MWh' : '—',
+    cold: (S.coldStoreA + S.coldStoreB) > 0 ? (S.coldStoreA + S.coldStoreB).toFixed(1) + ' MWh' : '—',
+    grid: S.powerIn > 0 ? '+' + S.powerIn.toFixed(1) + ' MW' : (S.powerOut > 0 ? '-' + S.powerOut.toFixed(1) + ' MW' : '—'),
+  };
+  document.querySelectorAll('#palette [data-stream]').forEach(b => {
+    b.querySelector('small').textContent = vals[b.dataset.stream] || '—';
+  });
+}
+
+const MSGS = [];
+function pushMsg(text) {
+  MSGS.push({ hours: S.hours, text });
+  if (MSGS.length > 200) MSGS.shift();
+  document.getElementById('tick0').textContent = S.hours + ' hrs — ' + text;
+  const prev = MSGS[MSGS.length - 2];
+  document.getElementById('tick1').textContent = prev ? (prev.hours + ' hrs — ' + prev.text) : '';
+}
+
+function doTick() {
+  const out = tickHour(S);
+  for (const n of out.events) pushMsg(n);
+  refreshHud();
+  if (!uiHold) { refreshOps(); refreshPalette(); }
+  return out;
+}
+
+let uiHold = false;
+addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('#ops,.win')) uiHold = true; }, true);
+addEventListener('pointerup', () => { uiHold = false; }, true);
+
+/* visual state per frame */
+function syncVisuals(dt) {
+  // status lamps
+  for (const k of Object.keys(UNITS3D)) {
+    const U = UNITS3D[k];
+    if (!U.statusLamp) continue;
+    let col = 0x19a93f, blink = 0;
+    if (S.mode === 'idle') { col = 0x777777; }
+    else if (S.mode === 'charging') { col = 0x19a93f; blink = 1; }
+    else if (S.mode === 'discharging') { col = 0xe2a51b; blink = 2; }
+    const m = U.statusLamp.material;
+    m.color.setHex(col); m.emissive.setHex(col);
+    m.emissiveIntensity = blink ? (0.5 + 0.5 * Math.sin(performance.now() * 0.001 * blink * Math.PI * 2)) * 1.4 : 0.9;
+  }
+
+  // update pipe flow rates based on mode
+  const isCharging = S.mode === 'charging' && S.tankLevel < LAES_CONSTANTS.TANK_KG - 1;
+  const isDischarging = S.mode === 'discharging' && S.tankLevel > 1;
+  for (const key of Object.keys(ROUTES)) {
+    const R = ROUTES[key];
+    if (key === 'ambient' || key === 'compressed' || key === 'liquefied' || key === 'lair_in') {
+      R.flow = isCharging ? 1 : 0;
+    } else if (key === 'hot_flow' || key === 'discharge' || key === 'exhaust' || key === 'grid_out') {
+      R.flow = isDischarging ? 1 : 0;
+    } else if (key === 'cold_flow') {
+      R.flow = (isCharging || isDischarging) ? 0.6 : 0;
+    } else {
+      R.flow = (isCharging || isDischarging) ? 0.8 : 0;
+    }
+  }
+
+  // tank fill level
+  const lairFillMesh = scene.getObjectByProperty('userData.isFill', true);
+  if (lairFillMesh) {
+    const fillPct = S.tankLevel / LAES_CONSTANTS.TANK_KG;
+    lairFillMesh.scale.y = Math.max(0.01, fillPct);
+    lairFillMesh.position.y = 0.5 + (28 * fillPct) / 2;
+  }
+
+  // flow slugs
+  const vmul = [1, 1, 1.8, 3][speed] || 1;
+  const selRoutes = selectedStream ? STREAMS[selectedStream] : null;
+  for (const key of Object.keys(ROUTES)) {
+    const R = ROUTES[key];
+    const sel = !selRoutes || selRoutes.includes(key);
+    const on = R.flow > 0.3 && sel && R.group.visible;
+    const rate = (0.012 + 0.05 * (R.flow / Math.max(1, R.cap))) * vmul;
+    for (const s of R.slugs) {
+      s.visible = on;
+      if (on) { s.userData.t = (s.userData.t + rate * dt) % 1; s.position.copy(R.sample(s.userData.t)); }
+    }
+  }
+  for (const sp of LABELS) sp.visible = !!labelsOn;
+}
+
+/* ================================================================
+   UI — HUD, panel, windows
+   ================================================================ */
+const $ = id => document.getElementById(id);
+
+function refreshHud() {
+  $('chipHours').textContent = S.hours + ' hrs';
+  $('chipMode').textContent = S.mode.toUpperCase();
+  $('chipMode').className = 'statchip ' + (S.mode === 'charging' ? 'pos' : (S.mode === 'discharging' ? 'neg' : ''));
+  if (S.powerIn > 0) {
+    $('chipPower').textContent = '+' + S.powerIn.toFixed(1) + ' MW';
+    $('chipPower').className = 'statchip pos';
+  } else if (S.powerOut > 0) {
+    $('chipPower').textContent = '-' + S.powerOut.toFixed(1) + ' MW';
+    $('chipPower').className = 'statchip neg';
+  } else {
+    $('chipPower').textContent = '— MW';
+    $('chipPower').className = 'statchip';
+  }
+}
+
+function condBar(c) {
+  const cls = c >= 60 ? 'ok' : c >= 40 ? 'warn' : 'bad';
+  return '<span class="bar"><i class="' + cls + '" style="width:' + Math.round(c) + '%"></i></span>';
+}
+
+function refreshOps() {
+  const C = LAES_CONSTANTS;
+  let h = '';
+  h += '<div class="sect"><h4>FACILITY STATUS</h4>';
+  h += '<div class="kv"><span>Mode</span><b>' + S.mode.toUpperCase() + '</b></div>';
+  h += '<div class="kv"><span>Grid power</span><b>' + (S.powerIn > 0 ? '+' + S.powerIn.toFixed(1) + ' MW' : (S.powerOut > 0 ? '-' + S.powerOut.toFixed(1) + ' MW' : '—')) + '</b></div>';
+  h += '<div class="kv"><span>Tank level</span><b>' + S.tankPct + '% (' + (S.tankLevel / 1000).toFixed(1) + 'T)</b></div>';
+  h += '<div class="tankbar"><i style="width:' + S.tankPct + '%;background:' + (S.tankPct > 80 ? '#19a93f' : (S.tankPct > 40 ? '#e2a51b' : '#d22')) + '"></i></div>';
+  h += '<div class="kv"><span>Hot Store</span><b>' + S.hotStore.toFixed(1) + ' / ' + C.HOT_STORE_MWH + ' MWh</b></div>';
+  h += '<div class="kv"><span>Cold Store A</span><b>' + S.coldStoreA.toFixed(1) + ' / ' + C.COLD_STORE_A_MWH + ' MWh</b></div>';
+  h += '<div class="kv"><span>Cold Store B</span><b>' + S.coldStoreB.toFixed(1) + ' / ' + C.COLD_STORE_B_MWH + ' MWh</b></div>';
+  h += '<div class="kv"><span>Round-trip eff.</span><b>' + (S.roundTripEfficiency * 100).toFixed(1) + '%</b></div>';
+  h += '<div class="kv"><span>Total cycles</span><b>' + S.cycles + '</b></div>';
+  h += '</div>';
+
+  h += '<div class="sect"><h4>PERFORMANCE</h4>';
+  h += '<div class="kv"><span>Energy in</span><b>' + S.totalEnergyIn.toFixed(1) + ' MWh</b></div>';
+  h += '<div class="kv"><span>Energy out</span><b>' + S.totalEnergyOut.toFixed(1) + ' MWh</b></div>';
+  h += '<div class="kv"><span>Round-trip eff.</span><b>' + (S.totalEnergyOut > 0 ? (S.totalEnergyOut / Math.max(1, S.totalEnergyIn) * 100).toFixed(1) : '—') + '%</b></div>';
+  h += '</div>';
+
+  $('opsBody').innerHTML = h;
+}
+
+/* ---- generic windows ---- */
+let zTop = 1000;
+function makeWindow(id, title, x, y, w) {
+  closeWindow(id);
+  const win = document.createElement('div');
+  win.className = 'win out'; win.id = id;
+  win.style.left = Math.min(x, innerWidth - 320) + 'px'; win.style.top = y + 'px';
+  if (w) win.style.width = w + 'px';
+  win.innerHTML = '<div class="tbar"><span>' + title + '</span><span class="grow"></span><span class="winbtn out" data-close>✕</span></div><div class="content"></div>';
+  document.body.appendChild(win);
+  win.style.zIndex = ++zTop;
+  win.addEventListener('pointerdown', () => win.style.zIndex = ++zTop);
+  win.querySelector('[data-close]').addEventListener('click', () => win.remove());
+  const tb = win.querySelector('.tbar');
+  tb.addEventListener('pointerdown', e => {
+    if (e.target.dataset.close !== undefined) return;
+    const sx = e.clientX - win.offsetLeft, sy = e.clientY - win.offsetTop;
+    const mv = ev => { win.style.left = (ev.clientX - sx) + 'px'; win.style.top = Math.max(28, ev.clientY - sy) + 'px'; };
+    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); };
+    addEventListener('pointermove', mv); addEventListener('pointerup', up);
+  });
+  return win.querySelector('.content');
+}
+function closeWindow(id) { const w = $(id); if (w) w.remove(); }
+
+/* ---- unit dialogs ---- */
+let openUnitKey = null;
+function openUnit(key) {
+  openUnitKey = key;
+  renderUnitWin(true);
+  focusCamera(key);
+}
+function renderUnitWin(create) {
+  const key = openUnitKey; if (!key) return;
+  const exists = $('unitWin');
+  if (!exists && !create) return;
+  const titles = {
+    compressor: 'Compressor Train',
+    lair_tank: 'Liquid Air Tank',
+    turbine: 'Turbine Hall',
+  };
+  const c = exists ? exists.querySelector('.content') : makeWindow('unitWin', titles[key] || key, 260, 70, 330);
+  if (exists) exists.querySelector('.tbar span').textContent = titles[key] || key;
+  const C = LAES_CONSTANTS;
+  let h = '';
+
+  if (key === 'compressor') {
+    h += '<div class="kv"><span>Power consumption</span><b>' + C.CHARGE_MW + ' MW</b></div>';
+    h += '<div class="kv"><span>Net after expander</span><b>' + C.NET_CHARGE_MW.toFixed(1) + ' MW</b></div>';
+    h += '<div class="kv"><span>Charge efficiency</span><b>' + (C.CHARGE_EFF * 100).toFixed(0) + '%</b></div>';
+    h += '<div class="kv"><span>Liquefaction rate</span><b>' + (C.CHARGE_RATE_KGH / 1000).toFixed(1) + ' t/h</b></div>';
+    h += '<p style="font-size:10px;color:#333;">The compressor train draws 10 MW from the grid during charging. The expander recovers 24% of the compression work, reducing net consumption to ~7.6 MW.</p>';
+  } else if (key === 'lair_tank') {
+    h += '<div class="kv"><span>Current level</span><b>' + (S.tankLevel / 1000).toFixed(1) + ' tons</b></div>';
+    h += '<div class="kv"><span>Capacity</span><b>' + (C.TANK_KG / 1000) + ' tons</b></div>';
+    h += '<div class="kv"><span>Fill percentage</span><b>' + S.tankPct + '%</b></div>';
+    h += '<div class="tankbar" style="height:18px;"><i style="width:' + S.tankPct + '%;background:' + (S.tankPct > 80 ? '#19a93f' : (S.tankPct > 40 ? '#e2a51b' : '#d22')) + '"></i></div>';
+    h += '<div class="kv"><span>Stored energy</span><b>' + C.TANK_KWH + ' MWh (full)</b></div>';
+    h += '<div class="kv"><span>Hot Store</span><b>' + S.hotStore.toFixed(2) + ' / ' + C.HOT_STORE_MWH + ' MWh</b></div>';
+    h += '<div class="kv"><span>Cold Store A</span><b>' + S.coldStoreA.toFixed(2) + ' / ' + C.COLD_STORE_A_MWH + ' MWh</b></div>';
+    h += '<div class="kv"><span>Cold Store B</span><b>' + S.coldStoreB.toFixed(2) + ' / ' + C.COLD_STORE_B_MWH + ' MWh</b></div>';
+    h += '<p style="font-size:10px;color:#333;">The liquid air tank stores 150 tons of liquefied air at -196C. During discharge, the thermal stores boost turbine output by capturing and releasing heat and cold.</p>';
+  } else if (key === 'turbine') {
+    h += '<div class="kv"><span>Power output</span><b>' + S.powerOut.toFixed(1) + ' MW</b></div>';
+    h += '<div class="kv"><span>Base rating</span><b>' + C.DISCHARGE_MW + ' MW</b></div>';
+    h += '<div class="kv"><span>Discharge efficiency</span><b>' + (C.DISCHARGE_EFF * 100).toFixed(0) + '%</b></div>';
+    h += '<div class="kv"><span>Hot store boost</span><b>' + (S.hotStore > 0 ? '+15%' : '0%') + '</b></div>';
+    h += '<div class="kv"><span>Cold store boost</span><b>' + ((S.coldStoreA + S.coldStoreB) > 0 ? '+5%' : '0%') + '</b></div>';
+    h += '<p style="font-size:10px;color:#333;">The expansion turbine generates power as liquid air evaporates and expands. The hot and cold thermal stores boost output by 15% and 5% respectively when charged.</p>';
+  }
+
+  c.innerHTML = h;
+}
+function refreshUnitWin() { if ($('unitWin')) renderUnitWin(false); }
+
+/* ---- camera focus ---- */
+let camTween = null;
+function focusCamera(key) {
+  const U = UNITS3D[key]; if (!U) return;
+  camTween = { fromT: controls.target.clone(), toT: U.center.clone().setY(2), t: 0 };
+}
+
+/* ---- about ---- */
+function showAbout() {
+  const c = makeWindow('aboutWin', 'About LAES Energy Storage', 200, 110, 380);
+  c.innerHTML = '<div style="font-family:\'Arial Black\',Arial,sans-serif;font-size:28px;">LAES <span style="color:#1a4a8a;">Energy Storage</span></div>' +
+    '<p>Liquid Air Energy Storage — grid-scale long-duration energy storage facility simulation.</p>' +
+    '<p>Based on the MathWorks Liquid Air Energy Storage model. Charge: 10 MW / 1.8 MW discharge / 150-ton tank / ~15% round-trip efficiency.</p>' +
+    '<p>Rendered with Three.js.</p>';
+}
+
+/* ---- scenarios ---- */
+function showScenarios() {
+  const c = makeWindow('scenWin', 'Scenarios', 180, 90, 360);
+  let h = '<p>Starting a scenario resets the facility.</p>';
+  const defs = [
+    ['balanced', 'Balanced Cycle', '10h charge, 10h discharge. The standard operating cycle.'],
+    ['charge', 'Charge Only', 'Fill the tank. Watch the thermal stores charge up.'],
+    ['discharge', 'Discharge Only', 'Empty the tank. See power generation from stored liquid air.'],
+    ['week', 'One Week', 'Continuous cycling for a week. Watch efficiency trends.'],
+  ];
+  for (const [k, n, d] of defs) h += '<button class="scn out" data-scn="' + k + '"><b>' + n + '</b><small>' + d + '</small></button>';
+  c.innerHTML = h;
+  c.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { startGame(b.dataset.scn); closeWindow('scenWin'); }));
+}
+
+/* ================================================================
+   SAVE / CONTINUE
+   ================================================================ */
+function saveGame() {
+  try {
+    localStorage.setItem('laes.save', JSON.stringify({ ver: 1, S, msgs: MSGS.slice(-40) }, (k, v) => k === 'rng' ? undefined : v));
+  } catch (e) { }
+}
+function loadSave() {
+  try { const j = JSON.parse(localStorage.getItem('laes.save')); return (j && j.ver === 1) ? j : null; } catch (e) { return null; }
+}
+function resumeGame() {
+  const j = loadSave(); if (!j) return false;
+  S = j.S; bindRng(S);
+  MSGS.length = 0;
+  for (const m of j.msgs || []) MSGS.push(m);
+  pushMsg('Saved facility resumed: ' + S.hours + ' hours, ' + S.mode + ' mode.');
+  speed = 1; simAcc = 0;
+  refreshHud(); refreshOps();
+  return true;
+}
+
+/* ================================================================
+   INPUT — menus, raycast, keyboard
+   ================================================================ */
+document.querySelectorAll('[data-menu]').forEach(m => {
+  m.addEventListener('click', e => {
+    const was = m.classList.contains('open');
+    document.querySelectorAll('[data-menu]').forEach(x => x.classList.remove('open'));
+    if (!was) m.classList.add('open');
+    e.stopPropagation();
+  });
+});
+addEventListener('click', () => document.querySelectorAll('[data-menu]').forEach(x => x.classList.remove('open')));
+
+$('mNew').addEventListener('click', () => startGame(S.scenario));
+$('mScen').addEventListener('click', showScenarios);
+$('mAbout').addEventListener('click', showAbout);
+$('mCharge').addEventListener('click', () => { setMode(S, 'charging'); refreshHud(); refreshOps(); pushMsg('Charging started.'); });
+$('mDischarge').addEventListener('click', () => { setMode(S, 'discharging'); refreshHud(); refreshOps(); pushMsg('Discharging started.'); });
+$('mIdle').addEventListener('click', () => { setMode(S, 'idle'); refreshHud(); refreshOps(); pushMsg('Facility idle.'); });
+$('mCam').addEventListener('click', () => { camera.position.copy(HOME_POS); controls.target.copy(HOME_TGT); camera.zoom = 1; camera.updateProjectionMatrix(); });
+
+/* Quick-scenario toggles in menubar */
+function highlightScenarioBtnLAES(){
+  document.querySelectorAll('#scenarioBar [data-scn]').forEach(b=>b.className='scn out');
+  const active=document.querySelector('#scenarioBar [data-scn="'+S.scenario+'"]');
+  if(active) active.className='scn in';
+}
+document.querySelectorAll('#scenarioBar [data-scn]').forEach(btn=>{
+  btn.addEventListener('click',()=>{ startGame(btn.dataset.scn); });
+});
+highlightScenarioBtnLAES();
+
+$('pCharge').addEventListener('click', () => { setMode(S, 'charging'); refreshHud(); refreshOps(); pushMsg('Charging started.'); });
+$('pDischarge').addEventListener('click', () => { setMode(S, 'discharging'); refreshHud(); refreshOps(); pushMsg('Discharging started.'); });
+$('pIdle').addEventListener('click', () => { setMode(S, 'idle'); refreshHud(); refreshOps(); pushMsg('Facility idle.'); });
+
+document.querySelectorAll('#palette [data-stream]').forEach(b => {
+  b.addEventListener('click', () => selectStream(b.dataset.stream));
+});
+
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let downXY = null;
+renderer.domElement.addEventListener('pointerdown', e => { downXY = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!downXY) return;
+  const moved = Math.hypot(e.clientX - downXY[0], e.clientY - downXY[1]);
+  downXY = null;
+  if (moved > 6) return;
+  ndc.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const targets = Object.values(UNITS3D).filter(u => u.group.visible).map(u => u.hit);
+  const hits = ray.intersectObjects(targets);
+  if (hits.length) {
+    const ud = hits[0].object.userData;
+    if (ud.unitKey) openUnit(ud.unitKey);
+  }
+});
+
+renderer.domElement.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; });
+
+// click sounds
+addEventListener('click', e => { if (e.target.closest && e.target.closest('.item,.btn,.scn,.rowbtn,.winbtn')) sfxClick(); }, true);
+$('mSound').querySelector('.tick').textContent = soundOn ? '✓' : '';
+
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space') { speed = speed === 0 ? 1 : 0; refreshHud(); e.preventDefault(); }
+  if (e.key === '1') speed = 1; if (e.key === '2') speed = 2; if (e.key === '3') speed = 3;
+  refreshHud();
+});
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); setFrustum(); });
+
+/* ================================================================
+   START / LOOP
+   ================================================================ */
+function startGame(scn) {
+  S = newLAESGame(scn);
+  selectedStream = null;
+  for (const rk of Object.keys(ROUTES)) { const R = ROUTES[rk]; R.mat.opacity = 1; R.mat.emissiveIntensity = 0; R.mat.needsUpdate = true; }
+  document.querySelectorAll('#palette [data-stream]').forEach(b => b.classList.remove('on'));
+  if (scn === 'balanced') pushMsg('Balanced cycle: switch to CHARGING, fill the tank (~10 hours), then switch to DISCHARGING. Speed 2 = ~2 min per hour.');
+  else if (scn === 'charge') { setMode(S, 'charging'); pushMsg('Charge mode: grid power drives liquefaction. Watch the tank fill and thermal stores charge.'); }
+  else if (scn === 'discharge') { S.tankLevel = LAES_CONSTANTS.TANK_KG * 0.8; recalc(S); setMode(S, 'discharging'); pushMsg('Discharge mode: tank at 80%. Liquid air evaporating through turbine — ~1.8 MW to grid.'); }
+  else if (scn === 'week') { S.autoCycle = true; setMode(S, 'charging'); pushMsg('Auto-cycling for 168 hours. Watch the facility run continuously. Speed 3 = fastest.'); }
+  else pushMsg('Facility online. Click any unit to inspect it. Speed: 1, 2, 3 or Space to pause.');
+  speed = 1; simAcc = 0;
+  doTick();
+  speed = 1;
+  refreshHud(); refreshOps();
+  highlightScenarioBtnLAES();
+}
+
+document.querySelectorAll('#splash .scn').forEach(b => {
+  b.addEventListener('click', () => { $('splash').remove(); startGame(b.dataset.scn); });
+});
+
+// offer Continue if a save exists
+{
+  const j = loadSave();
+  if (j && j.S) {
+    const well = document.querySelector('#splash .well');
+    const btn = document.createElement('button');
+    btn.className = 'scn out';
+    btn.innerHTML = '<b>Continue saved facility</b><small>' + j.S.hours + ' hours, ' + j.S.mode + ' mode.</small>';
+    btn.addEventListener('click', () => { $('splash').remove(); resumeGame(); });
+    well.insertBefore(btn, well.children[1]);
+  }
+}
+
+function frame() {
+  requestAnimationFrame(frame);
+  const now = performance.now();
+  const dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
+  if (speed > 0) {
+    simAcc += dt * 1000;
+    const interval = SPEED_MS[speed];
+    let safety = 8;
+    while (simAcc >= interval && safety-- > 0) { simAcc -= interval; doTick(); }
+  }
+  if (camTween) {
+    camTween.t += dt * 2.2;
+    const k = Math.min(1, camTween.t), e = 1 - Math.pow(1 - k, 3);
+    controls.target.copy(camTween.fromT).lerp(camTween.toT, e);
+    if (camTween.fromP) {
+      camera.position.copy(camTween.fromP).lerp(camTween.toP, e);
+      camera.zoom = camTween.fromZ + (camTween.toZ - camTween.fromZ) * e;
+      camera.updateProjectionMatrix();
+    }
+    if (k >= 1) camTween = null;
+  }
+  syncVisuals(dt);
+  // ambient sound based on mode
+  if (ambientGain) {
+    const targetGain = soundOn ? (S.mode === 'charging' ? 0.08 : (S.mode === 'discharging' ? 0.05 : 0.02)) : 0;
+    ambientGain.gain.value += (targetGain - ambientGain.gain.value) * Math.min(1, dt * 2);
+  }
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+refreshHud(); refreshOps(); refreshPalette();
+frame();
+
+/* debug handle */
+window.SIM = {
+  get S() { return S; }, doTick, startGame, openUnit,
+  setSpeed: v => { speed = v; refreshHud(); }, get speed() { return speed; },
+  syncVisuals, saveGame, resumeGame, loadSave,
+  routes: ROUTES, units3d: UNITS3D, scene, camera, renderer,
+  snap: (q) => { renderer.render(scene, camera); return renderer.domElement.toDataURL('image/jpeg', q || 0.72); }
+};
+</script>
+</body>
+</html>
