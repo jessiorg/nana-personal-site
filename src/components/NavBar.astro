@@ -6,13 +6,13 @@ const { currentPath = "/" } = Astro.props;
 const base = import.meta.env.BASE_URL;
 
 const navLinks = [
-  { href: "/", label: "Home" },
-  { href: "/#now", label: "Now" },
-  { href: "/#simulations", label: "Simulations" },
-  { href: "/#work", label: "Work" },
-  { href: "/#ventures", label: "Ventures" },
-  { href: "/#writing", label: "Writing" },
-  { href: "/#contact", label: "Contact" },
+  { href: base, label: "Home" },
+  { href: `${base}/#now`, label: "Now" },
+  { href: `${base}/#simulations`, label: "Simulations" },
+  { href: `${base}/#work`, label: "Work" },
+  { href: `${base}/#ventures`, label: "Ventures" },
+  { href: `${base}/#writing`, label: "Writing" },
+  { href: `${base}/#contact`, label: "Contact" },
 ];
 ---
 

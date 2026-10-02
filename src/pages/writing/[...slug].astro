@@ -49,7 +49,7 @@ const { Content } = await essay.render();
       <!-- Ref card -->
       <div class="ref-card">
         <span class="ref-label">See this in context</span>
-        <a href={essay.data.refHref} class="ref-link">
+        <a href={`${base}${essay.data.refHref}`} class="ref-link">
           {essay.data.ref}
         </a>
       </div>
