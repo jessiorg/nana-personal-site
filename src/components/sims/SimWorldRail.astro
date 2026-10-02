@@ -7,36 +7,46 @@ const { height = '560px' } = Astro.props;
 const base = import.meta.env.BASE_URL;
 ---
 
-<div class="sim-wrapper" style={`height: ${height}`}>
-  <!-- Site token header -->
-  <div class="sim-header">
-    <div class="sim-header-content">
-      <div class="sim-title">World Rail Network</div>
-      <div class="sim-subtitle">Global rail freight simulation — Tech-Twin</div>
+<div class="sim-block">
+  <div class="sim-wrapper" style={`height: ${height}`}>
+    <!-- Site token header -->
+    <div class="sim-header">
+      <div class="sim-header-content">
+        <div class="sim-title">World Rail Network</div>
+        <div class="sim-subtitle">Global rail freight simulation — Tech-Twin</div>
+      </div>
+      <a href={`${base}/sims/world-rail/`} class="sim-fullscreen-link">
+        Open fullscreen &rarr;
+      </a>
     </div>
-    <a href={`${base}/sims/world-rail/`} class="sim-fullscreen-link">
-      Open fullscreen &rarr;
-    </a>
-  </div>
 
-  <!-- Iframe embed — world-rail sim -->
-  <iframe
-    src={`${base}/sims/world-rail/index.html`}
-    title="World Rail Network Simulation"
-    class="sim-iframe"
-    style="height: 100%;"
-    loading="lazy"
-    sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-  ></iframe>
+    <!-- Iframe embed -->
+    <iframe
+      src={`${base}/sims/world-rail/index.html`}
+      title="World Rail Network Simulation"
+      class="sim-iframe"
+      style="height: 100%;"
+      loading="lazy"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+    ></iframe>
+  </div>
+  <p class="sim-desc">Global rail freight network — Monte Carlo simulation of capacity, delays, and throughput across a rail topology with scenario modelling.</p>
 </div>
 
 <style>
+  .sim-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
   .sim-wrapper {
     display: flex;
     flex-direction: column;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     overflow: hidden;
     border: 1px solid var(--hairline);
+    border-bottom: none;
     background: var(--surface);
   }
 
@@ -92,5 +102,17 @@ const base = import.meta.env.BASE_URL;
     width: 100%;
     border: none;
     display: block;
+  }
+
+  .sim-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+    padding: 14px 18px;
+    border: 1px solid var(--hairline);
+    border-top: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    background: var(--canvas);
+    margin: 0;
   }
 </style>

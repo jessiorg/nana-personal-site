@@ -7,36 +7,46 @@ const { height = '560px' } = Astro.props;
 const base = import.meta.env.BASE_URL;
 ---
 
-<div class="sim-wrapper" style={`height: ${height}`}>
-  <!-- Site token header -->
-  <div class="sim-header">
-    <div class="sim-header-content">
-      <div class="sim-title">LAES Energy Storage</div>
-      <div class="sim-subtitle">Liquid Air Energy Storage — grid-scale long-duration simulation</div>
+<div class="sim-block">
+  <div class="sim-wrapper" style={`height: ${height}`}>
+    <!-- Site token header -->
+    <div class="sim-header">
+      <div class="sim-header-content">
+        <div class="sim-title">LAES Energy Storage</div>
+        <div class="sim-subtitle">Liquid Air Energy Storage — grid-scale long-duration simulation</div>
+      </div>
+      <a href={`${base}/sims/laes/`} class="sim-fullscreen-link">
+        Open fullscreen &rarr;
+      </a>
     </div>
-    <a href={`${base}/sims/laes/`} class="sim-fullscreen-link">
-      Open fullscreen &rarr;
-    </a>
-  </div>
 
-  <!-- Iframe embed — sim Laes is a self-contained HTML file in /public -->
-  <iframe
-    src={`${base}/sims/laes/index.html`}
-    title="LAES Energy Storage Simulation"
-    class="sim-iframe"
-    style="height: 100%;"
-    loading="lazy"
-    sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-  ></iframe>
+    <!-- Iframe embed -->
+    <iframe
+      src={`${base}/sims/laes/index.html`}
+      title="LAES Energy Storage Simulation"
+      class="sim-iframe"
+      style="height: 100%;"
+      loading="lazy"
+      sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
+    ></iframe>
+  </div>
+  <p class="sim-desc">Grid-scale long-duration energy storage: charge by liquefying air, discharge by expanding it through a turbine. Real physics — thermodynamic cycle with thermal storage losses.</p>
 </div>
 
 <style>
+  .sim-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
   .sim-wrapper {
     display: flex;
     flex-direction: column;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     overflow: hidden;
     border: 1px solid var(--hairline);
+    border-bottom: none;
     background: var(--surface);
   }
 
@@ -92,5 +102,17 @@ const base = import.meta.env.BASE_URL;
     width: 100%;
     border: none;
     display: block;
+  }
+
+  .sim-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+    padding: 14px 18px;
+    border: 1px solid var(--hairline);
+    border-top: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    background: var(--canvas);
+    margin: 0;
   }
 </style>
