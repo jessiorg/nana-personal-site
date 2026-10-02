@@ -205,6 +205,7 @@ const navLinks = [
 
   /* Floating dropdown */
   .nav-dropdown {
+    display: block;
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
@@ -216,6 +217,11 @@ const navLinks = [
     overflow: hidden;
     z-index: 200;
     animation: dropdown-in 150ms ease;
+  }
+
+  /* Explicitly hide via attribute — overrides any display rule */
+  .nav-dropdown[hidden] {
+    display: none;
   }
 
   @keyframes dropdown-in {
