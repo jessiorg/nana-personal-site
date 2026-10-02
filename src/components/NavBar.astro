@@ -3,6 +3,7 @@ interface Props {
   currentPath?: string;
 }
 const { currentPath = "/" } = Astro.props;
+const base = import.meta.env.BASE_URL;
 
 const navLinks = [
   { href: "/", label: "Home" },
@@ -17,7 +18,7 @@ const navLinks = [
 
 <nav class="nav">
   <div class="nav-inner">
-    <a href="/" class="brand">Nana <em>Gyasi</em></a>
+    <a href={base} class="brand">Nana <em>Gyasi</em></a>
     <ul class="nav-links">
       {navLinks.map(link => (
         <li>
@@ -30,7 +31,7 @@ const navLinks = [
         </li>
       ))}
     </ul>
-    <a href="/contact" class="cta">Let's talk</a>
+    <a href={`${base}/contact`} class="cta">Let's talk</a>
   </div>
 </nav>
 

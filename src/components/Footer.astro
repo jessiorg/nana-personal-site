@@ -1,4 +1,5 @@
 ---
+const base = import.meta.env.BASE_URL;
 ---
 
 <footer class="footer">
@@ -10,7 +11,7 @@
     <div class="footer-links">
       <a href="https://linkedin.com" target="_blank" rel="noopener">LinkedIn</a>
       <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
-      <a href="/rss.xml">RSS</a>
+      <a href={`${base}/rss.xml`}>RSS</a>
     </div>
     <div class="footer-copy">
       &copy; {new Date().getFullYear()} Nana Gyasi. All rights reserved.
