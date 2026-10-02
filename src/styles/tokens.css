@@ -17,6 +17,10 @@
   --pale-green-bg:  #EDF3EC;  --pale-green-fg:  #346538;
   --pale-yellow-bg: #FBF3DB;  --pale-yellow-fg: #956400;
 
+  /* Editorial / FT-style accent */
+  --accent:    #C05523;
+  --accent-bg: #FDF0E8;
+
   /* Typography */
   --display: 'Instrument Serif', 'Newsreader', 'Lyon Text', Georgia, serif;
   --sans:    'Inter Tight', 'Switzer', 'SF Pro Display', system-ui, sans-serif;
@@ -85,3 +89,46 @@ button { cursor: pointer; font: inherit; }
    ============================================================ */
 .wrap { max-width: 1080px; margin: 0 auto; padding: 0 var(--space-8); }
 .wrap-narrow { max-width: 720px; margin: 0 auto; padding: 0 var(--space-8); }
+
+/* ============================================================
+   EDITORIAL COMPONENTS
+   ============================================================ */
+
+/* FT-style ornamental section divider */
+.ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: var(--space-12) 0;
+  color: var(--muted);
+}
+.ornament::before,
+.ornament::after {
+  content: "";
+  flex: 1;
+  max-width: 60px;
+  height: 1px;
+  background: var(--hairline);
+}
+
+/* FT-style rule: full-width hairline with accent dot */
+.ft-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: var(--space-12) 0;
+}
+.ft-rule::before {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--hairline);
+}
+.ft-rule-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}

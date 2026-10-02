@@ -22,37 +22,64 @@ const { Content } = await essay.render();
   title={`${essay.data.title} — Nana Gyasi`}
   description={essay.data.dek}
 >
-  <NavBar currentPath="/writing" />
+  <NavBar currentPath={`${base}/writing`} />
 
   <main id="content">
     <article class="article">
-      <!-- Back link -->
-      <nav class="article-back">
-        <a href={`${base}/#writing`} class="back-link">
-          <span class="back-arrow">←</span> Writing
+
+      <!-- Back -->
+      <nav class="article-back wrap">
+        <a href={`${base}/writing/`} class="back-link">
+          <span>←</span> All essays
         </a>
       </nav>
 
       <!-- Header -->
-      <header class="article-header">
-        <div class="eyebrow">{essay.data.eyebrow}</div>
+      <header class="article-header wrap">
+        <div class="article-kicker">
+          <span class="kicker-rule" />
+          <span class="kicker-text">{essay.data.eyebrow}</span>
+        </div>
         <h1 class="article-title">{essay.data.title}</h1>
-        <p class="article-dek">{essay.data.dek}</p>
-        <div class="article-rule"></div>
+        <p class="article-lede">{essay.data.dek}</p>
+
+        <!-- FT-style rule with dot -->
+        <div class="ft-rule">
+          <div class="ft-rule-line" />
+          <div class="ft-rule-dot" />
+          <div class="ft-rule-line" />
+        </div>
       </header>
 
       <!-- Body -->
-      <div class="article-body prose">
+      <div class="article-body wrap prose">
         <Content />
       </div>
 
-      <!-- Ref card -->
-      <div class="ref-card">
-        <span class="ref-label">See this in context</span>
-        <a href={`${base}${essay.data.refHref}`} class="ref-link">
-          {essay.data.ref}
-        </a>
+      <!-- Ornamental close -->
+      <div class="wrap">
+        <div class="ornament">
+          <span>· · ·</span>
+        </div>
       </div>
+
+      <!-- Ref card -->
+      <div class="article-ref wrap">
+        <div class="ref-inner">
+          <span class="ref-label">See this in context</span>
+          <a href={`${base}${essay.data.refHref}`} class="ref-link">
+            {essay.data.ref}
+          </a>
+        </div>
+      </div>
+
+      <!-- Back to writing -->
+      <nav class="article-back-bottom wrap">
+        <a href={`${base}/writing/`} class="back-link">
+          <span>←</span> All essays
+        </a>
+      </nav>
+
     </article>
   </main>
 
@@ -60,163 +87,170 @@ const { Content } = await essay.render();
 </BaseLayout>
 
 <script>
-  // GSAP ScrollTrigger — loaded via CDN
+  // GSAP entrance animations
   const script = document.createElement('script');
   script.src = 'https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js';
   script.onload = () => {
-    const stScript = document.createElement('script');
-    stScript.src = 'https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js';
-    stScript.onload = () => {
+    const st = document.createElement('script');
+    st.src = 'https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js';
+    st.onload = () => {
       (gsap as any).registerPlugin((gsap as any).ScrollTrigger);
 
-      // Hero entrance — staggered fade + rise
-      (gsap as any).from('.article-header .eyebrow', {
-        y: 16, opacity: 0, duration: 0.5, ease: 'power2.out',
-      });
-      (gsap as any).from('.article-title', {
-        y: 36, opacity: 0, duration: 0.8, delay: 0.1, ease: 'power2.out',
-      });
-      (gsap as any).from('.article-dek', {
-        y: 20, opacity: 0, duration: 0.6, delay: 0.25, ease: 'power2.out',
-      });
-      (gsap as any).from('.article-rule', {
-        scaleX: 0, transformOrigin: 'left', duration: 0.6, delay: 0.4, ease: 'power2.out',
-      });
+      // Hero stagger
+      (gsap as any).from('.article-kicker', { opacity: 0, x: -16, duration: 0.5, ease: 'power2.out' });
+      (gsap as any).from('.article-title', { opacity: 0, y: 32, duration: 0.85, delay: 0.1, ease: 'power2.out' });
+      (gsap as any).from('.article-lede', { opacity: 0, y: 20, duration: 0.65, delay: 0.25, ease: 'power2.out' });
+      (gsap as any).from('.ft-rule', { opacity: 0, scaleX: 0, duration: 0.6, delay: 0.4, ease: 'power2.out', transformOrigin: 'center' });
 
-      // Body content reveals — each element fades in as it enters viewport
-      const els = document.querySelectorAll('.article-body h2, .article-body p, .article-body blockquote, .article-body ul, .article-body ol');
-      els.forEach((el) => {
+      // Body content reveal
+      document.querySelectorAll('.article-body h2, .article-body p, .article-body blockquote, .article-body ul, .article-body ol').forEach((el) => {
         (gsap as any).from(el, {
-          scrollTrigger: {
-            trigger: el,
-            start: 'top 90%',
-            once: true,
-          },
-          y: 24, opacity: 0, duration: 0.65, ease: 'power2.out',
+          scrollTrigger: { trigger: el, start: 'top 90%', once: true },
+          opacity: 0, y: 20, duration: 0.6, ease: 'power2.out',
         });
       });
-
-      // Ref card
-      (gsap as any).from('.ref-card', {
-        scrollTrigger: { trigger: '.ref-card', start: 'top 95%', once: true },
-        y: 16, opacity: 0, duration: 0.5, ease: 'power2.out',
-      });
     };
-    document.head.appendChild(stScript);
+    document.head.appendChild(st);
   };
   document.head.appendChild(script);
 </script>
 
 <style>
-  .article {
-    max-width: 680px;
-    margin: 0 auto;
-    padding: 72px var(--space-8) 96px;
-  }
-
-  /* Back link */
+  /* ======== BACK LINK ======== */
   .article-back {
-    margin-bottom: 48px;
+    padding-top: 48px;
+    padding-bottom: 0;
   }
   .back-link {
-    font-family: var(--mono);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
     transition: color var(--duration-fast) var(--ease-out);
-    border-bottom: none;
   }
   .back-link:hover {
     color: var(--ink);
   }
-  .back-arrow {
-    font-style: normal;
-  }
 
-  /* Header */
+  /* ======== HEADER ======== */
   .article-header {
-    margin-bottom: 48px;
+    padding-top: 40px;
+    padding-bottom: 0;
   }
 
-  .eyebrow {
+  .article-kicker {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .kicker-rule {
+    display: block;
+    width: 32px;
+    height: 2px;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .kicker-text {
     font-family: var(--mono);
-    font-size: 11px;
+    font-size: 10px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 18px;
+    color: var(--accent);
   }
 
   .article-title {
     font-family: var(--display);
-    font-size: clamp(34px, 5vw, 52px);
+    font-size: clamp(36px, 5.5vw, 64px);
     font-style: italic;
-    line-height: 1.08;
-    letter-spacing: -0.02em;
     font-weight: 400;
+    line-height: 1.06;
+    letter-spacing: -0.025em;
     color: var(--ink);
-    margin: 0 0 20px;
+    margin: 0 0 24px;
+    max-width: 20ch;
   }
 
-  .article-dek {
-    font-size: 19px;
-    line-height: 1.5;
+  .article-lede {
+    font-size: 20px;
+    line-height: 1.55;
     color: var(--muted);
-    max-width: 56ch;
-    margin: 0 0 32px;
+    max-width: 52ch;
+    margin: 0 0 48px;
+    font-style: italic;
   }
 
-  .article-rule {
+  /* FT-style rule */
+  .ft-rule {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0;
+  }
+  .ft-rule-line {
+    flex: 1;
     height: 1px;
     background: var(--hairline);
-    width: 100%;
+  }
+  .ft-rule-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
   }
 
-  /* Body */
+  /* ======== BODY ======== */
+  .article-body {
+    padding-top: 56px;
+    padding-bottom: 0;
+  }
+
+  /* ======== PROSE STYLES ======== */
   .prose {
     font-size: 18px;
-    line-height: 1.75;
+    line-height: 1.78;
     color: var(--ink);
   }
 
-  /* Drop cap on first paragraph */
+  /* Drop cap */
   .prose > p:first-of-type::first-letter {
     float: left;
     font-family: var(--display);
-    font-size: 72px;
+    font-size: 76px;
     line-height: 0.82;
     padding-right: 10px;
-    padding-top: 4px;
-    color: var(--ink);
+    padding-top: 6px;
+    color: var(--accent);
     font-weight: 400;
   }
 
   .prose p {
-    margin: 0 0 1.4em;
+    margin: 0 0 1.5em;
     max-width: 65ch;
   }
 
   .prose h2 {
     font-family: var(--display);
-    font-size: clamp(24px, 3vw, 30px);
+    font-size: clamp(22px, 3vw, 30px);
     font-style: italic;
     font-weight: 400;
     letter-spacing: -0.015em;
-    line-height: 1.15;
+    line-height: 1.2;
     color: var(--ink);
-    margin: 2.2em 0 0.6em;
+    margin: 2.4em 0 0.7em;
   }
 
   .prose blockquote {
     margin: 2em 0;
-    padding: 0 0 0 24px;
-    border-left: 3px solid var(--ink);
-    font-size: 21px;
-    line-height: 1.55;
+    padding: 0 0 0 20px;
+    border-left: 2px solid var(--accent);
+    font-size: 20px;
+    line-height: 1.6;
     font-style: italic;
     color: var(--ink);
   }
@@ -226,7 +260,7 @@ const { Content } = await essay.render();
   }
 
   .prose ul, .prose ol {
-    margin: 0 0 1.4em 1.4em;
+    margin: 0 0 1.5em 1.5em;
     padding: 0;
   }
 
@@ -236,94 +270,79 @@ const { Content } = await essay.render();
 
   .prose a {
     color: var(--ink);
-    border-bottom: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--accent);
     transition: border-color var(--duration-fast) var(--ease-out);
   }
 
   .prose a:hover {
-    border-color: var(--ink);
+    border-color: transparent;
   }
 
-  .prose strong {
-    font-weight: 600;
+  /* ======== REF CARD ======== */
+  .article-ref {
+    padding-top: 0;
+    padding-bottom: 0;
   }
-
-  /* Ref card */
-  .ref-card {
-    margin-top: 72px;
-    padding-top: 28px;
-    border-top: 1px solid var(--hairline);
+  .ref-inner {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 24px;
+    padding: 28px 0;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
   }
-
   .ref-label {
     font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.14em;
+    font-size: 10px;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--muted);
   }
-
   .ref-link {
     font-family: var(--display);
-    font-size: 18px;
+    font-size: 20px;
     font-style: italic;
     color: var(--ink);
     border-bottom: 1px solid var(--hairline);
-    transition: border-color var(--duration-fast) var(--ease-out);
+    transition: border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+  }
+  .ref-link:hover {
+    color: var(--accent);
+    border-color: var(--accent);
   }
 
-  .ref-link:hover {
-    border-color: var(--ink);
+  /* ======== BACK BOTTOM ======== */
+  .article-back-bottom {
+    padding-top: 40px;
+    padding-bottom: 80px;
   }
 
   /* ======== RESPONSIVE ======== */
   @media (max-width: 640px) {
-    .article {
-      padding: 40px var(--space-6) 56px;
-    }
-    .article-title {
-      font-size: 34px;
-    }
-    .article-dek {
-      font-size: 16px;
-    }
-    .prose {
-      font-size: 16px;
-      line-height: 1.7;
-    }
-    .prose > p:first-of-type::first-letter {
-      font-size: 52px;
-    }
-    .prose blockquote {
-      font-size: 18px;
-    }
-    .ref-card {
-      flex-direction: column;
-      align-items: flex-start;
-    }
+    .article-back { padding-top: 32px; }
+    .article-header { padding-top: 28px; }
+    .article-title { font-size: clamp(30px, 8vw, 48px); }
+    .article-lede { font-size: 17px; margin-bottom: 32px; }
+    .article-body { padding-top: 40px; }
+    .prose { font-size: 16px; line-height: 1.72; }
+    .prose > p:first-of-type::first-letter { font-size: 56px; }
+    .prose blockquote { font-size: 17px; }
+    .ref-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .article-back-bottom { padding-bottom: 56px; }
   }
 
   @media (max-width: 480px) {
-    .article {
-      padding: 32px var(--space-4) 48px;
-    }
-    .article-title {
-      font-size: 28px;
-    }
-    .eyebrow {
-      font-size: 10px;
-    }
+    .article-back { padding-top: 24px; }
+    .article-title { font-size: 28px; }
+    .kicker-rule { width: 20px; }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .article-header .eyebrow,
+    .article-kicker,
     .article-title,
-    .article-dek,
-    .article-rule {
+    .article-lede,
+    .ft-rule {
       animation: none !important;
       opacity: 1 !important;
       transform: none !important;

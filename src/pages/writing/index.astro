@@ -1,0 +1,280 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import NavBar from '../../components/NavBar.astro';
+import Footer from '../../components/Footer.astro';
+
+const base = import.meta.env.BASE_URL;
+const essays = (await getCollection('writing')).sort(
+  (a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+---
+
+<BaseLayout
+  title="Writing — Nana Gyasi"
+  description="Long-form notes on energy, AI, and building the trading house that runs on its own intelligence."
+>
+  <NavBar currentPath={`${base}/writing`} />
+
+  <main id="content">
+
+    <!-- ======== HERO ======== -->
+    <section class="write-hero wrap">
+      <div class="write-hero-inner">
+        <span class="eyebrow">Writing</span>
+        <h1>Long-form notes<br><em>from the build.</em></h1>
+        <p class="lede">Selected pieces on energy, infrastructure, AI pricing, and what I've learned building Kanay. The thinking behind the company — not the output.</p>
+      </div>
+    </section>
+
+    <div class="ornament wrap">
+      <span>· · ·</span>
+    </div>
+
+    <!-- ======== ARTICLE LIST ======== -->
+    <section class="write-list wrap">
+      {essays.map((essay, i) => (
+        <article class="write-item">
+          <a href={`${base}/writing/${essay.slug}/`} class="write-item-link">
+            <div class="write-item-meta">
+              <span class="write-num">{String(i + 1).padStart(2, '0')}</span>
+              <span class="write-eyebrow">{essay.data.eyebrow}</span>
+            </div>
+            <div class="write-item-body">
+              <h2 class="write-title">{essay.data.title}</h2>
+              <p class="write-dek">{essay.data.dek}</p>
+              <span class="write-read">
+                Read essay
+                <span class="write-arrow">→</span>
+              </span>
+            </div>
+            <div class="write-item-rule" />
+          </a>
+        </article>
+      ))}
+    </section>
+
+    <!-- ======== BACK TO SITE ======== -->
+    <div class="write-back wrap">
+      <a href={base} class="back-home">
+        <span class="back-arrow">←</span> Back to nana.kanay.io
+      </a>
+    </div>
+
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<script>
+  const observer = new IntersectionObserver(
+    entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('is-in');
+          observer.unobserve(e.target);
+        }
+      });
+    },
+    { threshold: 0.06, rootMargin: '0px 0px -40px 0px' }
+  );
+  document.querySelectorAll('.write-item, .write-hero').forEach(el => observer.observe(el));
+</script>
+
+<style>
+  /* ======== HERO ======== */
+  .write-hero {
+    padding: 96px 0 48px;
+  }
+  .write-hero-inner {
+    max-width: 720px;
+  }
+  .eyebrow {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    padding: 4px 12px;
+    margin-bottom: 28px;
+  }
+  .write-hero h1 {
+    font-family: var(--display);
+    font-size: clamp(52px, 7vw, 96px);
+    line-height: 0.96;
+    letter-spacing: -0.03em;
+    font-weight: 400;
+    margin: 0 0 28px;
+    color: var(--ink);
+  }
+  .write-hero h1 em {
+    font-style: italic;
+    color: var(--muted);
+  }
+  .lede {
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 52ch;
+    margin: 0;
+  }
+
+  /* ======== ARTICLE LIST ======== */
+  .write-list {
+    padding-bottom: 96px;
+  }
+
+  .write-item {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 600ms cubic-bezier(0.23, 1, 0.32, 1),
+                transform 600ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .write-item.is-in {
+    opacity: 1;
+    transform: none;
+  }
+
+  .write-item-link {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 0 48px;
+    padding: 40px 0;
+    border-bottom: none;
+    position: relative;
+    transition: none;
+  }
+
+  .write-item-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 6px;
+  }
+
+  .write-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  .write-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: inline-block;
+  }
+
+  .write-item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .write-title {
+    font-family: var(--display);
+    font-size: clamp(26px, 3.5vw, 42px);
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--ink);
+    margin: 0;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .write-item-link:hover .write-title {
+    color: var(--accent);
+  }
+
+  .write-dek {
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 56ch;
+    margin: 0;
+  }
+
+  .write-read {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 4px;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .write-item-link:hover .write-read {
+    color: var(--ink);
+  }
+
+  .write-arrow {
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  .write-item-link:hover .write-arrow {
+    transform: translateX(4px);
+  }
+
+  .write-item-rule {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--hairline);
+  }
+
+  /* ======== BACK ======== */
+  .write-back {
+    padding-bottom: 80px;
+  }
+  .back-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: none;
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+  .back-home:hover {
+    color: var(--ink);
+  }
+
+  /* ======== RESPONSIVE ======== */
+  @media (max-width: 640px) {
+    .write-hero {
+      padding: 64px 0 36px;
+    }
+    .write-hero h1 {
+      font-size: clamp(40px, 10vw, 64px);
+    }
+    .write-item-link {
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 28px 0;
+    }
+    .write-item-meta {
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+    }
+    .write-title {
+      font-size: clamp(22px, 6vw, 32px);
+    }
+  }
+</style>
